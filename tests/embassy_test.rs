@@ -1,4 +1,5 @@
 use anyhow::Error;
+use emma::comm::*;
 use fehler::throws;
 use std::process::{Command, Stdio};
 
@@ -15,11 +16,25 @@ fn build_embassy() {
 fn ping_and_stop() {
     build_embassy()?;
 
-    let mut proc = Command::new("target/debug/embassy")
+    let mut child = Command::new("target/debug/embassy")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
 
-    let status = proc.wait()?;
+    let mut stdin = child.stdin.take().unwrap();
+    let mut stdout = child.stdout.take().unwrap();
+
+    // Send ping, expect pong.
+    send(&Request::Ping, &mut stdin)?;
+    let resp: Response = recv(&mut stdout)?;
+    assert_eq!(resp, Response::Pong);
+
+    // Send stop, expect stop.
+    send(&Request::Stop, &mut stdin)?;
+    let resp: Response = recv(&mut stdout)?;
+    assert_eq!(resp, Response::Stop);
+
+    // Wait for child to exit.
+    let status = child.wait()?;
     assert!(status.success());
 }

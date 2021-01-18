@@ -2,7 +2,7 @@ use anyhow::Error;
 use crossbeam_channel::Receiver;
 use emma::comm::*;
 use fehler::throws;
-use std::io::{self, Read, Write};
+use std::io;
 use std::{fs, thread};
 
 #[throws]
@@ -12,10 +12,8 @@ fn response_thread(rx: Receiver<Response>) {
 
     loop {
         let resp = rx.recv()?;
-        let msg = bincode::serialize(&resp)?;
 
-        stdout_handle.write_all(&msg)?;
-        stdout_handle.flush()?;
+        send(&resp, &mut stdout_handle)?;
 
         if resp == Response::Stop {
             break;
@@ -37,16 +35,10 @@ fn main() {
 
     let stdin = io::stdin();
     let mut stdin_handle = stdin.lock();
-    let mut len_buf: [u8; 2] = [0; 2];
-    let mut msg_buf = Vec::new();
     loop {
-        stdin_handle.read_exact(&mut len_buf)?;
-        let msg_len = u16::from_le_bytes(len_buf);
-        msg_buf.resize(msg_len as usize, 0);
-        stdin_handle.read_exact(&mut msg_buf)?;
+        let req: Request = recv(&mut stdin_handle)?;
 
-        let msg = bincode::deserialize(&msg_buf)?;
-        match msg {
+        match req {
             Request::Ping => respond(Response::Pong)?,
             Request::ReadFile(req) => {
                 let contents = fs::read(req.path)?;

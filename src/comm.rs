@@ -1,4 +1,7 @@
-use serde::{Deserialize, Serialize};
+use anyhow::Error;
+use fehler::throws;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 
 pub type Id = [u8; 8];
@@ -33,4 +36,23 @@ pub enum Response {
     Pong,
     ReadFile(ReadFileResponse),
     Stop,
+}
+
+#[throws]
+pub fn send<W, T: ?Sized>(msg: &T, mut writer: W)
+where
+    W: Write,
+    T: Serialize,
+{
+    bincode::serialize_into(&mut writer, msg)?;
+    writer.flush()?;
+}
+
+#[throws]
+pub fn recv<R, T>(reader: R) -> T
+where
+    R: Read,
+    T: DeserializeOwned,
+{
+    bincode::deserialize_from(reader)?
 }
