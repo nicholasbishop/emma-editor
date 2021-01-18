@@ -1,44 +1,9 @@
 use anyhow::Error;
 use crossbeam_channel::Receiver;
+use emma::comm::*;
 use fehler::throws;
-use serde::{Deserialize, Serialize};
 use std::io::{self, Read, Write};
-use std::path::PathBuf;
 use std::{fs, thread};
-
-type Id = [u8; 8];
-
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
-struct ReadFileRequest {
-    id: Id,
-    path: PathBuf,
-}
-
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
-enum ReadFileResponseBody {
-    TotalSize(usize),
-    Data(Vec<u8>),
-}
-
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
-struct ReadFileResponse {
-    id: Id,
-    body: ReadFileResponseBody,
-}
-
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
-enum Request {
-    Ping,
-    ReadFile(ReadFileRequest),
-    Stop,
-}
-
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
-enum Response {
-    Pong,
-    ReadFile(ReadFileResponse),
-    Stop,
-}
 
 #[throws]
 fn response_thread(rx: Receiver<Response>) {
