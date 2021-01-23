@@ -115,21 +115,22 @@ fn parse_key_sequence_as_items(
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct KeySequence(Vec<KeySequenceAtom>);
 
+// TODO: rename error, use fehler and this error?
+
 impl KeySequence {
-    // TODO: change to a Result
-    fn parse(s: &str) -> Result<KeySequence, KeySequenceParseError> {
+    fn from_items(
+        items: &[KeySequenceParseItem],
+    ) -> Result<KeySequence, KeySequenceParseError> {
         let mut seq = Vec::new();
         let mut cur_mods = ModifierType::empty();
 
-        let items = parse_key_sequence_as_items(s)?;
-
         for item in items {
             match item {
-                KeySequenceParseItem::Modifier(m) => cur_mods |= m,
+                KeySequenceParseItem::Modifier(m) => cur_mods |= *m,
                 KeySequenceParseItem::Key(k) => {
                     seq.push(KeySequenceAtom {
                         modifiers: cur_mods,
-                        key: k,
+                        key: k.clone(),
                     });
                     cur_mods = ModifierType::empty();
                 }
@@ -140,6 +141,11 @@ impl KeySequence {
         }
 
         Ok(KeySequence(seq))
+    }
+
+    pub fn parse(s: &str) -> Result<KeySequence, KeySequenceParseError> {
+        let items = parse_key_sequence_as_items(s)?;
+        Self::from_items(&items)
     }
 }
 
