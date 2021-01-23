@@ -138,6 +138,7 @@ dependencies = [
  "glib",
  "gtk",
  "serde",
+ "thiserror",
 ]
 
 [[package]]

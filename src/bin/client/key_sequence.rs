@@ -19,10 +19,11 @@ impl KeySequenceAtom {
     }
 }
 
-// TODO: use thiserror?
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(thiserror::Error, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
+    #[error("invalid escape sequence: \"\\{0}\"")]
     InvalidEscape(char),
+    #[error("invalid name: \"{0}\"")]
     InvalidName(String),
 }
 
