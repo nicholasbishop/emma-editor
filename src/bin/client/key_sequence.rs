@@ -147,7 +147,7 @@ mod tests {
 
     // Used to ensure `gdk::init` is called only once. We run the
     // tests single threaded so the `sync` aspect feels a little
-    // silly.
+    // silly but seems necessary.
     static INIT_SYNC: Once = Once::new();
 
     fn init() {
@@ -171,6 +171,16 @@ mod tests {
                 ParseItem::Modifier(ModifierType::CONTROL_MASK),
                 ParseItem::Modifier(ModifierType::SHIFT_MASK),
             ])
+        );
+
+        assert_eq!(
+            parse_key_sequence_as_items("\\a"),
+            Err(Error::InvalidEscape('a'))
+        );
+
+        assert_eq!(
+            parse_key_sequence_as_items("<invalid>"),
+            Err(Error::InvalidName("invalid".into()))
         );
     }
 
