@@ -21,7 +21,7 @@ impl KeySequenceAtom {
 
 // TODO: use thiserror?
 #[derive(Clone, Debug, Eq, PartialEq)]
-enum Error {
+pub enum Error {
     InvalidEscape(char),
     InvalidName(String),
 }
@@ -113,8 +113,8 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<KeySequenceParseItem> {
     items
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct KeySequence(Vec<KeySequenceAtom>);
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct KeySequence(pub Vec<KeySequenceAtom>);
 
 impl KeySequence {
     #[throws]
