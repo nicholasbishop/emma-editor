@@ -1,3 +1,4 @@
+use fehler::{throw, throws};
 use gdk::keys::constants as keys;
 use gdk::{EventKey, ModifierType};
 use glib::translate::FromGlib;
@@ -18,8 +19,9 @@ impl KeySequenceAtom {
     }
 }
 
+// TODO: use thiserror?
 #[derive(Clone, Debug, Eq, PartialEq)]
-enum KeySequenceParseError {
+enum Error {
     InvalidEscape(char),
     InvalidName(String),
 }
@@ -31,9 +33,8 @@ enum KeySequenceParseItem {
     Append,
 }
 
-fn parse_key_sequence_as_items(
-    s: &str,
-) -> Result<Vec<KeySequenceParseItem>, KeySequenceParseError> {
+#[throws]
+fn parse_key_sequence_as_items(s: &str) -> Vec<KeySequenceParseItem> {
     enum State {
         Initial,
         InName,
@@ -90,7 +91,7 @@ fn parse_key_sequence_as_items(
                 } else if c == '+' {
                     items.push(KeySequenceParseItem::Key(keys::plus));
                 } else {
-                    return Err(KeySequenceParseError::InvalidEscape(c));
+                    throw!(Error::InvalidEscape(c));
                 }
                 state = State::Initial;
             }
@@ -99,7 +100,7 @@ fn parse_key_sequence_as_items(
                     if let Some(val) = names.get(name.as_str()) {
                         items.push(val.clone());
                     } else {
-                        return Err(KeySequenceParseError::InvalidName(name));
+                        throw!(Error::InvalidName(name));
                     }
                     state = State::Initial;
                 } else {
@@ -109,18 +110,15 @@ fn parse_key_sequence_as_items(
         }
     }
 
-    Ok(items)
+    items
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct KeySequence(Vec<KeySequenceAtom>);
 
-// TODO: rename error, use fehler and this error?
-
 impl KeySequence {
-    fn from_items(
-        items: &[KeySequenceParseItem],
-    ) -> Result<KeySequence, KeySequenceParseError> {
+    #[throws]
+    fn from_items(items: &[KeySequenceParseItem]) -> KeySequence {
         let mut seq = Vec::new();
         let mut cur_mods = ModifierType::empty();
 
@@ -140,12 +138,13 @@ impl KeySequence {
             }
         }
 
-        Ok(KeySequence(seq))
+        KeySequence(seq)
     }
 
-    pub fn parse(s: &str) -> Result<KeySequence, KeySequenceParseError> {
+    #[throws]
+    pub fn parse(s: &str) -> KeySequence {
         let items = parse_key_sequence_as_items(s)?;
-        Self::from_items(&items)
+        Self::from_items(&items)?
     }
 }
 
