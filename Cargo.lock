@@ -133,6 +133,7 @@ dependencies = [
  "bincode",
  "crossbeam-channel",
  "fehler",
+ "gdk",
  "gio",
  "gtk",
  "serde",

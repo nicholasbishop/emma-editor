@@ -1,3 +1,4 @@
+use gdk::keys::constants as keys;
 use gio::prelude::*;
 use gtk::prelude::*;
 
@@ -13,6 +14,23 @@ fn build_ui(application: &gtk::Application) {
     let text = gtk::TextView::new();
 
     window.add(&text);
+
+    window.add_events(gdk::EventMask::KEY_PRESS_MASK);
+    window.connect_key_press_event(|_, e| {
+        if e.get_is_modifier() {
+            Inhibit(false)
+        } else if e.get_keyval() == keys::Escape {
+            // TODO: for now make it easy to quit
+            std::process::exit(0);
+        } else if e.get_state() == gdk::ModifierType::CONTROL_MASK
+            && e.get_keyval() == keys::f
+        {
+            dbg!("C-f");
+            Inhibit(true)
+        } else {
+            Inhibit(false)
+        }
+    });
 
     window.show_all();
 }
