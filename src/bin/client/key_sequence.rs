@@ -156,10 +156,22 @@ impl KeySequence {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Once;
+
+    // Used to ensure `gdk::init` is called only once. We run the
+    // tests single threaded so the `sync` aspect feels a little
+    // silly.
+    static INIT_SYNC: Once = Once::new();
+
+    fn init() {
+        INIT_SYNC.call_once(|| {
+            gdk::init();
+        });
+    }
 
     #[test]
     fn test_parse_key_sequence() {
-        gdk::init();
+        init();
 
         assert_eq!(
             parse_key_sequence_as_items("aa"),
@@ -179,27 +191,35 @@ mod tests {
     }
 
     #[test]
-    fn test_sequence_parse() {
-        gdk::init();
+    fn test_sequence_from_items() {
+        init();
 
         assert_eq!(
-            KeySequence::parse("f"),
+            KeySequence::from_items(&[KeySequenceParseItem::Key(keys::a)]),
             Ok(KeySequence(vec![KeySequenceAtom {
                 modifiers: ModifierType::empty(),
-                key: keys::f,
+                key: keys::a,
             }]))
         );
 
         assert_eq!(
-            KeySequence::parse("<ctrl>f"),
+            KeySequence::from_items(&[
+                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
+                KeySequenceParseItem::Key(keys::a)
+            ]),
             Ok(KeySequence(vec![KeySequenceAtom {
                 modifiers: ModifierType::CONTROL_MASK,
-                key: keys::f,
+                key: keys::a,
             }]))
         );
 
         assert_eq!(
-            KeySequence::parse("<ctrl>x+f"),
+            KeySequence::from_items(&[
+                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
+                KeySequenceParseItem::Key(keys::x),
+                KeySequenceParseItem::Append,
+                KeySequenceParseItem::Key(keys::a),
+            ]),
             Ok(KeySequence(vec![
                 KeySequenceAtom {
                     modifiers: ModifierType::CONTROL_MASK,
@@ -207,13 +227,19 @@ mod tests {
                 },
                 KeySequenceAtom {
                     modifiers: ModifierType::empty(),
-                    key: keys::f,
+                    key: keys::a,
                 }
             ]))
         );
 
         assert_eq!(
-            KeySequence::parse("<ctrl>x+<ctrl>f"),
+            KeySequence::from_items(&[
+                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
+                KeySequenceParseItem::Key(keys::x),
+                KeySequenceParseItem::Append,
+                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
+                KeySequenceParseItem::Key(keys::a),
+            ]),
             Ok(KeySequence(vec![
                 KeySequenceAtom {
                     modifiers: ModifierType::CONTROL_MASK,
@@ -221,11 +247,9 @@ mod tests {
                 },
                 KeySequenceAtom {
                     modifiers: ModifierType::CONTROL_MASK,
-                    key: keys::f,
+                    key: keys::a,
                 }
             ]))
         );
-
-        // TODO: split up the parse and from_items tests
     }
 }
