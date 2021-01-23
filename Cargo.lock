@@ -135,6 +135,7 @@ dependencies = [
  "fehler",
  "gdk",
  "gio",
+ "glib",
  "gtk",
  "serde",
 ]
