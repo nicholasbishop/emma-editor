@@ -26,7 +26,7 @@ pub enum Error {
     InvalidName(String),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum KeySequenceParseItem {
     Modifier(ModifierType),
     Key(gdk::keys::Key),
@@ -102,6 +102,7 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<KeySequenceParseItem> {
                     } else {
                         throw!(Error::InvalidName(name));
                     }
+                    name.clear();
                     state = State::Initial;
                 } else {
                     name.push(c);
@@ -157,6 +158,27 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_parse_key_sequence() {
+        gdk::init();
+
+        assert_eq!(
+            parse_key_sequence_as_items("aa"),
+            Ok(vec![
+                KeySequenceParseItem::Key(keys::a),
+                KeySequenceParseItem::Key(keys::a)
+            ])
+        );
+
+        assert_eq!(
+            parse_key_sequence_as_items("<ctrl><shift>"),
+            Ok(vec![
+                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
+                KeySequenceParseItem::Modifier(ModifierType::SHIFT_MASK),
+            ])
+        );
+    }
+
+    #[test]
     fn test_sequence_parse() {
         gdk::init();
 
@@ -189,5 +211,21 @@ mod tests {
                 }
             ]))
         );
+
+        assert_eq!(
+            KeySequence::parse("<ctrl>x+<ctrl>f"),
+            Ok(KeySequence(vec![
+                KeySequenceAtom {
+                    modifiers: ModifierType::CONTROL_MASK,
+                    key: keys::x,
+                },
+                KeySequenceAtom {
+                    modifiers: ModifierType::CONTROL_MASK,
+                    key: keys::f,
+                }
+            ]))
+        );
+
+        // TODO: split up the parse and from_items tests
     }
 }
