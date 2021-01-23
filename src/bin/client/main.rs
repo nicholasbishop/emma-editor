@@ -8,23 +8,21 @@ use std::collections::BTreeMap;
 use std::env;
 use std::rc::Rc;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Action {
     Exit,
     OpenFile,
 }
 
 enum KeyMapLookup {
-    NoEntry,
-    InvalidTerminal,
-    Prefix,
     Action(Action),
+    Prefix,
+    NoEntry,
+    BadSequence,
 }
 
 #[derive(Clone, Debug, Default)]
-struct KeyMap {
-    items: BTreeMap<KeySequenceAtom, Action>,
-}
+struct KeyMap(BTreeMap<KeySequence, Action>);
 
 impl KeyMap {
     fn new() -> KeyMap {
@@ -38,12 +36,44 @@ impl KeyMap {
         map
     }
 
-    fn insert(&mut self, _seq: KeySequence, _action: Action) {
-        todo!();
+    fn insert(&mut self, seq: KeySequence, action: Action) {
+        self.0.insert(seq, action);
     }
 
-    fn lookup(&self, _seq: &KeySequence) -> KeyMapLookup {
-        todo!();
+    fn lookup(&self, seq: &KeySequence) -> KeyMapLookup {
+        // First check for the exact sequence
+        if let Some(action) = self.0.get(seq) {
+            return KeyMapLookup::Action(*action);
+        }
+
+        // Then check if the sequence could be a prefix for something
+        // in the map.
+        if self.contains_prefix(seq) {
+            return KeyMapLookup::Prefix;
+        }
+
+        // At this point we know the sequence is not in the map.
+
+        // If the sequence's length is 1 then just pass it along; this
+        // handles things like pressing the letter 'a' where we just
+        // want the default insertion action to occur.
+        if seq.0.len() == 1 {
+            return KeyMapLookup::NoEntry;
+        }
+
+        KeyMapLookup::BadSequence
+    }
+
+    /// Check if `seq` matches a prefix.
+    fn contains_prefix(&self, seq: &KeySequence) -> bool {
+        // TODO: should be able to make this more efficient by
+        // starting the search at the appropriate place.
+        for k in self.0.keys() {
+            if k.starts_with(&seq) {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -77,8 +107,9 @@ fn build_ui(application: &gtk::Application) {
                 // character into the text widget.
                 Inhibit(false)
             }
-            KeyMapLookup::InvalidTerminal => {
+            KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
+                dbg!("bad seq");
                 Inhibit(true)
             }
             KeyMapLookup::Prefix => {

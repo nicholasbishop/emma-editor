@@ -4,7 +4,7 @@ use gdk::{EventKey, ModifierType};
 use glib::translate::FromGlib;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct KeySequenceAtom {
     pub modifiers: ModifierType,
     pub key: gdk::keys::Key,
@@ -113,7 +113,7 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<KeySequenceParseItem> {
     items
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct KeySequence(pub Vec<KeySequenceAtom>);
 
 impl KeySequence {
@@ -145,6 +145,10 @@ impl KeySequence {
     pub fn parse(s: &str) -> KeySequence {
         let items = parse_key_sequence_as_items(s)?;
         Self::from_items(&items)?
+    }
+
+    pub fn starts_with(&self, _other: &KeySequence) -> bool {
+        todo!();
     }
 }
 
