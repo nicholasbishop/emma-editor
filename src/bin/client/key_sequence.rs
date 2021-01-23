@@ -27,14 +27,14 @@ pub enum Error {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-enum KeySequenceParseItem {
+enum ParseItem {
     Modifier(ModifierType),
     Key(gdk::keys::Key),
     Append,
 }
 
 #[throws]
-fn parse_key_sequence_as_items(s: &str) -> Vec<KeySequenceParseItem> {
+fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
     enum State {
         Initial,
         InName,
@@ -44,20 +44,11 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<KeySequenceParseItem> {
     let mut state = State::Initial;
 
     let mut names = HashMap::new();
-    names.insert(
-        "ctrl",
-        KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
-    );
-    names.insert(
-        "shift",
-        KeySequenceParseItem::Modifier(ModifierType::SHIFT_MASK),
-    );
-    names.insert(
-        "alt",
-        KeySequenceParseItem::Modifier(ModifierType::MOD1_MASK),
-    );
-    names.insert("esc", KeySequenceParseItem::Key(keys::Escape));
-    names.insert("space", KeySequenceParseItem::Key(keys::space));
+    names.insert("ctrl", ParseItem::Modifier(ModifierType::CONTROL_MASK));
+    names.insert("shift", ParseItem::Modifier(ModifierType::SHIFT_MASK));
+    names.insert("alt", ParseItem::Modifier(ModifierType::MOD1_MASK));
+    names.insert("esc", ParseItem::Key(keys::Escape));
+    names.insert("space", ParseItem::Key(keys::space));
 
     let mut items = Vec::new();
     let mut name = String::new();
@@ -69,27 +60,22 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<KeySequenceParseItem> {
                 } else if c == '<' {
                     state = State::InName;
                 } else if c == '+' {
-                    items.push(KeySequenceParseItem::Append);
+                    items.push(ParseItem::Append);
                 } else {
                     let keyval = gdk::unicode_to_keyval(c as u32);
-                    items.push(KeySequenceParseItem::Key(
-                        gdk::keys::Key::from_glib(keyval),
-                    ))
+                    items
+                        .push(ParseItem::Key(gdk::keys::Key::from_glib(keyval)))
                 }
             }
             State::InEscape => {
                 if c == '<' {
-                    items.push(KeySequenceParseItem::Key(
-                        keys::leftanglebracket,
-                    ));
+                    items.push(ParseItem::Key(keys::leftanglebracket));
                 } else if c == '>' {
-                    items.push(KeySequenceParseItem::Key(
-                        keys::rightanglebracket,
-                    ));
+                    items.push(ParseItem::Key(keys::rightanglebracket));
                 } else if c == '\\' {
-                    items.push(KeySequenceParseItem::Key(keys::backslash));
+                    items.push(ParseItem::Key(keys::backslash));
                 } else if c == '+' {
-                    items.push(KeySequenceParseItem::Key(keys::plus));
+                    items.push(ParseItem::Key(keys::plus));
                 } else {
                     throw!(Error::InvalidEscape(c));
                 }
@@ -119,21 +105,21 @@ pub struct KeySequence(pub Vec<KeySequenceAtom>);
 
 impl KeySequence {
     #[throws]
-    fn from_items(items: &[KeySequenceParseItem]) -> KeySequence {
+    fn from_items(items: &[ParseItem]) -> KeySequence {
         let mut seq = Vec::new();
         let mut cur_mods = ModifierType::empty();
 
         for item in items {
             match item {
-                KeySequenceParseItem::Modifier(m) => cur_mods |= *m,
-                KeySequenceParseItem::Key(k) => {
+                ParseItem::Modifier(m) => cur_mods |= *m,
+                ParseItem::Key(k) => {
                     seq.push(KeySequenceAtom {
                         modifiers: cur_mods,
                         key: k.clone(),
                     });
                     cur_mods = ModifierType::empty();
                 }
-                KeySequenceParseItem::Append => {
+                ParseItem::Append => {
                     // TODO
                 }
             }
@@ -175,17 +161,14 @@ mod tests {
 
         assert_eq!(
             parse_key_sequence_as_items("aa"),
-            Ok(vec![
-                KeySequenceParseItem::Key(keys::a),
-                KeySequenceParseItem::Key(keys::a)
-            ])
+            Ok(vec![ParseItem::Key(keys::a), ParseItem::Key(keys::a)])
         );
 
         assert_eq!(
             parse_key_sequence_as_items("<ctrl><shift>"),
             Ok(vec![
-                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
-                KeySequenceParseItem::Modifier(ModifierType::SHIFT_MASK),
+                ParseItem::Modifier(ModifierType::CONTROL_MASK),
+                ParseItem::Modifier(ModifierType::SHIFT_MASK),
             ])
         );
     }
@@ -195,7 +178,7 @@ mod tests {
         init();
 
         assert_eq!(
-            KeySequence::from_items(&[KeySequenceParseItem::Key(keys::a)]),
+            KeySequence::from_items(&[ParseItem::Key(keys::a)]),
             Ok(KeySequence(vec![KeySequenceAtom {
                 modifiers: ModifierType::empty(),
                 key: keys::a,
@@ -204,8 +187,8 @@ mod tests {
 
         assert_eq!(
             KeySequence::from_items(&[
-                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
-                KeySequenceParseItem::Key(keys::a)
+                ParseItem::Modifier(ModifierType::CONTROL_MASK),
+                ParseItem::Key(keys::a)
             ]),
             Ok(KeySequence(vec![KeySequenceAtom {
                 modifiers: ModifierType::CONTROL_MASK,
@@ -215,10 +198,10 @@ mod tests {
 
         assert_eq!(
             KeySequence::from_items(&[
-                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
-                KeySequenceParseItem::Key(keys::x),
-                KeySequenceParseItem::Append,
-                KeySequenceParseItem::Key(keys::a),
+                ParseItem::Modifier(ModifierType::CONTROL_MASK),
+                ParseItem::Key(keys::x),
+                ParseItem::Append,
+                ParseItem::Key(keys::a),
             ]),
             Ok(KeySequence(vec![
                 KeySequenceAtom {
@@ -234,11 +217,11 @@ mod tests {
 
         assert_eq!(
             KeySequence::from_items(&[
-                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
-                KeySequenceParseItem::Key(keys::x),
-                KeySequenceParseItem::Append,
-                KeySequenceParseItem::Modifier(ModifierType::CONTROL_MASK),
-                KeySequenceParseItem::Key(keys::a),
+                ParseItem::Modifier(ModifierType::CONTROL_MASK),
+                ParseItem::Key(keys::x),
+                ParseItem::Append,
+                ParseItem::Modifier(ModifierType::CONTROL_MASK),
+                ParseItem::Key(keys::a),
             ]),
             Ok(KeySequence(vec![
                 KeySequenceAtom {
