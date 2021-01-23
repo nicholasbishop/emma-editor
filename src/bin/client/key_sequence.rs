@@ -4,7 +4,7 @@ use gdk::{EventKey, ModifierType};
 use glib::translate::FromGlib;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct KeySequenceAtom {
     pub modifiers: ModifierType,
     pub key: gdk::keys::Key,

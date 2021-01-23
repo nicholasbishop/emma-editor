@@ -4,7 +4,7 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use key_sequence::{KeySequence, KeySequenceAtom};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::rc::Rc;
 
@@ -14,15 +14,16 @@ enum Action {
     OpenFile,
 }
 
-#[derive(Clone, Debug)]
-enum KeyMapValue {
+enum KeyMapLookup {
+    NoEntry,
+    InvalidTerminal,
+    Prefix,
     Action(Action),
-    Prefix(KeyMap),
 }
 
 #[derive(Clone, Debug, Default)]
 struct KeyMap {
-    items: HashMap<KeySequenceAtom, KeyMapValue>,
+    items: BTreeMap<KeySequenceAtom, Action>,
 }
 
 impl KeyMap {
@@ -37,11 +38,11 @@ impl KeyMap {
         map
     }
 
-    fn insert(&mut self, seq: KeySequence, _action: Action) {
+    fn insert(&mut self, _seq: KeySequence, _action: Action) {
         todo!();
     }
 
-    fn lookup(&self, _seq: &KeySequence) -> Option<&KeyMapValue> {
+    fn lookup(&self, _seq: &KeySequence) -> KeyMapLookup {
         todo!();
     }
 }
@@ -71,25 +72,25 @@ fn build_ui(application: &gtk::Application) {
         cur_seq.borrow_mut().0.push(atom);
 
         match keymap.lookup(&cur_seq.borrow()) {
-            None => {
-                // TODO: if this is a sequence and the terminal has no
-                // match then we should treat it as an error rather
-                // than inhibiting.
-
+            KeyMapLookup::NoEntry => {
                 // Allow default handling to occur, e.g. inserting a
                 // character into the text widget.
                 Inhibit(false)
             }
-            Some(KeyMapValue::Action(Action::Exit)) => {
-                std::process::exit(0);
-            }
-            Some(KeyMapValue::Action(Action::OpenFile)) => {
-                dbg!("C-f");
+            KeyMapLookup::InvalidTerminal => {
+                // TODO: display some kind of non-blocking error
                 Inhibit(true)
             }
-            Some(KeyMapValue::Prefix(_)) => {
+            KeyMapLookup::Prefix => {
                 // Waiting for the sequence to be completed.
-                Inhibit(false)
+                Inhibit(true)
+            }
+            KeyMapLookup::Action(Action::Exit) => {
+                std::process::exit(0);
+            }
+            KeyMapLookup::Action(Action::OpenFile) => {
+                dbg!("C-f");
+                Inhibit(true)
             }
         }
     });
