@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 pub enum Action {
     Exit,
     OpenFile,
+    PreviousView,
     NextView,
     SplitHorizontal,
     SplitVertical,
@@ -28,6 +29,10 @@ impl KeyMap {
         map.insert(
             KeySequence::parse("<ctrl>x+<ctrl>f").unwrap(),
             Action::OpenFile,
+        );
+        map.insert(
+            KeySequence::parse("<ctrl><shift>j").unwrap(),
+            Action::PreviousView,
         );
         map.insert(
             KeySequence::parse("<ctrl><shift>k").unwrap(),

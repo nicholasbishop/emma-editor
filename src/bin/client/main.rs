@@ -165,6 +165,14 @@ fn build_ui(application: &gtk::Application) {
             KeyMapLookup::Action(Action::OpenFile) => {
                 dbg!("todo: open file");
             }
+            KeyMapLookup::Action(Action::PreviousView) => {
+                let views = views.borrow();
+                if let Some(focus) = window.get_focus() {
+                    let pos = views.iter().position(|e| *e == focus).unwrap();
+                    let prev = if pos == 0 { views.len() - 1 } else { pos - 1 };
+                    views[prev].grab_focus();
+                }
+            }
             KeyMapLookup::Action(Action::NextView) => {
                 let views = views.borrow();
                 if let Some(focus) = window.get_focus() {
