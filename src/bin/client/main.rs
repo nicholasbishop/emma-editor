@@ -114,7 +114,8 @@ fn build_ui(application: &gtk::Application) {
                 // Waiting for the sequence to be completed.
             }
             KeyMapLookup::Action(Action::Exit) => {
-                std::process::exit(0);
+                dbg!("close!");
+                window.close();
             }
             KeyMapLookup::Action(Action::OpenFile) => {
                 dbg!("todo: open file");
