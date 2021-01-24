@@ -31,11 +31,20 @@ fn get_widget_index_in_container<
     layout.get_children().iter().position(|elem| elem == widget)
 }
 
-fn split_view(window: &gtk::ApplicationWindow, orientation: gtk::Orientation) {
+fn split_view(
+    window: &gtk::ApplicationWindow,
+    orientation: gtk::Orientation,
+    views: &mut Vec<gtk::TextView>,
+) {
+    // TODO: a more explicit tree structure might make this easier --
+    // similar to how we do with the views vec
     if let Some(focus) = window.get_focus() {
         if let Some(parent) = focus.get_parent() {
             if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
                 let new_view = gtk::TextView::new();
+                let focus_index =
+                    views.iter().position(|e| *e == focus).unwrap();
+                views.insert(focus_index + 1, new_view.clone());
 
                 // Check if the layout is in the correct orientation.
                 if layout.get_orientation() == orientation {
@@ -115,6 +124,9 @@ fn build_ui(application: &gtk::Application) {
     let keymap = KeyMap::new();
     let cur_seq = Rc::new(RefCell::new(KeySequence::default()));
 
+    let views = Rc::new(RefCell::new(Vec::new()));
+    views.borrow_mut().push(text);
+
     window.add_events(gdk::EventMask::KEY_PRESS_MASK);
     window2.connect_key_press_event(move |_, e| {
         // Ignore lone modifier presses.
@@ -154,13 +166,26 @@ fn build_ui(application: &gtk::Application) {
                 dbg!("todo: open file");
             }
             KeyMapLookup::Action(Action::NextView) => {
-                todo!("next view");
+                let views = views.borrow();
+                if let Some(focus) = window.get_focus() {
+                    let pos = views.iter().position(|e| *e == focus).unwrap();
+                    let next = if pos == views.len() - 1 { 0 } else { pos + 1 };
+                    views[next].grab_focus();
+                }
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
-                split_view(&window, gtk::Orientation::Horizontal);
+                split_view(
+                    &window,
+                    gtk::Orientation::Horizontal,
+                    &mut views.borrow_mut(),
+                );
             }
             KeyMapLookup::Action(Action::SplitVertical) => {
-                split_view(&window, gtk::Orientation::Vertical);
+                split_view(
+                    &window,
+                    gtk::Orientation::Vertical,
+                    &mut views.borrow_mut(),
+                );
             }
         };
 
