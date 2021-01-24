@@ -12,9 +12,20 @@ pub struct KeySequenceAtom {
 
 impl KeySequenceAtom {
     pub fn from_event(e: &EventKey) -> KeySequenceAtom {
+        let mut key = e.get_keyval();
+
+        // Try to convert the key to lowercase as a way to normalize.
+        if let Some(c) = key.to_unicode() {
+            let lower = c.to_lowercase().collect::<Vec<_>>();
+            if lower.len() == 1 {
+                let keyval = gdk::unicode_to_keyval(lower[0] as u32);
+                key = gdk::keys::Key::from_glib(keyval)
+            }
+        }
+
         KeySequenceAtom {
             modifiers: e.get_state(),
-            key: e.get_keyval(),
+            key,
         }
     }
 }
