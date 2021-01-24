@@ -16,6 +16,14 @@ fn build_ui(application: &gtk::Application) {
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(640, 480);
 
+    let css = gtk::CssProvider::new();
+    css.load_from_data(include_bytes!("theme.css")).unwrap();
+    gtk::StyleContext::add_provider_for_screen(
+        &gdk::Screen::get_default().unwrap(),
+        &css,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
+
     let layout = gtk::Box::new(gtk::Orientation::Vertical, 1);
 
     let text = gtk::TextView::new();
