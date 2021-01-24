@@ -9,6 +9,45 @@ use std::cell::RefCell;
 use std::env;
 use std::rc::Rc;
 
+fn make_box(o: gtk::Orientation) -> gtk::Box {
+    let spacing = 1;
+    gtk::Box::new(o, spacing)
+}
+
+fn pack<W: IsA<gtk::Widget>>(layout: &gtk::Box, child: &W) {
+    let expand = true;
+    let fill = true;
+    let padding = 0;
+    layout.pack_start(child, expand, fill, padding);
+}
+
+fn split_horizontal(window: &gtk::ApplicationWindow) {
+    if let Some(focus) = window.get_focus() {
+        if let Some(parent) = focus.get_parent() {
+            if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
+                let new_view = gtk::TextView::new();
+
+                // Check if the layout is in the correct orientation.
+                if layout.get_orientation() == gtk::Orientation::Horizontal {
+                    pack(&layout, &new_view);
+                } else {
+                    // If there's only the one view in the layout,
+                    // just switch the orientation. Otherwise, create
+                    // a new layout to subdivide.
+                    if layout.get_children().len() == 1 {
+                        layout.set_orientation(gtk::Orientation::Horizontal);
+                        pack(&layout, &new_view);
+                    } else {
+                        let new_layout = make_box(gtk::Orientation::Horizontal);
+                        pack(&new_layout, &new_view);
+                        pack(&layout, &new_layout);
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
 
@@ -24,22 +63,27 @@ fn build_ui(application: &gtk::Application) {
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
 
-    let layout = gtk::Box::new(gtk::Orientation::Vertical, 1);
+    let layout = make_box(gtk::Orientation::Vertical);
 
+    let split_root = make_box(gtk::Orientation::Horizontal);
     let text = gtk::TextView::new();
+    pack(&split_root, &text);
+
     let minibuf = gtk::TextView::new();
     minibuf.set_size_request(-1, 26); // TODO
 
-    layout.pack_start(&text, true, true, 0);
+    pack(&layout, &split_root);
     layout.pack_start(&minibuf, false, true, 0);
 
     window.add(&layout);
+    // TODO: use clone macro
+    let window2 = window.clone();
 
     let keymap = KeyMap::new();
     let cur_seq = Rc::new(RefCell::new(KeySequence::default()));
 
     window.add_events(gdk::EventMask::KEY_PRESS_MASK);
-    window.connect_key_press_event(move |_, e| {
+    window2.connect_key_press_event(move |_, e| {
         // Ignore lone modifier presses.
         if e.get_is_modifier() {
             return Inhibit(false);
@@ -79,7 +123,7 @@ fn build_ui(application: &gtk::Application) {
                 todo!("next view");
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
-                todo!("");
+                split_horizontal(&window);
             }
             KeyMapLookup::Action(Action::SplitVertical) => {
                 todo!("");
@@ -93,7 +137,7 @@ fn build_ui(application: &gtk::Application) {
         Inhibit(inhibit)
     });
 
-    window.show_all();
+    window2.show_all();
 }
 
 fn main() {
