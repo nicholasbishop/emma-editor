@@ -50,7 +50,7 @@ fn build_ui(application: &gtk::Application) {
             }
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
-                dbg!("bad seq");
+                dbg!("bad seq", cur_seq.borrow());
             }
             KeyMapLookup::Prefix => {
                 clear_seq = false;
