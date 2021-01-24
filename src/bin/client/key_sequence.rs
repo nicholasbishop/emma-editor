@@ -23,8 +23,20 @@ impl KeySequenceAtom {
 pub enum Error {
     #[error("invalid escape sequence: \"\\{0}\"")]
     InvalidEscape(char),
+
     #[error("invalid name: \"{0}\"")]
     InvalidName(String),
+
+    #[error("unexpected \"+\"")]
+    UnexpectedAppend,
+
+    // TODO: improve printing of this error
+    #[error("unexpected modifier {0:?}")]
+    UnexpectedModifier(ModifierType),
+
+    // TODO: improve printing of this error
+    #[error("unexpected key {0:?}")]
+    UnexpectedKey(gdk::keys::Key),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -107,22 +119,53 @@ pub struct KeySequence(pub Vec<KeySequenceAtom>);
 impl KeySequence {
     #[throws]
     fn from_items(items: &[ParseItem]) -> KeySequence {
+        enum State {
+            ModOrKeyRequired,
+            AppendRequired,
+        }
+
+        let mut state = State::ModOrKeyRequired;
         let mut seq = Vec::new();
         let mut cur_mods = ModifierType::empty();
 
         for item in items {
             match item {
-                ParseItem::Modifier(m) => cur_mods |= *m,
+                ParseItem::Modifier(m) => {
+                    cur_mods |= *m;
+
+                    match state {
+                        State::ModOrKeyRequired => {
+                            state = State::ModOrKeyRequired;
+                        }
+                        State::AppendRequired => {
+                            throw!(Error::UnexpectedModifier(*m));
+                        }
+                    }
+                }
                 ParseItem::Key(k) => {
                     seq.push(KeySequenceAtom {
                         modifiers: cur_mods,
                         key: k.clone(),
                     });
                     cur_mods = ModifierType::empty();
+
+                    match state {
+                        State::ModOrKeyRequired => {
+                            state = State::AppendRequired;
+                        }
+                        State::AppendRequired => {
+                            throw!(Error::UnexpectedKey(k.clone()));
+                        }
+                    }
                 }
-                ParseItem::Append => {
-                    // TODO
-                }
+                ParseItem::Append => match state {
+                    State::ModOrKeyRequired => {
+                        throw!(Error::UnexpectedAppend);
+                    }
+                    State::AppendRequired => {
+                        state = State::ModOrKeyRequired;
+                    }
+                },
             }
         }
 
@@ -172,6 +215,8 @@ mod tests {
                 ParseItem::Modifier(ModifierType::SHIFT_MASK),
             ])
         );
+
+        // Errors
 
         assert_eq!(
             parse_key_sequence_as_items("\\a"),
@@ -244,6 +289,29 @@ mod tests {
                     key: keys::a,
                 }
             ]))
+        );
+
+        // Errors
+
+        assert_eq!(
+            KeySequence::from_items(&[
+                ParseItem::Key(keys::a),
+                ParseItem::Modifier(ModifierType::CONTROL_MASK),
+            ]),
+            Err(Error::UnexpectedModifier(ModifierType::CONTROL_MASK))
+        );
+
+        assert_eq!(
+            KeySequence::from_items(&[ParseItem::Append]),
+            Err(Error::UnexpectedAppend)
+        );
+
+        assert_eq!(
+            KeySequence::from_items(&[
+                ParseItem::Key(keys::a),
+                ParseItem::Key(keys::a),
+            ]),
+            Err(Error::UnexpectedKey(keys::a))
         );
     }
 }
