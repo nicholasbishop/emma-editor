@@ -31,6 +31,18 @@ fn single_modifier_to_string(m: &ModifierType) -> &'static str {
     }
 }
 
+fn key_to_string(key: &gdk::keys::Key) -> String {
+    if *key == keys::Escape {
+        "<esc>".into()
+    } else if *key == keys::BackSpace {
+        "<backspace>".into()
+    } else if let Some(c) = key.to_unicode() {
+        format!("\"{}\"", c)
+    } else {
+        "unknown".into()
+    }
+}
+
 #[derive(thiserror::Error, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
     #[error("invalid escape sequence: \"\\{0}\"")]
@@ -45,8 +57,7 @@ pub enum Error {
     #[error("unexpected modifier {}", single_modifier_to_string(.0))]
     UnexpectedModifier(ModifierType),
 
-    // TODO: improve printing of this error
-    #[error("unexpected key {0:?}")]
+    #[error("unexpected key {}", key_to_string(.0))]
     UnexpectedKey(gdk::keys::Key),
 }
 
@@ -220,6 +231,21 @@ mod tests {
                 Error::UnexpectedModifier(ModifierType::CONTROL_MASK)
             ),
             "unexpected modifier ctrl".to_string()
+        );
+
+        assert_eq!(
+            format!("{}", Error::UnexpectedKey(keys::a)),
+            "unexpected key \"a\"".to_string()
+        );
+
+        assert_eq!(
+            format!("{}", Error::UnexpectedKey(keys::Escape)),
+            "unexpected key <esc>".to_string()
+        );
+
+        assert_eq!(
+            format!("{}", Error::UnexpectedKey(keys::BackSpace)),
+            "unexpected key <backspace>".to_string()
         );
     }
 
