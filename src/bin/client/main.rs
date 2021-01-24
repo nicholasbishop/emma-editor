@@ -64,6 +64,9 @@ fn build_ui(application: &gtk::Application) {
                 dbg!("todo: open file");
                 Inhibit(true)
             }
+            KeyMapLookup::Action(Action::NextView) => {
+                todo!("next view");
+            }
         };
 
         if clear_seq {
