@@ -34,12 +34,12 @@ impl KeyMap {
             Action::NextView,
         );
         map.insert(
-            KeySequence::parse("<ctrl>x+3").unwrap(),
-            Action::SplitHorizontal,
+            KeySequence::parse("<ctrl>x+2").unwrap(),
+            Action::SplitVertical,
         );
         map.insert(
-            KeySequence::parse("<ctrl>x+4").unwrap(),
-            Action::SplitVertical,
+            KeySequence::parse("<ctrl>x+3").unwrap(),
+            Action::SplitHorizontal,
         );
         map
     }

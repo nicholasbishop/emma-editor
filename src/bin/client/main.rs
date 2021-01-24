@@ -21,6 +21,16 @@ fn pack<W: IsA<gtk::Widget>>(layout: &gtk::Box, child: &W) {
     layout.pack_start(child, expand, fill, padding);
 }
 
+fn get_widget_index_in_container<
+    L: IsA<gtk::Container>,
+    W: IsA<gtk::Widget>,
+>(
+    layout: &L,
+    widget: &W,
+) -> Option<usize> {
+    layout.get_children().iter().position(|elem| elem == widget)
+}
+
 fn split_view(window: &gtk::ApplicationWindow, orientation: gtk::Orientation) {
     if let Some(focus) = window.get_focus() {
         if let Some(parent) = focus.get_parent() {
@@ -39,10 +49,33 @@ fn split_view(window: &gtk::ApplicationWindow, orientation: gtk::Orientation) {
                         pack(&layout, &new_view);
                     } else {
                         let new_layout = make_box(orientation);
+
+                        // Get the position of the current focused
+                        // widget in its layout so that we can later
+                        // put a new layout widget in the same place.
+                        let position =
+                            get_widget_index_in_container(layout, &focus)
+                                .unwrap();
+
+                        // Move the focused view from the old layout
+                        // to the new layout
+                        layout.remove(&focus);
+                        pack(&new_layout, &focus);
+
+                        // Add the new view and add the new layout.
                         pack(&new_layout, &new_view);
-                        pack(&layout, &new_layout);
+
+                        // Add the new layout to the old layout, and
+                        // move it to the right location. TODO: not
+                        // sure if there's a better way to do this, or
+                        // if the current way is always correct.
+                        pack(layout, &new_layout);
+                        layout.reorder_child(&new_layout, position as i32);
                     }
                 }
+
+                layout.show_all();
+                window.set_focus(Some(&new_view));
             }
         }
     }
