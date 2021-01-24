@@ -37,6 +37,11 @@ fn build_ui(application: &gtk::Application) {
             return Inhibit(false);
         }
 
+        // TODO: we want to ignore combo modifier presses too if no
+        // non-modifier key is selected, e.g. pressing alt and then
+        // shift, but currently that is treated as a valid
+        // sequence. Need to figure out how to prevent that.
+
         let atom = KeySequenceAtom::from_event(e);
         cur_seq.borrow_mut().0.push(atom);
 
