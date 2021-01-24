@@ -200,8 +200,8 @@ impl KeySequence {
         Self::from_items(&items)?
     }
 
-    pub fn starts_with(&self, _other: &KeySequence) -> bool {
-        todo!();
+    pub fn starts_with(&self, other: &KeySequence) -> bool {
+        self.0.starts_with(&other.0)
     }
 }
 
