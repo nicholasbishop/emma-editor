@@ -54,12 +54,15 @@ impl KeyMap {
 
         // At this point we know the sequence is not in the map.
 
-        // If the sequence's length is 1 then just pass it along; this
-        // handles things like pressing the letter 'a' where we just
-        // want the default insertion action to occur.
-        if seq.0.len() == 1 {
+        // If the sequence's length is 1 and it doesn't have any
+        // modifiers then just pass it along; this handles things like
+        // pressing the letter 'a' where we just want the default
+        // insertion action to occur.
+        if seq.0.len() == 1 && seq.0[0].modifiers.is_empty() {
             return KeyMapLookup::NoEntry;
         }
+
+        // TODO: special "<ctrl>g" type thing to kill any sequence
 
         KeyMapLookup::BadSequence
     }
@@ -101,7 +104,8 @@ fn build_ui(application: &gtk::Application) {
         let atom = KeySequenceAtom::from_event(e);
         cur_seq.borrow_mut().0.push(atom);
 
-        match keymap.lookup(&cur_seq.borrow()) {
+        let mut clear_seq = true;
+        let res = match keymap.lookup(&cur_seq.borrow()) {
             KeyMapLookup::NoEntry => {
                 // Allow default handling to occur, e.g. inserting a
                 // character into the text widget.
@@ -113,6 +117,7 @@ fn build_ui(application: &gtk::Application) {
                 Inhibit(true)
             }
             KeyMapLookup::Prefix => {
+                clear_seq = false;
                 // Waiting for the sequence to be completed.
                 Inhibit(true)
             }
@@ -120,10 +125,16 @@ fn build_ui(application: &gtk::Application) {
                 std::process::exit(0);
             }
             KeyMapLookup::Action(Action::OpenFile) => {
-                dbg!("C-f");
+                dbg!("todo: open file");
                 Inhibit(true)
             }
+        };
+
+        if clear_seq {
+            cur_seq.borrow_mut().0.clear();
         }
+
+        res
     });
 
     window.show_all();
