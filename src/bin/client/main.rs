@@ -85,7 +85,7 @@ fn build_ui(application: &gtk::Application) {
 
     window.set_title("emma");
     window.set_position(gtk::WindowPosition::Center);
-    window.set_default_size(350, 70);
+    window.set_default_size(640, 480);
 
     let text = gtk::TextView::new();
 
