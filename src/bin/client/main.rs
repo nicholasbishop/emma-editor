@@ -41,28 +41,26 @@ fn build_ui(application: &gtk::Application) {
         cur_seq.borrow_mut().0.push(atom);
 
         let mut clear_seq = true;
-        let res = match keymap.lookup(&cur_seq.borrow()) {
+        let mut inhibit = true;
+        match keymap.lookup(&cur_seq.borrow()) {
             KeyMapLookup::NoEntry => {
                 // Allow default handling to occur, e.g. inserting a
                 // character into the text widget.
-                Inhibit(false)
+                inhibit = false;
             }
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
                 dbg!("bad seq");
-                Inhibit(true)
             }
             KeyMapLookup::Prefix => {
                 clear_seq = false;
                 // Waiting for the sequence to be completed.
-                Inhibit(true)
             }
             KeyMapLookup::Action(Action::Exit) => {
                 std::process::exit(0);
             }
             KeyMapLookup::Action(Action::OpenFile) => {
                 dbg!("todo: open file");
-                Inhibit(true)
             }
             KeyMapLookup::Action(Action::NextView) => {
                 todo!("next view");
@@ -73,7 +71,7 @@ fn build_ui(application: &gtk::Application) {
             cur_seq.borrow_mut().0.clear();
         }
 
-        res
+        Inhibit(inhibit)
     });
 
     window.show_all();
