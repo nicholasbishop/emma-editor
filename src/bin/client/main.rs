@@ -78,6 +78,12 @@ fn build_ui(application: &gtk::Application) {
             KeyMapLookup::Action(Action::NextView) => {
                 todo!("next view");
             }
+            KeyMapLookup::Action(Action::SplitHorizontal) => {
+                todo!("");
+            }
+            KeyMapLookup::Action(Action::SplitVertical) => {
+                todo!("");
+            }
         };
 
         if clear_seq {
