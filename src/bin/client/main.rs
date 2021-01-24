@@ -21,24 +21,24 @@ fn pack<W: IsA<gtk::Widget>>(layout: &gtk::Box, child: &W) {
     layout.pack_start(child, expand, fill, padding);
 }
 
-fn split_horizontal(window: &gtk::ApplicationWindow) {
+fn split_view(window: &gtk::ApplicationWindow, orientation: gtk::Orientation) {
     if let Some(focus) = window.get_focus() {
         if let Some(parent) = focus.get_parent() {
             if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
                 let new_view = gtk::TextView::new();
 
                 // Check if the layout is in the correct orientation.
-                if layout.get_orientation() == gtk::Orientation::Horizontal {
+                if layout.get_orientation() == orientation {
                     pack(&layout, &new_view);
                 } else {
                     // If there's only the one view in the layout,
                     // just switch the orientation. Otherwise, create
                     // a new layout to subdivide.
                     if layout.get_children().len() == 1 {
-                        layout.set_orientation(gtk::Orientation::Horizontal);
+                        layout.set_orientation(orientation);
                         pack(&layout, &new_view);
                     } else {
-                        let new_layout = make_box(gtk::Orientation::Horizontal);
+                        let new_layout = make_box(orientation);
                         pack(&new_layout, &new_view);
                         pack(&layout, &new_layout);
                     }
@@ -123,10 +123,10 @@ fn build_ui(application: &gtk::Application) {
                 todo!("next view");
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
-                split_horizontal(&window);
+                split_view(&window, gtk::Orientation::Horizontal);
             }
             KeyMapLookup::Action(Action::SplitVertical) => {
-                todo!("");
+                split_view(&window, gtk::Orientation::Vertical);
             }
         };
 
