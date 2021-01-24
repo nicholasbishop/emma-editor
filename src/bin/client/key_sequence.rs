@@ -19,6 +19,18 @@ impl KeySequenceAtom {
     }
 }
 
+fn single_modifier_to_string(m: &ModifierType) -> &'static str {
+    if *m == ModifierType::CONTROL_MASK {
+        "ctrl"
+    } else if *m == ModifierType::SHIFT_MASK {
+        "shift"
+    } else if *m == ModifierType::MOD1_MASK {
+        "alt"
+    } else {
+        "unknown"
+    }
+}
+
 #[derive(thiserror::Error, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
     #[error("invalid escape sequence: \"\\{0}\"")]
@@ -30,8 +42,7 @@ pub enum Error {
     #[error("unexpected \"+\"")]
     UnexpectedAppend,
 
-    // TODO: improve printing of this error
-    #[error("unexpected modifier {0:?}")]
+    #[error("unexpected modifier {}", single_modifier_to_string(.0))]
     UnexpectedModifier(ModifierType),
 
     // TODO: improve printing of this error
@@ -197,6 +208,19 @@ mod tests {
         INIT_SYNC.call_once(|| {
             gdk::init();
         });
+    }
+
+    #[test]
+    fn test_error_display() {
+        init();
+
+        assert_eq!(
+            format!(
+                "{}",
+                Error::UnexpectedModifier(ModifierType::CONTROL_MASK)
+            ),
+            "unexpected modifier ctrl".to_string()
+        );
     }
 
     #[test]
