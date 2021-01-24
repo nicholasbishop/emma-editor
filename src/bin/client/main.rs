@@ -16,9 +16,16 @@ fn build_ui(application: &gtk::Application) {
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(640, 480);
 
-    let text = gtk::TextView::new();
+    let layout = gtk::Box::new(gtk::Orientation::Vertical, 1);
 
-    window.add(&text);
+    let text = gtk::TextView::new();
+    let minibuf = gtk::TextView::new();
+    minibuf.set_size_request(-1, 26); // TODO
+
+    layout.pack_start(&text, true, true, 0);
+    layout.pack_start(&minibuf, false, true, 0);
+
+    window.add(&layout);
 
     let keymap = KeyMap::new();
     let cur_seq = Rc::new(RefCell::new(KeySequence::default()));
