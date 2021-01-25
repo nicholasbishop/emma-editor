@@ -48,7 +48,14 @@ fn split_view(
 
                 // Check if the layout is in the correct orientation.
                 if layout.get_orientation() == orientation {
+                    // Get the position of the current focused widget
+                    // in its layout so that we can the new widget
+                    // right after it.
+                    let position =
+                        get_widget_index_in_container(layout, &focus).unwrap();
+
                     pack(&layout, &new_view);
+                    layout.reorder_child(&new_view, (position + 1) as i32);
                 } else {
                     // If there's only the one view in the layout,
                     // just switch the orientation. Otherwise, create
