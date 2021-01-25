@@ -9,6 +9,7 @@ pub enum Action {
     NextView,
     SplitHorizontal,
     SplitVertical,
+    CloseView,
 }
 
 pub enum KeyMapLookup {
@@ -46,6 +47,7 @@ impl KeyMap {
             KeySequence::parse("<ctrl>x+3").unwrap(),
             Action::SplitHorizontal,
         );
+        map.insert(KeySequence::parse("<ctrl>x+0").unwrap(), Action::CloseView);
         map
     }
 

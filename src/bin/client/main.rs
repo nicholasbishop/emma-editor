@@ -202,6 +202,9 @@ fn build_ui(application: &gtk::Application) {
                     &mut views.borrow_mut(),
                 );
             }
+            KeyMapLookup::Action(Action::CloseView) => {
+                todo!();
+            }
         };
 
         if clear_seq {
