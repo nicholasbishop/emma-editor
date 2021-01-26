@@ -1,5 +1,6 @@
 mod key_map;
 mod key_sequence;
+mod view_tree;
 
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -8,6 +9,7 @@ use key_sequence::{KeySequence, KeySequenceAtom};
 use std::cell::RefCell;
 use std::env;
 use std::rc::Rc;
+use view_tree::ViewTree;
 
 fn make_box(o: gtk::Orientation) -> gtk::Box {
     let spacing = 1;
@@ -113,6 +115,8 @@ fn build_ui(application: &gtk::Application) {
     );
 
     let layout = make_box(gtk::Orientation::Vertical);
+
+    let _view_tree = ViewTree::new();
 
     let split_root = make_box(gtk::Orientation::Horizontal);
     let text = gtk::TextView::new();
