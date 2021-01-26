@@ -116,7 +116,7 @@ fn build_ui(application: &gtk::Application) {
 
     let layout = make_box(gtk::Orientation::Vertical);
 
-    let _view_tree = ViewTree::new();
+    let view_tree = ViewTree::new();
 
     let split_root = make_box(gtk::Orientation::Horizontal);
     let text = gtk::TextView::new();
@@ -193,6 +193,7 @@ fn build_ui(application: &gtk::Application) {
                 }
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
+                view_tree.split(gtk::Orientation::Horizontal);
                 split_view(
                     &window,
                     gtk::Orientation::Horizontal,

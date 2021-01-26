@@ -1,7 +1,9 @@
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-type View = gtk::TextView;
+// TODO: eventually this will be more than just a text view
+#[derive(Default)]
+pub struct View(gtk::TextView);
 
 enum Orientation {
     None,
@@ -19,37 +21,37 @@ impl PartialEq<gtk::Orientation> for Orientation {
     }
 }
 
-struct InternalNode {
-    children: Vec<NodePtr>,
+struct InternalNode<T> {
+    children: Vec<NodePtr<T>>,
     orientation: Orientation,
 }
 
-enum NodeContents {
-    Internal(InternalNode),
-    Leaf(View),
+enum NodeContents<T> {
+    Internal(InternalNode<T>),
+    Leaf(T),
 }
 
-struct Node {
-    contents: NodeContents,
-    parent: NodeWeakPtr,
+struct Node<T> {
+    contents: NodeContents<T>,
+    parent: NodeWeakPtr<T>,
 }
 
-impl Node {
-    fn new_leaf() -> NodePtr {
+impl<T: Default> Node<T> {
+    fn new_leaf() -> NodePtr<T> {
         NodePtr::new(RefCell::new(Node {
-            contents: NodeContents::Leaf(View::new()),
+            contents: NodeContents::Leaf(T::default()),
             parent: NodeWeakPtr::new(),
         }))
     }
 
-    fn internal(&self) -> Option<&InternalNode> {
+    fn internal(&self) -> Option<&InternalNode<T>> {
         match &self.contents {
             NodeContents::Internal(internal) => Some(internal),
             _ => None,
         }
     }
 
-    fn child_index(&self, child: NodePtr) -> Option<usize> {
+    fn child_index(&self, child: NodePtr<T>) -> Option<usize> {
         if let NodeContents::Internal(internal) = &self.contents {
             internal.children.iter().position(|e| Rc::ptr_eq(e, &child))
         } else {
@@ -57,20 +59,20 @@ impl Node {
         }
     }
 
-    fn insert(&self, _index: usize, _child: NodePtr) {
+    fn insert(&self, _index: usize, _child: NodePtr<T>) {
         todo!();
     }
 }
 
-type NodePtr = Rc<RefCell<Node>>;
-type NodeWeakPtr = Weak<RefCell<Node>>;
+type NodePtr<T> = Rc<RefCell<Node<T>>>;
+type NodeWeakPtr<T> = Weak<RefCell<Node<T>>>;
 
-pub struct ViewTree {
-    root: NodePtr,
-    active: NodePtr,
+pub struct Tree<T> {
+    root: NodePtr<T>,
+    active: NodePtr<T>,
 }
 
-impl ViewTree {
+impl<T: Default> Tree<T> {
     /// Create a ViewTree containing a single View.
     pub fn new() -> ViewTree {
         let leaf = Node::new_leaf();
@@ -101,3 +103,5 @@ impl ViewTree {
         }
     }
 }
+
+pub type ViewTree = Tree<View>;
