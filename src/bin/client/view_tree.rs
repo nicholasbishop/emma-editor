@@ -2,10 +2,11 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
+use std::fmt;
 use std::rc::{Rc, Weak};
 
 // TODO: eventually this will be more than just a text view
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct View(gtk::TextView);
 
 #[derive(Debug, Eq, PartialEq)]
@@ -25,22 +26,36 @@ impl PartialEq<gtk::Orientation> for Orientation {
     }
 }
 
-struct InternalNode<T> {
+pub trait LeafValue: fmt::Debug + Default + PartialEq {}
+
+impl LeafValue for View {}
+
+#[derive(Debug, PartialEq)]
+struct InternalNode<T: LeafValue> {
     children: Vec<NodePtr<T>>,
     orientation: Orientation,
 }
 
-enum NodeContents<T> {
+#[derive(Debug, PartialEq)]
+enum NodeContents<T: LeafValue> {
     Internal(InternalNode<T>),
     Leaf(T),
 }
 
-struct Node<T> {
+#[derive(Debug)]
+struct Node<T: LeafValue> {
     contents: NodeContents<T>,
     parent: NodeWeakPtr<T>,
 }
 
-impl<T: Default> Node<T> {
+impl<T: LeafValue> PartialEq for Node<T> {
+    fn eq(&self, other: &Node<T>) -> bool {
+        // Ignore parent pointer
+        self.contents == other.contents
+    }
+}
+
+impl<T: LeafValue> Node<T> {
     fn new_leaf() -> NodePtr<T> {
         Self::new_leaf_with(T::default())
     }
@@ -82,12 +97,12 @@ impl<T: Default> Node<T> {
 type NodePtr<T> = Rc<RefCell<Node<T>>>;
 type NodeWeakPtr<T> = Weak<RefCell<Node<T>>>;
 
-pub struct Tree<T> {
+pub struct Tree<T: LeafValue> {
     root: NodePtr<T>,
     active: NodePtr<T>,
 }
 
-impl<T: Default> Tree<T> {
+impl<T: LeafValue> Tree<T> {
     /// Create a ViewTree containing a single View.
     pub fn new() -> Tree<T> {
         let leaf = Node::new_leaf();
@@ -125,6 +140,8 @@ pub type ViewTree = Tree<View>;
 mod tests {
     use super::*;
 
+    impl LeafValue for u8 {}
+
     #[test]
     fn test_tree() {
         let tree: Tree<u8> = Tree::new();
@@ -136,6 +153,6 @@ mod tests {
         assert_eq!(root.orientation, Orientation::Horizontal);
 
         // TODO
-        // assert_eq!(root.children, vec![]);
+        assert_eq!(root.children, vec![]);
     }
 }
