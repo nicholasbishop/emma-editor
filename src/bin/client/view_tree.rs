@@ -16,6 +16,16 @@ enum Orientation {
     Vertical,
 }
 
+impl From<gtk::Orientation> for Orientation {
+    fn from(o: gtk::Orientation) -> Self {
+        match o {
+            gtk::Orientation::Horizontal => Orientation::Horizontal,
+            gtk::Orientation::Vertical => Orientation::Vertical,
+            _ => panic!("invalid orientation: {}", o),
+        }
+    }
+}
+
 impl PartialEq<gtk::Orientation> for Orientation {
     fn eq(&self, other: &gtk::Orientation) -> bool {
         match self {
@@ -43,7 +53,7 @@ enum NodeContents<T: LeafValue> {
 }
 
 #[derive(Debug)]
-struct Node<T: LeafValue> {
+pub struct Node<T: LeafValue> {
     contents: NodeContents<T>,
     parent: NodeWeakPtr<T>,
 }
@@ -56,6 +66,19 @@ impl<T: LeafValue> PartialEq for Node<T> {
 }
 
 impl<T: LeafValue> Node<T> {
+    fn new_internal(
+        children: Vec<NodePtr<T>>,
+        orientation: Orientation,
+    ) -> NodePtr<T> {
+        NodePtr::new(RefCell::new(Node {
+            contents: NodeContents::Internal(InternalNode {
+                children,
+                orientation,
+            }),
+            parent: NodeWeakPtr::new(),
+        }))
+    }
+
     fn new_leaf() -> NodePtr<T> {
         Self::new_leaf_with(T::default())
     }
@@ -70,6 +93,13 @@ impl<T: LeafValue> Node<T> {
     fn internal(&self) -> Option<&InternalNode<T>> {
         match &self.contents {
             NodeContents::Internal(internal) => Some(internal),
+            _ => None,
+        }
+    }
+
+    fn internal_mut(&mut self) -> Option<&mut InternalNode<T>> {
+        match &mut self.contents {
+            NodeContents::Internal(ref mut internal) => Some(internal),
             _ => None,
         }
     }
@@ -89,8 +119,9 @@ impl<T: LeafValue> Node<T> {
         }
     }
 
-    fn insert(&self, _index: usize, _child: NodePtr<T>) {
-        todo!();
+    fn insert(&mut self, index: usize, child: NodePtr<T>) {
+        // TODO: fewer unwraps?
+        self.internal_mut().unwrap().children.insert(index, child);
     }
 }
 
@@ -106,31 +137,34 @@ impl<T: LeafValue> Tree<T> {
     /// Create a ViewTree containing a single View.
     pub fn new() -> Tree<T> {
         let leaf = Node::new_leaf();
-        let root = NodePtr::new(RefCell::new(Node {
-            contents: NodeContents::Internal(InternalNode {
-                children: vec![leaf.clone()],
-                orientation: Orientation::None,
-            }),
-            parent: NodeWeakPtr::new(),
-        }));
+        let root = Node::new_internal(vec![leaf.clone()], Orientation::None);
         leaf.borrow_mut().parent = Rc::downgrade(&root);
         Tree { active: leaf, root }
     }
 
     /// Split the active view.
-    pub fn split(&self, orientation: gtk::Orientation) {
+    pub fn split(&self, orientation: gtk::Orientation) -> NodePtr<T> {
         let new_leaf = Node::new_leaf();
 
         let parent = self.active.borrow().parent.upgrade().unwrap();
-        let parent = parent.borrow_mut();
+        let mut parent = parent.borrow_mut();
 
-        if parent.internal().unwrap().orientation == orientation {
+        // OK to unwrap: the parent pointer of a leaf node is always
+        // valid.
+        let parent_internal = parent.internal_mut().unwrap();
+
+        if parent_internal.orientation == Orientation::None {
+            parent_internal.orientation = orientation.into();
+            parent.insert(1, new_leaf.clone());
+        } else if parent_internal.orientation == orientation {
             // Get the position of the active view in its layout so
             // that we can insert the new view right after it.
             let position = parent.child_index(self.active.clone()).unwrap();
 
-            parent.insert(position + 1, new_leaf);
+            parent.insert(position + 1, new_leaf.clone());
         }
+
+        new_leaf
     }
 }
 
@@ -146,13 +180,15 @@ mod tests {
     fn test_tree() {
         let tree: Tree<u8> = Tree::new();
         *tree.active.borrow_mut().leaf_mut().unwrap() = 1;
-        tree.split(gtk::Orientation::Horizontal);
+        let new_node = tree.split(gtk::Orientation::Horizontal);
+        *new_node.borrow_mut().leaf_mut().unwrap() = 2;
 
-        let root = tree.root.borrow();
-        let root = root.internal().unwrap();
-        assert_eq!(root.orientation, Orientation::Horizontal);
-
-        // TODO
-        assert_eq!(root.children, vec![]);
+        assert_eq!(
+            tree.root,
+            Node::new_internal(
+                vec![Node::new_leaf_with(1), Node::new_leaf_with(2),],
+                Orientation::Horizontal
+            )
+        );
     }
 }
