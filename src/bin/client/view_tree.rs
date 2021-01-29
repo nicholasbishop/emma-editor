@@ -46,6 +46,12 @@ struct InternalNode<T: LeafValue> {
     orientation: Orientation,
 }
 
+impl<T: LeafValue> InternalNode<T> {
+    fn child_index(&self, child: NodePtr<T>) -> Option<usize> {
+        self.children.iter().position(|e| Rc::ptr_eq(e, &child))
+    }
+}
+
 #[derive(Debug, PartialEq)]
 enum NodeContents<T: LeafValue> {
     Internal(InternalNode<T>),
@@ -111,14 +117,6 @@ impl<T: LeafValue> Node<T> {
         }
     }
 
-    fn child_index(&self, child: NodePtr<T>) -> Option<usize> {
-        if let NodeContents::Internal(internal) = &self.contents {
-            internal.children.iter().position(|e| Rc::ptr_eq(e, &child))
-        } else {
-            None
-        }
-    }
-
     fn insert(&mut self, index: usize, child: NodePtr<T>) {
         // TODO: fewer unwraps?
         self.internal_mut().unwrap().children.insert(index, child);
@@ -142,7 +140,14 @@ impl<T: LeafValue> Tree<T> {
         Tree { active: leaf, root }
     }
 
-    /// Split the active view.
+    /// Split the active node.
+    ///
+    /// The new node will be created either to the right of the active
+    /// node if the orientation is horizontal, or beneath the active
+    /// node if the orientation is vertical. The new node will be
+    /// returned.
+    ///
+    /// Note that this does not change the active node.
     pub fn split(&self, orientation: gtk::Orientation) -> NodePtr<T> {
         let new_leaf = Node::new_leaf();
 
@@ -153,15 +158,32 @@ impl<T: LeafValue> Tree<T> {
         // valid.
         let parent_internal = parent.internal_mut().unwrap();
 
+        // Get the position of the active node in its parent.
+        let position =
+            parent_internal.child_index(self.active.clone()).unwrap();
+
+        // If the parent doesn't have an orientation yet (i.e. it has
+        // only one child), just set the correct orientation.
         if parent_internal.orientation == Orientation::None {
             parent_internal.orientation = orientation.into();
-            parent.insert(1, new_leaf.clone());
-        } else if parent_internal.orientation == orientation {
-            // Get the position of the active view in its layout so
-            // that we can insert the new view right after it.
-            let position = parent.child_index(self.active.clone()).unwrap();
+        }
 
+        if parent_internal.orientation == orientation {
+            // The orientation already matches, so just insert the new
+            // node right after the active one.
             parent.insert(position + 1, new_leaf.clone());
+        } else {
+            // Create a new internal node with the correct
+            // orientation. The children are the active node and the
+            // new node.
+            let new_internal = Node::new_internal(
+                vec![self.active.clone(), new_leaf.clone()],
+                orientation.into(),
+            );
+
+            // In the parent, replace the active leaf with the new
+            // internal node.
+            parent_internal.children[position] = new_internal;
         }
 
         new_leaf
@@ -194,7 +216,7 @@ mod tests {
 
         // Horizontally split a node whose parent's orientation is
         // already horizontal. The "1" node is still active, so the
-        // new horizontal layout should be 1, 3, 2.
+        // new horizontal layout should be [1, 3, 2].
         let new_node = tree.split(gtk::Orientation::Horizontal);
         *new_node.borrow_mut().leaf_mut().unwrap() = 3;
         assert_eq!(
@@ -202,6 +224,27 @@ mod tests {
             Node::new_internal(
                 vec![
                     Node::new_leaf_with(1),
+                    Node::new_leaf_with(3),
+                    Node::new_leaf_with(2)
+                ],
+                Orientation::Horizontal
+            )
+        );
+
+        // Vertically split a node whose parent's orientation is
+        // horizontal. The "1" node is still active, so the new
+        // horizontal layout should be [X, 3, 2], where X is a
+        // vertical layout containing [1, 4].
+        let new_node = tree.split(gtk::Orientation::Vertical);
+        *new_node.borrow_mut().leaf_mut().unwrap() = 4;
+        assert_eq!(
+            tree.root,
+            Node::new_internal(
+                vec![
+                    Node::new_internal(
+                        vec![Node::new_leaf_with(1), Node::new_leaf_with(4)],
+                        Orientation::Vertical
+                    ),
                     Node::new_leaf_with(3),
                     Node::new_leaf_with(2)
                 ],
