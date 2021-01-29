@@ -8,6 +8,7 @@ use std::rc::{Rc, Weak};
 #[derive(Default)]
 pub struct View(gtk::TextView);
 
+#[derive(Debug, Eq, PartialEq)]
 enum Orientation {
     None,
     Horizontal,
@@ -41,8 +42,12 @@ struct Node<T> {
 
 impl<T: Default> Node<T> {
     fn new_leaf() -> NodePtr<T> {
+        Self::new_leaf_with(T::default())
+    }
+
+    fn new_leaf_with(value: T) -> NodePtr<T> {
         NodePtr::new(RefCell::new(Node {
-            contents: NodeContents::Leaf(T::default()),
+            contents: NodeContents::Leaf(value),
             parent: NodeWeakPtr::new(),
         }))
     }
@@ -125,5 +130,12 @@ mod tests {
         let tree: Tree<u8> = Tree::new();
         *tree.active.borrow_mut().leaf_mut().unwrap() = 1;
         tree.split(gtk::Orientation::Horizontal);
+
+        let root = tree.root.borrow();
+        let root = root.internal().unwrap();
+        assert_eq!(root.orientation, Orientation::Horizontal);
+
+        // TODO
+        // assert_eq!(root.children, vec![]);
     }
 }
