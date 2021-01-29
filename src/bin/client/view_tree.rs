@@ -1,3 +1,6 @@
+// TODO
+#![allow(dead_code)]
+
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
@@ -51,6 +54,13 @@ impl<T: Default> Node<T> {
         }
     }
 
+    fn leaf_mut(&mut self) -> Option<&mut T> {
+        match &mut self.contents {
+            NodeContents::Leaf(ref mut value) => Some(value),
+            _ => None,
+        }
+    }
+
     fn child_index(&self, child: NodePtr<T>) -> Option<usize> {
         if let NodeContents::Internal(internal) = &self.contents {
             internal.children.iter().position(|e| Rc::ptr_eq(e, &child))
@@ -74,7 +84,7 @@ pub struct Tree<T> {
 
 impl<T: Default> Tree<T> {
     /// Create a ViewTree containing a single View.
-    pub fn new() -> ViewTree {
+    pub fn new() -> Tree<T> {
         let leaf = Node::new_leaf();
         let root = NodePtr::new(RefCell::new(Node {
             contents: NodeContents::Internal(InternalNode {
@@ -84,7 +94,7 @@ impl<T: Default> Tree<T> {
             parent: NodeWeakPtr::new(),
         }));
         leaf.borrow_mut().parent = Rc::downgrade(&root);
-        ViewTree { active: leaf, root }
+        Tree { active: leaf, root }
     }
 
     /// Split the active view.
@@ -105,3 +115,15 @@ impl<T: Default> Tree<T> {
 }
 
 pub type ViewTree = Tree<View>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tree() {
+        let tree: Tree<u8> = Tree::new();
+        *tree.active.borrow_mut().leaf_mut().unwrap() = 1;
+        tree.split(gtk::Orientation::Horizontal);
+    }
+}
