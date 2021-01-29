@@ -179,14 +179,32 @@ mod tests {
     #[test]
     fn test_tree() {
         let tree: Tree<u8> = Tree::new();
+
+        // Horizontally split a node whose parent has no orientation.
         *tree.active.borrow_mut().leaf_mut().unwrap() = 1;
         let new_node = tree.split(gtk::Orientation::Horizontal);
         *new_node.borrow_mut().leaf_mut().unwrap() = 2;
-
         assert_eq!(
             tree.root,
             Node::new_internal(
-                vec![Node::new_leaf_with(1), Node::new_leaf_with(2),],
+                vec![Node::new_leaf_with(1), Node::new_leaf_with(2)],
+                Orientation::Horizontal
+            )
+        );
+
+        // Horizontally split a node whose parent's orientation is
+        // already horizontal. The "1" node is still active, so the
+        // new horizontal layout should be 1, 3, 2.
+        let new_node = tree.split(gtk::Orientation::Horizontal);
+        *new_node.borrow_mut().leaf_mut().unwrap() = 3;
+        assert_eq!(
+            tree.root,
+            Node::new_internal(
+                vec![
+                    Node::new_leaf_with(1),
+                    Node::new_leaf_with(3),
+                    Node::new_leaf_with(2)
+                ],
                 Orientation::Horizontal
             )
         );
