@@ -1,6 +1,8 @@
 // TODO
 #![allow(dead_code)]
 
+use glib::Cast;
+use gtk::BoxExt;
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::{Rc, Weak};
@@ -187,6 +189,44 @@ impl<T: LeafValue> Tree<T> {
         }
 
         new_leaf
+    }
+}
+
+impl Node<View> {
+    pub fn render(&self) -> gtk::Widget {
+        match &self.contents {
+            NodeContents::Internal(internal) => {
+                let orientation = match internal.orientation {
+                    Orientation::None => {
+                        // Doesn't matter, arbitrarily pick horizontal.
+                        gtk::Orientation::Horizontal
+                    }
+                    Orientation::Horizontal => gtk::Orientation::Horizontal,
+                    Orientation::Vertical => gtk::Orientation::Vertical,
+                };
+                let spacing = 1;
+                let layout = gtk::Box::new(orientation, spacing);
+                for child in &internal.children {
+                    let expand = true;
+                    let fill = true;
+                    let padding = 0;
+                    layout.pack_start(
+                        &child.borrow().render(),
+                        expand,
+                        fill,
+                        padding,
+                    );
+                }
+                layout.upcast()
+            }
+            NodeContents::Leaf(view) => view.0.clone().upcast(),
+        }
+    }
+}
+
+impl Tree<View> {
+    pub fn render(&self) -> gtk::Widget {
+        self.root.borrow().render()
     }
 }
 
