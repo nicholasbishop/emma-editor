@@ -33,70 +33,39 @@ fn get_widget_index_in_container<
     layout.get_children().iter().position(|elem| elem == widget)
 }
 
-fn split_view(
-    window: &gtk::ApplicationWindow,
-    orientation: gtk::Orientation,
-    views: &mut Vec<gtk::TextView>,
-) {
-    // TODO: a more explicit tree structure might make this easier --
-    // similar to how we do with the views vec
-    if let Some(focus) = window.get_focus() {
-        if let Some(parent) = focus.get_parent() {
-            if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
-                let new_view = gtk::TextView::new();
-                let focus_index =
-                    views.iter().position(|e| *e == focus).unwrap();
-                views.insert(focus_index + 1, new_view.clone());
+fn print_widget_tree_impl<W: IsA<gtk::Widget>>(root: &W, depth: usize) {
+    // Indent
+    let mut line = String::new();
+    for _ in 0..depth {
+        line.push_str("  ");
+    }
 
-                // Check if the layout is in the correct orientation.
-                if layout.get_orientation() == orientation {
-                    // Get the position of the current focused widget
-                    // in its layout so that we can the new widget
-                    // right after it.
-                    let position =
-                        get_widget_index_in_container(layout, &focus).unwrap();
+    let root_type = root.get_type().to_string();
+    let root_name = root.get_widget_name().to_string();
+    line.push_str(&root_type);
 
-                    pack(&layout, &new_view);
-                    layout.reorder_child(&new_view, (position + 1) as i32);
-                } else {
-                    // If there's only the one view in the layout,
-                    // just switch the orientation. Otherwise, create
-                    // a new layout to subdivide.
-                    if layout.get_children().len() == 1 {
-                        layout.set_orientation(orientation);
-                        pack(&layout, &new_view);
-                    } else {
-                        let new_layout = make_box(orientation);
+    // The default name is just the type, so skip it if it is that
+    if root_name != root_type {
+        line.push_str(" - ");
+        line.push_str(&root_name);
+    }
 
-                        // Get the position of the current focused
-                        // widget in its layout so that we can later
-                        // put a new layout widget in the same place.
-                        let position =
-                            get_widget_index_in_container(layout, &focus)
-                                .unwrap();
+    line.push_str(&format!(" (refcount={})", root.ref_count()));
 
-                        // Move the focused view from the old layout
-                        // to the new layout
-                        layout.remove(&focus);
-                        pack(&new_layout, &focus);
+    println!("{}", line);
 
-                        // Add the new view and add the new layout.
-                        pack(&new_layout, &new_view);
-
-                        // Add the new layout to the old layout, and
-                        // move it to the right location. TODO: not
-                        // sure if there's a better way to do this, or
-                        // if the current way is always correct.
-                        pack(layout, &new_layout);
-                        layout.reorder_child(&new_layout, position as i32);
-                    }
-                }
-
-                layout.show_all();
-                window.set_focus(Some(&new_view));
-            }
+    // Print children
+    if let Some(container) = root.dynamic_cast_ref::<gtk::Container>() {
+        for child in container.get_children() {
+            print_widget_tree_impl(&child, depth + 1);
         }
     }
+}
+
+fn print_widget_tree<W: IsA<gtk::Widget>>(root: &W, msg: &str) {
+    println!("{}", msg);
+    print_widget_tree_impl(root, 0);
+    println!();
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -115,18 +84,20 @@ fn build_ui(application: &gtk::Application) {
     );
 
     let layout = make_box(gtk::Orientation::Vertical);
+    layout.set_widget_name("root_layout");
 
+    // Arbitrary orientation since it contains a single element.
+    let view_tree_container = make_box(gtk::Orientation::Horizontal);
+    view_tree_container.set_widget_name("view_tree_container");
     let view_tree = ViewTree::new();
-
-    let split_root = make_box(gtk::Orientation::Horizontal);
-    let text = gtk::TextView::new();
-    pack(&split_root, &text);
 
     let minibuf = gtk::TextView::new();
     minibuf.set_size_request(-1, 26); // TODO
 
-    pack(&layout, &split_root);
+    pack(&layout, &view_tree_container);
     layout.pack_start(&minibuf, false, true, 0);
+
+    pack(&view_tree_container, &view_tree.render());
 
     window.add(&layout);
     // TODO: use clone macro
@@ -135,11 +106,25 @@ fn build_ui(application: &gtk::Application) {
     let keymap = KeyMap::new();
     let cur_seq = Rc::new(RefCell::new(KeySequence::default()));
 
-    let views = Rc::new(RefCell::new(Vec::new()));
-    views.borrow_mut().push(text);
+    // TODO replace this with the tree
+    //let views:  = Rc::new(RefCell::new(Vec::new()));
+    //views.borrow_mut().push(text);
 
     window.add_events(gdk::EventMask::KEY_PRESS_MASK);
     window2.connect_key_press_event(move |_, e| {
+        let split = |orientation| {
+            // view_tree.split(orientation);
+            view_tree_container.remove(&view_tree_container.get_children()[0]);
+            print_widget_tree(&window, "after remove");
+
+            pack(&view_tree_container, &view_tree.render());
+            //pack(&view_tree_container, &gtk::TextView::new());
+            print_widget_tree(&window, "after add");
+
+            view_tree_container.show_all();
+            print_widget_tree(&window, "after show");
+        };
+
         // Ignore lone modifier presses.
         if e.get_is_modifier() {
             return Inhibit(false);
@@ -177,35 +162,28 @@ fn build_ui(application: &gtk::Application) {
                 dbg!("todo: open file");
             }
             KeyMapLookup::Action(Action::PreviousView) => {
-                let views = views.borrow();
-                if let Some(focus) = window.get_focus() {
-                    let pos = views.iter().position(|e| *e == focus).unwrap();
-                    let prev = if pos == 0 { views.len() - 1 } else { pos - 1 };
-                    views[prev].grab_focus();
-                }
+                todo!();
+                // let views = views.borrow();
+                // if let Some(focus) = window.get_focus() {
+                //     let pos = views.iter().position(|e| *e == focus).unwrap();
+                //     let prev = if pos == 0 { views.len() - 1 } else { pos - 1 };
+                //     views[prev].grab_focus();
+                // }
             }
             KeyMapLookup::Action(Action::NextView) => {
-                let views = views.borrow();
-                if let Some(focus) = window.get_focus() {
-                    let pos = views.iter().position(|e| *e == focus).unwrap();
-                    let next = if pos == views.len() - 1 { 0 } else { pos + 1 };
-                    views[next].grab_focus();
-                }
+                todo!();
+                // let views = views.borrow();
+                // if let Some(focus) = window.get_focus() {
+                //     let pos = views.iter().position(|e| *e == focus).unwrap();
+                //     let next = if pos == views.len() - 1 { 0 } else { pos + 1 };
+                //     views[next].grab_focus();
+                // }
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
-                view_tree.split(gtk::Orientation::Horizontal);
-                split_view(
-                    &window,
-                    gtk::Orientation::Horizontal,
-                    &mut views.borrow_mut(),
-                );
+                split(gtk::Orientation::Horizontal);
             }
             KeyMapLookup::Action(Action::SplitVertical) => {
-                split_view(
-                    &window,
-                    gtk::Orientation::Vertical,
-                    &mut views.borrow_mut(),
-                );
+                split(gtk::Orientation::Vertical);
             }
             KeyMapLookup::Action(Action::CloseView) => {
                 todo!();
