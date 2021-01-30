@@ -12,34 +12,24 @@ pub trait LeafValue: fmt::Debug + Default + PartialEq {}
 
 impl LeafValue for View {}
 
-#[derive(Debug, PartialEq)]
-struct InternalNode<T: LeafValue> {
-    children: Vec<NodePtr<T>>,
+struct InternalNode {
+    children: Vec<NodePtr>,
 }
 
-#[derive(Debug, PartialEq)]
-enum NodeContents<T: LeafValue> {
-    Internal(InternalNode<T>),
-    Leaf(T),
+enum NodeContents {
+    Internal(InternalNode),
+    Leaf(View),
 }
 
-#[derive(Debug)]
-pub struct Node<T: LeafValue> {
-    contents: NodeContents<T>,
-    parent: NodeWeakPtr<T>,
+pub struct Node {
+    contents: NodeContents,
+    parent: NodeWeakPtr,
 }
 
-impl<T: LeafValue> PartialEq for Node<T> {
-    fn eq(&self, other: &Node<T>) -> bool {
-        // Ignore parent pointer
-        self.contents == other.contents
-    }
-}
-
-impl<T: LeafValue> Node<T> {
+impl Node {
     fn new_internal(
-        children: Vec<NodePtr<T>>,
-    ) -> NodePtr<T> {
+        children: Vec<NodePtr>,
+    ) -> NodePtr {
         NodePtr::new(RefCell::new(Node {
             contents: NodeContents::Internal(InternalNode {
                 children,
@@ -48,11 +38,11 @@ impl<T: LeafValue> Node<T> {
         }))
     }
 
-    fn new_leaf() -> NodePtr<T> {
-        Self::new_leaf_with(T::default())
+    fn new_leaf() -> NodePtr {
+        Self::new_leaf_with(View::default())
     }
 
-    fn new_leaf_with(value: T) -> NodePtr<T> {
+    fn new_leaf_with(value: View) -> NodePtr {
         NodePtr::new(RefCell::new(Node {
             contents: NodeContents::Leaf(value),
             parent: NodeWeakPtr::new(),
@@ -60,16 +50,16 @@ impl<T: LeafValue> Node<T> {
     }
 }
 
-type NodePtr<T> = Rc<RefCell<Node<T>>>;
-type NodeWeakPtr<T> = Weak<RefCell<Node<T>>>;
+type NodePtr = Rc<RefCell<Node>>;
+type NodeWeakPtr = Weak<RefCell<Node>>;
 
-pub struct Tree<T: LeafValue> {
-    root: NodePtr<T>,
+pub struct Tree {
+    root: NodePtr,
 }
 
-impl<T: LeafValue> Tree<T> {
+impl Tree {
     /// Create a ViewTree containing a single View.
-    pub fn new() -> Tree<T> {
+    pub fn new() -> Tree {
         let leaf = Node::new_leaf();
         let root = Node::new_internal(vec![leaf.clone()]);
         leaf.borrow_mut().parent = Rc::downgrade(&root);
@@ -77,7 +67,7 @@ impl<T: LeafValue> Tree<T> {
     }
 }
 
-impl Node<View> {
+impl Node {
     pub fn render(&self) -> gtk::Widget {
         match &self.contents {
             NodeContents::Internal(internal) => {
@@ -102,10 +92,10 @@ impl Node<View> {
     }
 }
 
-impl Tree<View> {
+impl Tree {
     pub fn render(&self) -> gtk::Widget {
         self.root.borrow().render()
     }
 }
 
-pub type ViewTree = Tree<View>;
+pub type ViewTree = Tree;
