@@ -1,16 +1,9 @@
 use glib::Cast;
 use gtk::BoxExt;
 use std::cell::RefCell;
-use std::fmt;
 use std::rc::{Rc, Weak};
 
-// TODO: eventually this will be more than just a text view
-#[derive(Debug, Default, PartialEq)]
-pub struct View(gtk::TextView);
-
-pub trait LeafValue: fmt::Debug + Default + PartialEq {}
-
-impl LeafValue for View {}
+pub type View = gtk::TextView;
 
 struct InternalNode {
     children: Vec<NodePtr>,
@@ -87,7 +80,7 @@ impl Node {
                 }
                 layout.upcast()
             }
-            NodeContents::Leaf(view) => view.0.clone().upcast(),
+            NodeContents::Leaf(view) => view.clone().upcast(),
         }
     }
 }
