@@ -98,4 +98,35 @@ impl KeyMap {
     }
 }
 
+#[derive(Default)]
+pub struct KeyMapStack(Vec<KeyMap>);
+
+impl KeyMapStack {
+    pub fn lookup(&self, seq: &KeySequence) -> KeyMapLookup {
+        // TODO rustify this loop
+        for (i, map) in self.0.iter().enumerate().rev() {
+            let res = map.lookup(seq);
+
+            // At the bottom of the stack just return the result.
+            if i == 0 {
+                return res;
+            }
+
+            // If the sequence either is in, or might be in the
+            // current map, return that.
+            if matches!(res, KeyMapLookup::Action(_) | KeyMapLookup::Prefix) {
+                return res;
+            }
+
+            // Otherwise, continue up the stack.
+        }
+
+        panic!("empty KeyMapStack");
+    }
+
+    pub fn push(&mut self, map: KeyMap) {
+        self.push(map);
+    }
+}
+
 // TODO: tests
