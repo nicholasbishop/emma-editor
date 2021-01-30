@@ -9,6 +9,8 @@ use std::cell::RefCell;
 use std::env;
 use std::rc::Rc;
 
+type View = sourceview::View;
+
 fn make_box(o: gtk::Orientation) -> gtk::Box {
     let spacing = 1;
     gtk::Box::new(o, spacing)
@@ -34,14 +36,14 @@ fn get_widget_index_in_container<
 fn split_view(
     window: &gtk::ApplicationWindow,
     orientation: gtk::Orientation,
-    views: &mut Vec<gtk::TextView>,
+    views: &mut Vec<View>,
 ) {
     // TODO: a more explicit tree structure might make this easier --
     // similar to how we do with the views vec
     if let Some(focus) = window.get_focus() {
         if let Some(parent) = focus.get_parent() {
             if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
-                let new_view = gtk::TextView::new();
+                let new_view = View::new();
                 let focus_index =
                     views.iter().position(|e| *e == focus).unwrap();
                 views.insert(focus_index + 1, new_view.clone());
@@ -115,7 +117,7 @@ fn build_ui(application: &gtk::Application) {
     let layout = make_box(gtk::Orientation::Vertical);
 
     let split_root = make_box(gtk::Orientation::Horizontal);
-    let text = gtk::TextView::new();
+    let text = View::new();
     pack(&split_root, &text);
 
     let minibuf = gtk::TextView::new();
