@@ -70,10 +70,13 @@ impl KeyMap {
         // At this point we know the sequence is not in the map.
 
         // If the sequence's length is 1 and it doesn't have any
-        // modifiers then just pass it along; this handles things like
-        // pressing the letter 'a' where we just want the default
-        // insertion action to occur.
-        if seq.0.len() == 1 && seq.0[0].modifiers.is_empty() {
+        // modifiers (other than shift) then just pass it along; this
+        // handles things like pressing the letter 'a' where we just
+        // want the default insertion action to occur.
+        if seq.0.len() == 1
+            && (seq.0[0].modifiers.is_empty()
+                || seq.0[0].modifiers == gdk::ModifierType::SHIFT_MASK)
+        {
             return KeyMapLookup::NoEntry;
         }
 
