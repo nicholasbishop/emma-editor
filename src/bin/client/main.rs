@@ -117,7 +117,7 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     map
 }
 
-struct State {
+struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
     views: Vec<View>,
@@ -127,7 +127,7 @@ struct State {
     cur_seq: KeySequence,
 }
 
-impl State {
+impl App {
     fn handle_key_press(&mut self, e: &gdk::EventKey) -> Inhibit {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(self.base_keymap.clone());
@@ -274,7 +274,7 @@ fn build_ui(application: &gtk::Application) {
 
     window.add_events(gdk::EventMask::KEY_PRESS_MASK);
 
-    let state = Rc::new(RefCell::new(State {
+    let app = Rc::new(RefCell::new(App {
         window: window.clone(),
         minibuf,
         views: vec![text],
@@ -285,9 +285,7 @@ fn build_ui(application: &gtk::Application) {
     }));
 
     window.connect_key_press_event(move |_, e| {
-        let mut state = state.borrow_mut();
-
-        state.handle_key_press(e)
+        app.borrow_mut().handle_key_press(e)
     });
 
     window.show_all();
