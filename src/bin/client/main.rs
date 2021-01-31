@@ -250,7 +250,17 @@ fn build_ui(application: &gtk::Application) {
                     match state.minibuf_state {
                         MinibufState::Inactive => {}
                         MinibufState::OpenFile => {
-                            todo!("open file");
+                            let buf = minibuf.get_buffer().unwrap();
+                            let text = buf
+                                .get_text(
+                                    &buf.get_start_iter(),
+                                    &buf.get_end_iter(),
+                                    false,
+                                )
+                                .unwrap();
+                            buf.set_text("");
+                            state.minibuf_state = MinibufState::Inactive;
+                            println!("TODO: open file: {:?}", text.as_str());
                         }
                     }
                 }
