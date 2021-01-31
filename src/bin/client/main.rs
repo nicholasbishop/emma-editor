@@ -55,7 +55,7 @@ fn split_view(
                 let new_widget = new_view.get_widget();
                 let focus_index =
                     views.iter().position(|e| e.has_focus()).unwrap();
-                views.insert(focus_index + 1, new_view.clone());
+                views.insert(focus_index + 1, new_view);
 
                 // Check if the layout is in the correct orientation.
                 if layout.get_orientation() == orientation {
