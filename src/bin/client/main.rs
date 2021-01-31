@@ -171,6 +171,30 @@ impl App {
             KeyMapLookup::Action(Action::OpenFile) => {
                 self.minibuf_state = MinibufState::OpenFile;
                 self.minibuf.grab_focus();
+
+                let prompt = "Open file: ";
+                let buf = self.minibuf.get_buffer().unwrap();
+
+                // Create prompt tag.
+                let tag = gtk::TextTag::new(Some("prompt"));
+                tag.set_property_editable(false);
+                tag.set_property_foreground(Some("#edd400"));
+                buf.get_tag_table().unwrap().add(&tag);
+
+                // Add prompt text and apply tag.
+                buf.set_text(prompt);
+                let start = buf.get_start_iter();
+                let prompt_end = buf.get_iter_at_offset(prompt.len() as i32);
+                buf.apply_tag(&tag, &start, &prompt_end);
+
+                // Insert mark to indicate the beginning of the user
+                // input.
+                let mark_name = "input-start";
+                if let Some(mark) = buf.get_mark(mark_name) {
+                    buf.delete_mark(&mark);
+                }
+                let left_gravity = true;
+                buf.create_mark(Some(mark_name), &prompt_end, left_gravity);
             }
             KeyMapLookup::Action(Action::PreviousView) => {
                 if let Some(focus) = self.window.get_focus() {
@@ -232,10 +256,17 @@ impl App {
             MinibufState::Inactive => {}
             MinibufState::OpenFile => {
                 let buf = self.minibuf.get_buffer().unwrap();
-                let text = buf
-                    .get_text(&buf.get_start_iter(), &buf.get_end_iter(), false)
-                    .unwrap();
+
+                // TODO: dedup
+                let mark_name = "input-start";
+                let mark = buf.get_mark(mark_name).unwrap();
+                let start = buf.get_iter_at_mark(&mark);
+                let end = buf.get_end_iter();
+
+                let text = buf.get_text(&start, &end, false).unwrap();
+
                 buf.set_text("");
+
                 self.minibuf_state = MinibufState::Inactive;
                 println!("TODO: open file: {:?}", text.as_str());
             }
