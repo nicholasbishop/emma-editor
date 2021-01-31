@@ -3,11 +3,18 @@ mod key_sequence;
 
 use gio::prelude::*;
 use gtk::prelude::*;
-use key_map::{Action, KeyMap, KeyMapLookup};
+use key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack};
 use key_sequence::{KeySequence, KeySequenceAtom};
 use std::cell::RefCell;
 use std::env;
 use std::rc::Rc;
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum MinibufState {
+    Inactive,
+    // TODO this will probably become more general
+    OpenFile,
+}
 
 type View = sourceview::View;
 
@@ -99,6 +106,17 @@ fn split_view(
     }
 }
 
+fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
+    let mut map = KeyMap::new();
+    match state {
+        MinibufState::Inactive => {}
+        MinibufState::OpenFile => {
+            map.insert(KeySequence::parse("<enter>").unwrap(), Action::Confirm);
+        }
+    }
+    map
+}
+
 fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
 
@@ -130,7 +148,10 @@ fn build_ui(application: &gtk::Application) {
     // TODO: use clone macro
     let window2 = window.clone();
 
-    let keymap = KeyMap::new();
+    // TODO: do we need just a big State object?
+
+    let base_keymap = Rc::new(RefCell::new(KeyMap::new()));
+    let minibuf_state = Rc::new(RefCell::new(MinibufState::Inactive));
     let cur_seq = Rc::new(RefCell::new(KeySequence::default()));
 
     let views = Rc::new(RefCell::new(Vec::new()));
@@ -138,6 +159,12 @@ fn build_ui(application: &gtk::Application) {
 
     window.add_events(gdk::EventMask::KEY_PRESS_MASK);
     window2.connect_key_press_event(move |_, e| {
+        let mut keymap_stack = KeyMapStack::default();
+        keymap_stack.push(base_keymap.borrow().clone());
+        if window.get_focus() == Some(minibuf.clone().upcast()) {
+            keymap_stack.push(get_minibuf_keymap(*minibuf_state.borrow()));
+        }
+
         // Ignore lone modifier presses.
         if e.get_is_modifier() {
             return Inhibit(false);
@@ -153,7 +180,7 @@ fn build_ui(application: &gtk::Application) {
 
         let mut clear_seq = true;
         let mut inhibit = true;
-        match keymap.lookup(&cur_seq.borrow()) {
+        match keymap_stack.lookup(&cur_seq.borrow()) {
             KeyMapLookup::NoEntry => {
                 // Allow default handling to occur, e.g. inserting a
                 // character into the text widget.
@@ -172,7 +199,8 @@ fn build_ui(application: &gtk::Application) {
                 window.close();
             }
             KeyMapLookup::Action(Action::OpenFile) => {
-                dbg!("todo: open file");
+                *minibuf_state.borrow_mut() = MinibufState::OpenFile;
+                minibuf.grab_focus();
             }
             KeyMapLookup::Action(Action::PreviousView) => {
                 let views = views.borrow();
@@ -206,6 +234,16 @@ fn build_ui(application: &gtk::Application) {
             }
             KeyMapLookup::Action(Action::CloseView) => {
                 todo!();
+            }
+            KeyMapLookup::Action(Action::Confirm) => {
+                if minibuf.has_focus() {
+                    match *minibuf_state.borrow() {
+                        MinibufState::Inactive => {}
+                        MinibufState::OpenFile => {
+                            todo!("open file");
+                        }
+                    }
+                }
             }
         };
 

@@ -10,6 +10,7 @@ pub enum Action {
     SplitHorizontal,
     SplitVertical,
     CloseView,
+    Confirm,
 }
 
 pub enum KeyMapLookup {
@@ -51,7 +52,7 @@ impl KeyMap {
         map
     }
 
-    fn insert(&mut self, seq: KeySequence, action: Action) {
+    pub fn insert(&mut self, seq: KeySequence, action: Action) {
         self.0.insert(seq, action);
     }
 
@@ -125,7 +126,7 @@ impl KeyMapStack {
     }
 
     pub fn push(&mut self, map: KeyMap) {
-        self.push(map);
+        self.0.push(map);
     }
 }
 
