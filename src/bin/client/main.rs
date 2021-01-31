@@ -215,22 +215,7 @@ impl App {
             }
             KeyMapLookup::Action(Action::Confirm) => {
                 if self.minibuf.has_focus() {
-                    match self.minibuf_state {
-                        MinibufState::Inactive => {}
-                        MinibufState::OpenFile => {
-                            let buf = self.minibuf.get_buffer().unwrap();
-                            let text = buf
-                                .get_text(
-                                    &buf.get_start_iter(),
-                                    &buf.get_end_iter(),
-                                    false,
-                                )
-                                .unwrap();
-                            buf.set_text("");
-                            self.minibuf_state = MinibufState::Inactive;
-                            println!("TODO: open file: {:?}", text.as_str());
-                        }
-                    }
+                    self.handle_minibuf_confirm();
                 }
             }
         };
@@ -240,6 +225,21 @@ impl App {
         }
 
         Inhibit(inhibit)
+    }
+
+    fn handle_minibuf_confirm(&mut self) {
+        match self.minibuf_state {
+            MinibufState::Inactive => {}
+            MinibufState::OpenFile => {
+                let buf = self.minibuf.get_buffer().unwrap();
+                let text = buf
+                    .get_text(&buf.get_start_iter(), &buf.get_end_iter(), false)
+                    .unwrap();
+                buf.set_text("");
+                self.minibuf_state = MinibufState::Inactive;
+                println!("TODO: open file: {:?}", text.as_str());
+            }
+        }
     }
 }
 
