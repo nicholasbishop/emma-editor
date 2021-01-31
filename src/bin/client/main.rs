@@ -5,9 +5,10 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack};
 use key_sequence::{KeySequence, KeySequenceAtom};
+use sourceview::prelude::*;
 use std::cell::RefCell;
-use std::env;
 use std::rc::Rc;
+use std::{env, fs};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum MinibufState {
@@ -129,6 +130,7 @@ struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
     views: Vec<View>,
+    buffers: Vec<sourceview::Buffer>,
 
     base_keymap: KeyMap,
     minibuf_state: MinibufState,
@@ -276,6 +278,26 @@ impl App {
                 buf.set_text("");
 
                 self.minibuf_state = MinibufState::Inactive;
+
+                // TODO: check out the async loading feature of
+                // sourceview. It says its unmaintained though and to
+                // check out tepl...
+
+                let path = text.as_str();
+
+                // TODO: handle error
+                let contents = fs::read_to_string(path).unwrap();
+
+                let langman = sourceview::LanguageManager::new();
+                let lang = langman.guess_language(Some(path), None);
+
+                let tag_table: Option<&gtk::TextTagTable> = None;
+                let buf = sourceview::Buffer::new(tag_table);
+                buf.set_language(lang.as_ref());
+                buf.set_text(&contents);
+
+                self.buffers.push(buf);
+
                 println!("TODO: open file: {:?}", text.as_str());
             }
         }
@@ -317,6 +339,8 @@ fn build_ui(application: &gtk::Application) {
         window: window.clone(),
         minibuf,
         views: vec![text],
+        // TODO: doesn't yet include the initial view's buffer.
+        buffers: Vec::new(),
 
         base_keymap: KeyMap::new(),
         minibuf_state: MinibufState::Inactive,
