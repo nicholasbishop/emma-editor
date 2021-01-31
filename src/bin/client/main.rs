@@ -16,7 +16,16 @@ enum MinibufState {
     OpenFile,
 }
 
-type View = sourceview::View;
+#[derive(Clone, Eq, PartialEq)]
+struct View(sourceview::View);
+
+impl View {
+    fn new() -> View {
+        let view = sourceview::View::new();
+        // view.set_monospace(true);
+        View(view)
+    }
+}
 
 fn make_box(o: gtk::Orientation) -> gtk::Box {
     let spacing = 1;
@@ -52,7 +61,7 @@ fn split_view(
             if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
                 let new_view = View::new();
                 let focus_index =
-                    views.iter().position(|e| *e == focus).unwrap();
+                    views.iter().position(|e| e.0 == focus).unwrap();
                 views.insert(focus_index + 1, new_view.clone());
 
                 // Check if the layout is in the correct orientation.
@@ -63,15 +72,15 @@ fn split_view(
                     let position =
                         get_widget_index_in_container(layout, &focus).unwrap();
 
-                    pack(&layout, &new_view);
-                    layout.reorder_child(&new_view, (position + 1) as i32);
+                    pack(&layout, &new_view.0);
+                    layout.reorder_child(&new_view.0, (position + 1) as i32);
                 } else {
                     // If there's only the one view in the layout,
                     // just switch the orientation. Otherwise, create
                     // a new layout to subdivide.
                     if layout.get_children().len() == 1 {
                         layout.set_orientation(orientation);
-                        pack(&layout, &new_view);
+                        pack(&layout, &new_view.0);
                     } else {
                         let new_layout = make_box(orientation);
 
@@ -88,7 +97,7 @@ fn split_view(
                         pack(&new_layout, &focus);
 
                         // Add the new view and add the new layout.
-                        pack(&new_layout, &new_view);
+                        pack(&new_layout, &new_view.0);
 
                         // Add the new layout to the old layout, and
                         // move it to the right location. TODO: not
@@ -100,7 +109,6 @@ fn split_view(
                 }
 
                 layout.show_all();
-                window.set_focus(Some(&new_view));
             }
         }
     }
@@ -199,25 +207,25 @@ impl App {
             KeyMapLookup::Action(Action::PreviousView) => {
                 if let Some(focus) = self.window.get_focus() {
                     let pos =
-                        self.views.iter().position(|e| *e == focus).unwrap();
+                        self.views.iter().position(|e| e.0 == focus).unwrap();
                     let prev = if pos == 0 {
                         self.views.len() - 1
                     } else {
                         pos - 1
                     };
-                    self.views[prev].grab_focus();
+                    self.views[prev].0.grab_focus();
                 }
             }
             KeyMapLookup::Action(Action::NextView) => {
                 if let Some(focus) = self.window.get_focus() {
                     let pos =
-                        self.views.iter().position(|e| *e == focus).unwrap();
+                        self.views.iter().position(|e| e.0 == focus).unwrap();
                     let next = if pos == self.views.len() - 1 {
                         0
                     } else {
                         pos + 1
                     };
-                    self.views[next].grab_focus();
+                    self.views[next].0.grab_focus();
                 }
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
@@ -293,7 +301,7 @@ fn build_ui(application: &gtk::Application) {
 
     let split_root = make_box(gtk::Orientation::Horizontal);
     let text = View::new();
-    pack(&split_root, &text);
+    pack(&split_root, &text.0);
 
     let minibuf = gtk::TextView::new();
     minibuf.set_size_request(-1, 26); // TODO
