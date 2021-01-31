@@ -131,6 +131,7 @@ struct App {
     minibuf: gtk::TextView,
     views: Vec<View>,
     buffers: Vec<sourceview::Buffer>,
+    active_view: View,
 
     base_keymap: KeyMap,
     minibuf_state: MinibufState,
@@ -296,9 +297,9 @@ impl App {
                 buf.set_language(lang.as_ref());
                 buf.set_text(&contents);
 
-                self.buffers.push(buf);
+                self.buffers.push(buf.clone());
 
-                println!("TODO: open file: {:?}", text.as_str());
+                self.active_view.0.set_buffer(Some(&buf));
             }
         }
     }
@@ -338,9 +339,10 @@ fn build_ui(application: &gtk::Application) {
     let app = Rc::new(RefCell::new(App {
         window: window.clone(),
         minibuf,
-        views: vec![text],
+        views: vec![text.clone()],
         // TODO: doesn't yet include the initial view's buffer.
         buffers: Vec::new(),
+        active_view: text,
 
         base_keymap: KeyMap::new(),
         minibuf_state: MinibufState::Inactive,
