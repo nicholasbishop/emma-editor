@@ -118,9 +118,129 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
 }
 
 struct State {
+    window: gtk::ApplicationWindow,
+    minibuf: gtk::TextView,
+    views: Vec<View>,
+
     base_keymap: KeyMap,
     minibuf_state: MinibufState,
     cur_seq: KeySequence,
+}
+
+impl State {
+    fn handle_key_press(&mut self, e: &gdk::EventKey) -> Inhibit {
+        let mut keymap_stack = KeyMapStack::default();
+        keymap_stack.push(self.base_keymap.clone());
+        if self.window.get_focus() == Some(self.minibuf.clone().upcast()) {
+            keymap_stack.push(get_minibuf_keymap(self.minibuf_state));
+        }
+
+        // Ignore lone modifier presses.
+        if e.get_is_modifier() {
+            return Inhibit(false);
+        }
+
+        // TODO: we want to ignore combo modifier presses too if no
+        // non-modifier key is selected, e.g. pressing alt and then
+        // shift, but currently that is treated as a valid
+        // sequence. Need to figure out how to prevent that.
+
+        let atom = KeySequenceAtom::from_event(e);
+        self.cur_seq.0.push(atom);
+
+        let mut clear_seq = true;
+        let mut inhibit = true;
+        match keymap_stack.lookup(&self.cur_seq) {
+            KeyMapLookup::NoEntry => {
+                // Allow default handling to occur, e.g. inserting a
+                // character into the text widget.
+                inhibit = false;
+            }
+            KeyMapLookup::BadSequence => {
+                // TODO: display some kind of non-blocking error
+                dbg!("bad seq", &self.cur_seq);
+            }
+            KeyMapLookup::Prefix => {
+                clear_seq = false;
+                // Waiting for the sequence to be completed.
+            }
+            KeyMapLookup::Action(Action::Exit) => {
+                dbg!("close!");
+                self.window.close();
+            }
+            KeyMapLookup::Action(Action::OpenFile) => {
+                self.minibuf_state = MinibufState::OpenFile;
+                self.minibuf.grab_focus();
+            }
+            KeyMapLookup::Action(Action::PreviousView) => {
+                if let Some(focus) = self.window.get_focus() {
+                    let pos =
+                        self.views.iter().position(|e| *e == focus).unwrap();
+                    let prev = if pos == 0 {
+                        self.views.len() - 1
+                    } else {
+                        pos - 1
+                    };
+                    self.views[prev].grab_focus();
+                }
+            }
+            KeyMapLookup::Action(Action::NextView) => {
+                if let Some(focus) = self.window.get_focus() {
+                    let pos =
+                        self.views.iter().position(|e| *e == focus).unwrap();
+                    let next = if pos == self.views.len() - 1 {
+                        0
+                    } else {
+                        pos + 1
+                    };
+                    self.views[next].grab_focus();
+                }
+            }
+            KeyMapLookup::Action(Action::SplitHorizontal) => {
+                split_view(
+                    &self.window,
+                    gtk::Orientation::Horizontal,
+                    &mut self.views,
+                );
+            }
+            KeyMapLookup::Action(Action::SplitVertical) => {
+                split_view(
+                    &self.window,
+                    gtk::Orientation::Vertical,
+                    &mut self.views,
+                );
+            }
+            KeyMapLookup::Action(Action::CloseView) => {
+                todo!();
+            }
+            KeyMapLookup::Action(Action::Confirm) => {
+                if self.minibuf.has_focus() {
+                    match self.minibuf_state {
+                        MinibufState::Inactive => {}
+                        MinibufState::OpenFile => {
+                            let buf = self.minibuf.get_buffer().unwrap();
+                            let text = buf
+                                .get_text(
+                                    &buf.get_start_iter(),
+                                    &buf.get_end_iter(),
+                                    false,
+                                )
+                                .unwrap();
+                            buf.set_text("");
+                            self.minibuf_state = MinibufState::Inactive;
+                            println!("TODO: open file: {:?}", text.as_str());
+                        }
+                    }
+                }
+            }
+        };
+
+        if clear_seq {
+            self.cur_seq.0.clear();
+        }
+
+        Inhibit(inhibit)
+    }
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -151,130 +271,26 @@ fn build_ui(application: &gtk::Application) {
     layout.pack_start(&minibuf, false, true, 0);
 
     window.add(&layout);
-    // TODO: use clone macro
-    let window2 = window.clone();
 
-    // TODO: move more stuff into State
+    window.add_events(gdk::EventMask::KEY_PRESS_MASK);
 
     let state = Rc::new(RefCell::new(State {
+        window: window.clone(),
+        minibuf,
+        views: vec![text],
+
         base_keymap: KeyMap::new(),
         minibuf_state: MinibufState::Inactive,
         cur_seq: KeySequence::default(),
     }));
 
-    let views = Rc::new(RefCell::new(Vec::new()));
-    views.borrow_mut().push(text);
-
-    window.add_events(gdk::EventMask::KEY_PRESS_MASK);
-    window2.connect_key_press_event(move |_, e| {
+    window.connect_key_press_event(move |_, e| {
         let mut state = state.borrow_mut();
 
-        let mut keymap_stack = KeyMapStack::default();
-        keymap_stack.push(state.base_keymap.clone());
-        if window.get_focus() == Some(minibuf.clone().upcast()) {
-            keymap_stack.push(get_minibuf_keymap(state.minibuf_state));
-        }
-
-        // Ignore lone modifier presses.
-        if e.get_is_modifier() {
-            return Inhibit(false);
-        }
-
-        // TODO: we want to ignore combo modifier presses too if no
-        // non-modifier key is selected, e.g. pressing alt and then
-        // shift, but currently that is treated as a valid
-        // sequence. Need to figure out how to prevent that.
-
-        let atom = KeySequenceAtom::from_event(e);
-        state.cur_seq.0.push(atom);
-
-        let mut clear_seq = true;
-        let mut inhibit = true;
-        match keymap_stack.lookup(&state.cur_seq) {
-            KeyMapLookup::NoEntry => {
-                // Allow default handling to occur, e.g. inserting a
-                // character into the text widget.
-                inhibit = false;
-            }
-            KeyMapLookup::BadSequence => {
-                // TODO: display some kind of non-blocking error
-                dbg!("bad seq", &state.cur_seq);
-            }
-            KeyMapLookup::Prefix => {
-                clear_seq = false;
-                // Waiting for the sequence to be completed.
-            }
-            KeyMapLookup::Action(Action::Exit) => {
-                dbg!("close!");
-                window.close();
-            }
-            KeyMapLookup::Action(Action::OpenFile) => {
-                state.minibuf_state = MinibufState::OpenFile;
-                minibuf.grab_focus();
-            }
-            KeyMapLookup::Action(Action::PreviousView) => {
-                let views = views.borrow();
-                if let Some(focus) = window.get_focus() {
-                    let pos = views.iter().position(|e| *e == focus).unwrap();
-                    let prev = if pos == 0 { views.len() - 1 } else { pos - 1 };
-                    views[prev].grab_focus();
-                }
-            }
-            KeyMapLookup::Action(Action::NextView) => {
-                let views = views.borrow();
-                if let Some(focus) = window.get_focus() {
-                    let pos = views.iter().position(|e| *e == focus).unwrap();
-                    let next = if pos == views.len() - 1 { 0 } else { pos + 1 };
-                    views[next].grab_focus();
-                }
-            }
-            KeyMapLookup::Action(Action::SplitHorizontal) => {
-                split_view(
-                    &window,
-                    gtk::Orientation::Horizontal,
-                    &mut views.borrow_mut(),
-                );
-            }
-            KeyMapLookup::Action(Action::SplitVertical) => {
-                split_view(
-                    &window,
-                    gtk::Orientation::Vertical,
-                    &mut views.borrow_mut(),
-                );
-            }
-            KeyMapLookup::Action(Action::CloseView) => {
-                todo!();
-            }
-            KeyMapLookup::Action(Action::Confirm) => {
-                if minibuf.has_focus() {
-                    match state.minibuf_state {
-                        MinibufState::Inactive => {}
-                        MinibufState::OpenFile => {
-                            let buf = minibuf.get_buffer().unwrap();
-                            let text = buf
-                                .get_text(
-                                    &buf.get_start_iter(),
-                                    &buf.get_end_iter(),
-                                    false,
-                                )
-                                .unwrap();
-                            buf.set_text("");
-                            state.minibuf_state = MinibufState::Inactive;
-                            println!("TODO: open file: {:?}", text.as_str());
-                        }
-                    }
-                }
-            }
-        };
-
-        if clear_seq {
-            state.cur_seq.0.clear();
-        }
-
-        Inhibit(inhibit)
+        state.handle_key_press(e)
     });
 
-    window2.show_all();
+    window.show_all();
 }
 
 fn main() {
