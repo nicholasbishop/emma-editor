@@ -117,6 +117,12 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     map
 }
 
+struct State {
+    base_keymap: KeyMap,
+    minibuf_state: MinibufState,
+    cur_seq: KeySequence,
+}
+
 fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
 
@@ -148,21 +154,25 @@ fn build_ui(application: &gtk::Application) {
     // TODO: use clone macro
     let window2 = window.clone();
 
-    // TODO: do we need just a big State object?
+    // TODO: move more stuff into State
 
-    let base_keymap = Rc::new(RefCell::new(KeyMap::new()));
-    let minibuf_state = Rc::new(RefCell::new(MinibufState::Inactive));
-    let cur_seq = Rc::new(RefCell::new(KeySequence::default()));
+    let state = Rc::new(RefCell::new(State {
+        base_keymap: KeyMap::new(),
+        minibuf_state: MinibufState::Inactive,
+        cur_seq: KeySequence::default(),
+    }));
 
     let views = Rc::new(RefCell::new(Vec::new()));
     views.borrow_mut().push(text);
 
     window.add_events(gdk::EventMask::KEY_PRESS_MASK);
     window2.connect_key_press_event(move |_, e| {
+        let mut state = state.borrow_mut();
+
         let mut keymap_stack = KeyMapStack::default();
-        keymap_stack.push(base_keymap.borrow().clone());
+        keymap_stack.push(state.base_keymap.clone());
         if window.get_focus() == Some(minibuf.clone().upcast()) {
-            keymap_stack.push(get_minibuf_keymap(*minibuf_state.borrow()));
+            keymap_stack.push(get_minibuf_keymap(state.minibuf_state));
         }
 
         // Ignore lone modifier presses.
@@ -176,11 +186,11 @@ fn build_ui(application: &gtk::Application) {
         // sequence. Need to figure out how to prevent that.
 
         let atom = KeySequenceAtom::from_event(e);
-        cur_seq.borrow_mut().0.push(atom);
+        state.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
         let mut inhibit = true;
-        match keymap_stack.lookup(&cur_seq.borrow()) {
+        match keymap_stack.lookup(&state.cur_seq) {
             KeyMapLookup::NoEntry => {
                 // Allow default handling to occur, e.g. inserting a
                 // character into the text widget.
@@ -188,7 +198,7 @@ fn build_ui(application: &gtk::Application) {
             }
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
-                dbg!("bad seq", cur_seq.borrow());
+                dbg!("bad seq", &state.cur_seq);
             }
             KeyMapLookup::Prefix => {
                 clear_seq = false;
@@ -199,7 +209,7 @@ fn build_ui(application: &gtk::Application) {
                 window.close();
             }
             KeyMapLookup::Action(Action::OpenFile) => {
-                *minibuf_state.borrow_mut() = MinibufState::OpenFile;
+                state.minibuf_state = MinibufState::OpenFile;
                 minibuf.grab_focus();
             }
             KeyMapLookup::Action(Action::PreviousView) => {
@@ -237,7 +247,7 @@ fn build_ui(application: &gtk::Application) {
             }
             KeyMapLookup::Action(Action::Confirm) => {
                 if minibuf.has_focus() {
-                    match *minibuf_state.borrow() {
+                    match state.minibuf_state {
                         MinibufState::Inactive => {}
                         MinibufState::OpenFile => {
                             todo!("open file");
@@ -248,7 +258,7 @@ fn build_ui(application: &gtk::Application) {
         };
 
         if clear_seq {
-            cur_seq.borrow_mut().0.clear();
+            state.cur_seq.0.clear();
         }
 
         Inhibit(inhibit)
