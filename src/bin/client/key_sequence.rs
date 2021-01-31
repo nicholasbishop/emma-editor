@@ -40,6 +40,8 @@ fn single_modifier_to_string(m: &ModifierType) -> &'static str {
 fn key_to_string(key: &gdk::keys::Key) -> String {
     if *key == keys::Escape {
         "<esc>".into()
+    } else if *key == keys::Return {
+        "<ret>".into()
     } else if *key == keys::BackSpace {
         "<backspace>".into()
     } else if let Some(c) = key.to_unicode() {
@@ -90,6 +92,7 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
     names.insert("alt", ParseItem::Modifier(ModifierType::MOD1_MASK));
     names.insert("esc", ParseItem::Key(keys::Escape));
     names.insert("space", ParseItem::Key(keys::space));
+    names.insert("ret", ParseItem::Key(keys::Return));
 
     let mut items = Vec::new();
     let mut name = String::new();

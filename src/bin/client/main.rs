@@ -111,7 +111,7 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     match state {
         MinibufState::Inactive => {}
         MinibufState::OpenFile => {
-            map.insert(KeySequence::parse("<enter>").unwrap(), Action::Confirm);
+            map.insert(KeySequence::parse("<ret>").unwrap(), Action::Confirm);
         }
     }
     map
