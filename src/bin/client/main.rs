@@ -18,15 +18,15 @@ enum MinibufState {
 }
 
 #[derive(Clone, Eq, PartialEq)]
-struct View {
+struct Pane {
     view: sourceview::View,
 }
 
-impl View {
-    fn new() -> View {
+impl Pane {
+    fn new() -> Pane {
         let view = sourceview::View::new();
         view.set_monospace(true);
-        View { view }
+        Pane { view }
     }
 }
 
@@ -55,14 +55,14 @@ fn get_widget_index_in_container<
 fn split_view(
     window: &gtk::ApplicationWindow,
     orientation: gtk::Orientation,
-    views: &mut Vec<View>,
+    views: &mut Vec<Pane>,
 ) {
     // TODO: a more explicit tree structure might make this easier --
     // similar to how we do with the views vec
     if let Some(focus) = window.get_focus() {
         if let Some(parent) = focus.get_parent() {
             if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
-                let new_view = View::new();
+                let new_view = Pane::new();
                 let focus_index =
                     views.iter().position(|e| e.view == focus).unwrap();
                 views.insert(focus_index + 1, new_view.clone());
@@ -131,9 +131,9 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
 struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
-    views: Vec<View>,
+    views: Vec<Pane>,
     buffers: Vec<sourceview::Buffer>,
-    active_view: View,
+    active_view: Pane,
 
     base_keymap: KeyMap,
     minibuf_state: MinibufState,
@@ -209,7 +209,7 @@ impl App {
                 let left_gravity = true;
                 buf.create_mark(Some(mark_name), &prompt_end, left_gravity);
             }
-            KeyMapLookup::Action(Action::PreviousView) => {
+            KeyMapLookup::Action(Action::PreviousPane) => {
                 if let Some(focus) = self.window.get_focus() {
                     let pos = self
                         .views
@@ -224,7 +224,7 @@ impl App {
                     self.views[prev].view.grab_focus();
                 }
             }
-            KeyMapLookup::Action(Action::NextView) => {
+            KeyMapLookup::Action(Action::NextPane) => {
                 if let Some(focus) = self.window.get_focus() {
                     let pos = self
                         .views
@@ -253,7 +253,7 @@ impl App {
                     &mut self.views,
                 );
             }
-            KeyMapLookup::Action(Action::CloseView) => {
+            KeyMapLookup::Action(Action::ClosePane) => {
                 todo!();
             }
             KeyMapLookup::Action(Action::Confirm) => {
@@ -331,7 +331,7 @@ fn build_ui(application: &gtk::Application) {
     let layout = make_box(gtk::Orientation::Vertical);
 
     let split_root = make_box(gtk::Orientation::Horizontal);
-    let text = View::new();
+    let text = Pane::new();
     pack(&split_root, &text.view);
 
     let minibuf = gtk::TextView::new();

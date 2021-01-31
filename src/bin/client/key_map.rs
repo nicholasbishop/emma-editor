@@ -5,11 +5,11 @@ use std::collections::BTreeMap;
 pub enum Action {
     Exit,
     OpenFile,
-    PreviousView,
-    NextView,
+    PreviousPane,
+    NextPane,
     SplitHorizontal,
     SplitVertical,
-    CloseView,
+    ClosePane,
     Confirm,
 }
 
@@ -34,11 +34,11 @@ impl KeyMap {
         );
         map.insert(
             KeySequence::parse("<ctrl><shift>j").unwrap(),
-            Action::PreviousView,
+            Action::PreviousPane,
         );
         map.insert(
             KeySequence::parse("<ctrl><shift>k").unwrap(),
-            Action::NextView,
+            Action::NextPane,
         );
         map.insert(
             KeySequence::parse("<ctrl>x+2").unwrap(),
@@ -48,7 +48,7 @@ impl KeyMap {
             KeySequence::parse("<ctrl>x+3").unwrap(),
             Action::SplitHorizontal,
         );
-        map.insert(KeySequence::parse("<ctrl>x+0").unwrap(), Action::CloseView);
+        map.insert(KeySequence::parse("<ctrl>x+0").unwrap(), Action::ClosePane);
         map
     }
 
