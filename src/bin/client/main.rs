@@ -187,7 +187,8 @@ impl App {
                 // Add prompt text and apply tag.
                 buf.set_text(prompt);
                 let start = buf.get_start_iter();
-                let prompt_end = buf.get_iter_at_offset(prompt.len() as i32);
+                let mut prompt_end =
+                    buf.get_iter_at_offset(prompt.len() as i32);
                 buf.apply_tag(&tag, &start, &prompt_end);
 
                 // Insert mark to indicate the beginning of the user
@@ -198,6 +199,13 @@ impl App {
                 }
                 let left_gravity = true;
                 buf.create_mark(Some(mark_name), &prompt_end, left_gravity);
+
+                // Insert current directory.
+                // TODO fix unwrap
+                buf.insert(
+                    &mut prompt_end,
+                    env::current_dir().unwrap().to_str().unwrap(),
+                );
             }
             KeyMapLookup::Action(Action::PreviousPane) => {
                 let pos =
