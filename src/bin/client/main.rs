@@ -22,7 +22,7 @@ struct View(sourceview::View);
 impl View {
     fn new() -> View {
         let view = sourceview::View::new();
-        // view.set_monospace(true);
+        view.set_monospace(true);
         View(view)
     }
 }
