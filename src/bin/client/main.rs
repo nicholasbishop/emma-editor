@@ -288,10 +288,23 @@ impl App {
                 let langman = sourceview::LanguageManager::new();
                 let lang = langman.guess_language(Some(path), None);
 
+                // TODO: this is a mess, is there no way to load the scheme
+                // directly from embedded bytes?
+                let ssm =
+                    sourceview::StyleSchemeManager::get_default().unwrap();
+                let path = std::env::current_exe()
+                    .unwrap()
+                    .parent()
+                    .unwrap()
+                    .join("../../src/bin/client");
+                ssm.append_search_path(path.to_str().unwrap());
+                let scheme = ssm.get_scheme("emma").unwrap();
+
                 let tag_table: Option<&gtk::TextTagTable> = None;
                 let buf = sourceview::Buffer::new(tag_table);
                 buf.set_language(lang.as_ref());
                 buf.set_text(&contents);
+                buf.set_style_scheme(Some(&scheme));
 
                 self.buffers.push(buf.clone());
 
