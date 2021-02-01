@@ -9,7 +9,7 @@ use key_sequence::{KeySequence, KeySequenceAtom};
 use pane::Pane;
 use sourceview::prelude::*;
 use std::cell::RefCell;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::{env, fs};
 
@@ -319,7 +319,7 @@ impl App {
     }
 }
 
-fn build_ui(application: &gtk::Application) {
+fn build_ui(application: &gtk::Application, opt: &Opt) {
     let window = gtk::ApplicationWindow::new(application);
 
     window.set_title("emma");
@@ -363,6 +363,10 @@ fn build_ui(application: &gtk::Application) {
         cur_seq: KeySequence::default(),
     }));
 
+    for path in &opt.files {
+        app.borrow_mut().open_file(path);
+    }
+
     window.connect_key_press_event(move |_, e| {
         app.borrow_mut().handle_key_press(e)
     });
@@ -370,14 +374,24 @@ fn build_ui(application: &gtk::Application) {
     window.show_all();
 }
 
+/// Emma text editor.
+#[derive(argh::FromArgs)]
+struct Opt {
+    /// files to open on startup.
+    #[argh(positional)]
+    files: Vec<PathBuf>,
+}
+
 fn main() {
+    // TODO: glib has its own arg parsing that we could look at using,
+    // but it's more complicated to understand than argh.
+    let opt: Opt = argh::from_env();
+
     let application =
         gtk::Application::new(Some("org.emma.Emma"), Default::default())
             .expect("Initialization failed...");
 
-    application.connect_activate(|app| {
-        build_ui(app);
-    });
+    application.connect_activate(move |app| build_ui(app, &opt));
 
-    application.run(&env::args().collect::<Vec<_>>());
+    application.run(&[]);
 }

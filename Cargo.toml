@@ -9,6 +9,8 @@ anyhow = "1.0"
 fehler = "1.0"
 thiserror = "1.0"
 
+argh = "0.1"
+
 crossbeam-channel = "0.5"
 
 bincode = "1.3"
