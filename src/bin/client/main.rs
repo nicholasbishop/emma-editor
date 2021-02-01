@@ -9,6 +9,7 @@ use key_sequence::{KeySequence, KeySequenceAtom};
 use pane::Pane;
 use sourceview::prelude::*;
 use std::cell::RefCell;
+use std::path::Path;
 use std::rc::Rc;
 use std::{env, fs};
 
@@ -258,6 +259,42 @@ impl App {
         Inhibit(inhibit)
     }
 
+    fn open_file(&mut self, path: &Path) {
+        // TODO
+        let file_name = path.file_name().unwrap().to_str().unwrap();
+
+        // TODO: check out the async loading feature of
+        // sourceview. It says its unmaintained though and to
+        // check out tepl...
+
+        // TODO: handle error
+        let contents = fs::read_to_string(path).unwrap();
+
+        let langman = sourceview::LanguageManager::new();
+        let lang = langman.guess_language(Some(file_name), None);
+
+        // TODO: this is a mess, is there no way to load the scheme
+        // directly from embedded bytes?
+        let ssm = sourceview::StyleSchemeManager::get_default().unwrap();
+        let path = std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("../../src/bin/client");
+        ssm.append_search_path(path.to_str().unwrap());
+        let scheme = ssm.get_scheme("emma").unwrap();
+
+        let tag_table: Option<&gtk::TextTagTable> = None;
+        let buf = sourceview::Buffer::new(tag_table);
+        buf.set_language(lang.as_ref());
+        buf.set_text(&contents);
+        buf.set_style_scheme(Some(&scheme));
+
+        self.buffers.push(buf.clone());
+
+        self.active_view.get_view().set_buffer(Some(&buf));
+    }
+
     fn handle_minibuf_confirm(&mut self) {
         match self.minibuf_state {
             MinibufState::Inactive => {}
@@ -276,39 +313,7 @@ impl App {
 
                 self.minibuf_state = MinibufState::Inactive;
 
-                // TODO: check out the async loading feature of
-                // sourceview. It says its unmaintained though and to
-                // check out tepl...
-
-                let path = text.as_str();
-
-                // TODO: handle error
-                let contents = fs::read_to_string(path).unwrap();
-
-                let langman = sourceview::LanguageManager::new();
-                let lang = langman.guess_language(Some(path), None);
-
-                // TODO: this is a mess, is there no way to load the scheme
-                // directly from embedded bytes?
-                let ssm =
-                    sourceview::StyleSchemeManager::get_default().unwrap();
-                let path = std::env::current_exe()
-                    .unwrap()
-                    .parent()
-                    .unwrap()
-                    .join("../../src/bin/client");
-                ssm.append_search_path(path.to_str().unwrap());
-                let scheme = ssm.get_scheme("emma").unwrap();
-
-                let tag_table: Option<&gtk::TextTagTable> = None;
-                let buf = sourceview::Buffer::new(tag_table);
-                buf.set_language(lang.as_ref());
-                buf.set_text(&contents);
-                buf.set_style_scheme(Some(&scheme));
-
-                self.buffers.push(buf.clone());
-
-                self.active_view.get_view().set_buffer(Some(&buf));
+                self.open_file(Path::new(text.as_str()));
             }
         }
     }
