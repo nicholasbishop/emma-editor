@@ -1,3 +1,7 @@
+Build deps:
+
+    dnf install gtksourceview3-devel
+
 Build/test/run:
 
     ./cycle_client
