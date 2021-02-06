@@ -322,6 +322,8 @@ impl App {
         let end = buf.get_end_iter();
         let text = buf.get_text(&start, &end, false).unwrap();
 
+        let mut offset = 0;
+
         // TODO: maybe better to use a gtk/sourceview iter if it exists?
         for line in LinesWithEndings::from(&text) {
             let changes = parse_state.parse_line(&line, &self.syntax_set);
@@ -346,10 +348,12 @@ impl App {
                 buf.get_tag_table().unwrap().add(&tag);
 
                 // Apply tag.
-                let start = buf.get_iter_at_offset(range.start as i32);
-                let end = buf.get_iter_at_offset(range.end as i32);
+                let start = buf.get_iter_at_offset(offset + range.start as i32);
+                let end = buf.get_iter_at_offset(offset + range.end as i32);
                 buf.apply_tag(&tag, &start, &end);
             }
+
+            offset += line.len() as i32;
         }
     }
 
