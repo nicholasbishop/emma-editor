@@ -136,6 +136,70 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     map
 }
 
+struct HighlightCache {
+    syntax_set: SyntaxSet,
+    theme_set: ThemeSet,
+}
+
+impl HighlightCache {
+    // TODO: for now use an easier mode of highlighting with no
+    // caching or other speedups.
+    //
+    // TODO: path from buffer?
+    fn highlight_buffer(&self, buf: &sourceview::Buffer, path: &Path) {
+        // TODO: unwraps
+        let syntax =
+            self.syntax_set.find_syntax_for_file(path).unwrap().unwrap();
+
+        let mut parse_state = ParseState::new(syntax);
+
+        // TODO: our theme
+        let highlighter =
+            Highlighter::new(&self.theme_set.themes["base16-ocean.dark"]);
+
+        let mut highlight_state =
+            HighlightState::new(&highlighter, ScopeStack::new());
+
+        let start = buf.get_start_iter();
+        let end = buf.get_end_iter();
+        let text = buf.get_text(&start, &end, false).unwrap();
+
+        let mut offset = 0;
+
+        // TODO: maybe better to use a gtk/sourceview iter if it exists?
+        for line in LinesWithEndings::from(&text) {
+            let changes = parse_state.parse_line(&line, &self.syntax_set);
+
+            let iter = RangedHighlightIterator::new(
+                &mut highlight_state,
+                &changes,
+                line,
+                &highlighter,
+            );
+
+            for (style, _, range) in iter {
+                // TODO: not sure how expensive creating tags is,
+                // should we be keeping track of tags in a hashmap or
+                // something? Could be that duplicate tags are already
+                // handled internally in gtk.
+                let tag = gtk::TextTag::new(None);
+                // TODO: set other properties
+                tag.set_property_foreground_rgba(Some(
+                    &gdk_rgba_from_syntect_color(&style.foreground),
+                ));
+                buf.get_tag_table().unwrap().add(&tag);
+
+                // Apply tag.
+                let start = buf.get_iter_at_offset(offset + range.start as i32);
+                let end = buf.get_iter_at_offset(offset + range.end as i32);
+                buf.apply_tag(&tag, &start, &end);
+            }
+
+            offset += line.len() as i32;
+        }
+    }
+}
+
 struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
@@ -147,8 +211,7 @@ struct App {
     minibuf_state: MinibufState,
     cur_seq: KeySequence,
 
-    syntax_set: SyntaxSet,
-    theme_set: ThemeSet,
+    highlight_cache: Rc<RefCell<HighlightCache>>,
 }
 
 impl App {
@@ -280,6 +343,7 @@ impl App {
     }
 
     fn open_file(&mut self, path: &Path) {
+        dbg!("open_file start");
         // TODO: we may end up not needing sourceview since we're
         // already not using it for highlighting...
 
@@ -292,69 +356,17 @@ impl App {
 
         let tag_table: Option<&gtk::TextTagTable> = None;
         let buf = sourceview::Buffer::new(tag_table);
+        let path_clone = path.to_path_buf();
+        let buf_clone = buf.clone();
+        let hc = self.highlight_cache.clone();
+        buf.connect_changed(move |_| {
+            hc.borrow_mut().highlight_buffer(&buf_clone, &path_clone)
+        });
         buf.set_text(&contents);
-        self.highlight_buffer(&buf, path);
 
         self.buffers.push(buf.clone());
 
         self.active_view.get_view().set_buffer(Some(&buf));
-    }
-
-    // TODO: for now use an easier mode of highlighting with no
-    // caching or other speedups.
-    //
-    // TODO: path from buffer?
-    fn highlight_buffer(&self, buf: &sourceview::Buffer, path: &Path) {
-        // TODO: unwraps
-        let syntax =
-            self.syntax_set.find_syntax_for_file(path).unwrap().unwrap();
-
-        let mut parse_state = ParseState::new(syntax);
-
-        // TODO: our theme
-        let highlighter =
-            Highlighter::new(&self.theme_set.themes["base16-ocean.dark"]);
-
-        let mut highlight_state =
-            HighlightState::new(&highlighter, ScopeStack::new());
-
-        let start = buf.get_start_iter();
-        let end = buf.get_end_iter();
-        let text = buf.get_text(&start, &end, false).unwrap();
-
-        let mut offset = 0;
-
-        // TODO: maybe better to use a gtk/sourceview iter if it exists?
-        for line in LinesWithEndings::from(&text) {
-            let changes = parse_state.parse_line(&line, &self.syntax_set);
-
-            let iter = RangedHighlightIterator::new(
-                &mut highlight_state,
-                &changes,
-                line,
-                &highlighter,
-            );
-
-            for (style, _, range) in iter {
-                // TODO: not sure how expensive creating tags is,
-                // should we be keeping track of tags in a hashmap or
-                // something? Could be that duplicate tags are already
-                // handled internally in gtk.
-                let tag = gtk::TextTag::new(None);
-                // TODO: set other properties
-                tag.set_property_foreground_rgba(Some(
-                    &gdk_rgba_from_syntect_color(&style.foreground),
-                ));
-                buf.get_tag_table().unwrap().add(&tag);
-
-                // Apply tag.
-                let start = buf.get_iter_at_offset(offset + range.start as i32);
-                let end = buf.get_iter_at_offset(offset + range.end as i32);
-                buf.apply_tag(&tag, &start, &end);
-            }
-
-            offset += line.len() as i32;
-        }
     }
 
     fn handle_minibuf_confirm(&mut self) {
@@ -424,8 +436,10 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         minibuf_state: MinibufState::Inactive,
         cur_seq: KeySequence::default(),
 
-        syntax_set: SyntaxSet::load_defaults_newlines(),
-        theme_set: ThemeSet::load_defaults(),
+        highlight_cache: Rc::new(RefCell::new(HighlightCache {
+            syntax_set: SyntaxSet::load_defaults_newlines(),
+            theme_set: ThemeSet::load_defaults(),
+        })),
     }));
 
     for path in &opt.files {
