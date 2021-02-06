@@ -2,6 +2,7 @@ mod key_map;
 mod key_sequence;
 mod pane;
 
+use crossbeam_channel::{Receiver, Sender};
 use gio::prelude::*;
 use gtk::prelude::*;
 use key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack};
@@ -10,9 +11,10 @@ use pane::Pane;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::{env, fs};
+use std::{env, fs, thread};
 use syntect::{
     highlighting::{
         HighlightState, Highlighter, RangedHighlightIterator, Style, ThemeSet,
@@ -20,6 +22,9 @@ use syntect::{
     parsing::{ParseState, ScopeStack, SyntaxSet},
     util::LinesWithEndings,
 };
+
+type BufferId = String;
+type BufferGeneration = u64;
 
 // This global is needed for callbacks on the main thread. On other
 // threads it is None.
@@ -163,88 +168,196 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     map
 }
 
-struct HighlightCache {
-    syntax_set: SyntaxSet,
-    theme_set: ThemeSet,
+type HighlightSpan = (Range<i32>, Style);
+
+// TODO: for now use an easier mode of highlighting with no
+// caching or other speedups.
+//
+// TODO: path from buffer?
+//
+// TODO rename
+fn calc_highlight_spans(
+    syntax_set: &SyntaxSet,
+    theme_set: &ThemeSet,
+    req: &HighlightRequest,
+) -> Vec<HighlightSpan> {
+    // TODO: unwraps
+    let syntax = syntax_set.find_syntax_for_file(&req.path).unwrap().unwrap();
+
+    let mut parse_state = ParseState::new(syntax);
+
+    // TODO: our theme
+    let highlighter = Highlighter::new(&theme_set.themes["base16-ocean.dark"]);
+
+    let mut highlight_state =
+        HighlightState::new(&highlighter, ScopeStack::new());
+
+    // let start = buf.get_start_iter();
+    // let end = buf.get_end_iter();
+    // buf.remove_all_tags(&start, &end);
+    // let text = buf.get_text(&start, &end, true).unwrap();
+
+    let mut offset = 0;
+
+    let mut spans = Vec::new();
+
+    // TODO: maybe better to use a gtk/sourceview iter if it exists?
+    for line in LinesWithEndings::from(&req.text) {
+        let changes = parse_state.parse_line(&line, syntax_set);
+
+        let iter = RangedHighlightIterator::new(
+            &mut highlight_state,
+            &changes,
+            line,
+            &highlighter,
+        );
+
+        for (style, _, range) in iter {
+            spans.push((
+                Range {
+                    start: offset + range.start as i32,
+                    end: offset + range.end as i32,
+                },
+                style,
+            ));
+        }
+
+        offset += line.len() as i32;
+    }
+
+    spans
 }
 
-impl HighlightCache {
-    // TODO: for now use an easier mode of highlighting with no
-    // caching or other speedups.
+fn highlight_buffer(buf: &sourceview::Buffer, spans: &[HighlightSpan]) {
+    let tag_table = buf.get_tag_table().unwrap();
+
+    let mut style_to_tag = HashMap::new();
+
+    for (range, style) in spans {
+        let tag =
+            style_to_tag
+                .entry(StyleWithHash(*style))
+                .or_insert_with(|| {
+                    let tag = gtk::TextTag::new(None);
+                    // TODO: set other properties
+                    tag.set_property_foreground_rgba(Some(
+                        &gdk_rgba_from_syntect_color(&style.foreground),
+                    ));
+                    tag_table.add(&tag);
+                    tag
+                });
+
+        // Apply tag.
+        let start = buf.get_iter_at_offset(range.start);
+        let end = buf.get_iter_at_offset(range.end);
+        buf.apply_tag(tag, &start, &end);
+    }
+}
+
+struct HighlightRequest {
+    buffer_id: BufferId,
+    path: PathBuf,
+    generation: BufferGeneration,
+
+    // TODO: with big buffers copying the whole thing in memory will
+    // be a problem.
+    text: String,
+}
+
+fn highlighter_thread(receiver: Receiver<HighlightRequest>) {
+    let syntax_set = SyntaxSet::load_defaults_newlines();
+    let theme_set = ThemeSet::load_defaults();
+
+    // Plan for speed improvement:
     //
-    // TODO: path from buffer?
-    fn highlight_buffer(&self, buf: &sourceview::Buffer, path: &Path) {
-        let tag_table = buf.get_tag_table().unwrap();
+    // Have a background thread for doing the
+    // highlighting. (TODO: think about a pool.)
+    //
+    // When the buffer changes, send a message to the bg
+    // thread. It needs to somehow include a reference to the
+    // buffer, like an ID, but not access to the buffer
+    // itself. The whole buffer contents is passed to the
+    // thread. (TODO: future performance concern for large
+    // buffers).
+    //
+    // The bg thread keeps a queue of buffers that need
+    // highlighting. If a change comes in and the buffer is
+    // already being highlighted then it stops and throws that
+    // work away. Similarly if the buffer is already in the
+    // queue then the previous queue entry is removed. New
+    // entries take priority.
+    //
+    // Whenever the bg thread finishes processing a buffer it queues
+    // up an operation using idle_add. That operation runs on the main
+    // thread and handles actually updating the buffer. How will it
+    // have a reference to the App? Sounds like we need a global for
+    // that? Either that or have a persistent idle handler that checks
+    // for messages ina channel.
 
-        // TODO: unwraps
-        let syntax =
-            self.syntax_set.find_syntax_for_file(path).unwrap().unwrap();
+    let mut queue: Vec<HighlightRequest> = Vec::new();
 
-        let mut parse_state = ParseState::new(syntax);
+    loop {
+        let req = receiver.recv().unwrap();
 
-        // TODO: our theme
-        let highlighter =
-            Highlighter::new(&self.theme_set.themes["base16-ocean.dark"]);
+        // Check if the buffer is already in the queue and drop it if
+        // so
+        queue.retain(|elem| elem.buffer_id != req.buffer_id);
 
-        let mut highlight_state =
-            HighlightState::new(&highlighter, ScopeStack::new());
+        queue.push(req);
 
-        let start = buf.get_start_iter();
-        let end = buf.get_end_iter();
-        buf.remove_all_tags(&start, &end);
-        let text = buf.get_text(&start, &end, true).unwrap();
+        while !queue.is_empty() {
+            // TODO: make it possible to exit the loop early if new
+            // things come in on the channel
 
-        let mut offset = 0;
+            let req = queue.pop().unwrap();
 
-        let mut style_to_tag = HashMap::new();
+            let spans = calc_highlight_spans(&syntax_set, &theme_set, &req);
 
-        // TODO: maybe better to use a gtk/sourceview iter if it exists?
-        for line in LinesWithEndings::from(&text) {
-            let changes = parse_state.parse_line(&line, &self.syntax_set);
+            // Send message back
+            glib::idle_add(move || {
+                // TODO: move to top-level?
 
-            let iter = RangedHighlightIterator::new(
-                &mut highlight_state,
-                &changes,
-                line,
-                &highlighter,
-            );
+                APP.with(|app| {
+                    let app = app.borrow();
+                    let app = app.as_ref().unwrap();
 
-            for (style, _, range) in iter {
-                let tag = style_to_tag
-                    .entry(StyleWithHash(style))
-                    .or_insert_with(|| {
-                        let tag = gtk::TextTag::new(None);
-                        // TODO: set other properties
-                        tag.set_property_foreground_rgba(Some(
-                            &gdk_rgba_from_syntect_color(&style.foreground),
-                        ));
-                        tag_table.add(&tag);
-                        tag
-                    });
+                    let buf = app
+                        .buffers
+                        .iter()
+                        .find(|buf| buf.borrow().buffer_id == req.buffer_id)
+                        .unwrap();
 
-                // Apply tag.
-                let start = buf.get_iter_at_offset(offset + range.start as i32);
-                let end = buf.get_iter_at_offset(offset + range.end as i32);
-                buf.apply_tag(tag, &start, &end);
-            }
+                    let buf = buf.borrow();
+                    if buf.generation == req.generation {
+                        highlight_buffer(&buf.storage, &spans);
+                    }
+                });
 
-            offset += line.len() as i32;
+                Continue(false)
+            });
         }
     }
+}
+
+struct Buffer {
+    buffer_id: String,
+    path: PathBuf,
+    storage: sourceview::Buffer,
+    generation: u64,
 }
 
 struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
     views: Vec<Pane>,
-    buffers: Vec<sourceview::Buffer>,
+    buffers: Vec<Rc<RefCell<Buffer>>>,
     active_view: Pane,
 
     base_keymap: KeyMap,
     minibuf_state: MinibufState,
     cur_seq: KeySequence,
 
-    highlight_cache: Rc<RefCell<HighlightCache>>,
+    highlight_request_sender: Sender<HighlightRequest>,
 }
 
 impl App {
@@ -387,18 +500,41 @@ impl App {
         let contents = fs::read_to_string(path).unwrap();
 
         let tag_table: Option<&gtk::TextTagTable> = None;
-        let buf = sourceview::Buffer::new(tag_table);
-        let path_clone = path.to_path_buf();
-        let buf_clone = buf.clone();
-        let hc = self.highlight_cache.clone();
-        buf.connect_changed(move |_| {
-            hc.borrow_mut().highlight_buffer(&buf_clone, &path_clone)
+        let storage = sourceview::Buffer::new(tag_table);
+
+        let buffer = Rc::new(RefCell::new(Buffer {
+            // TODO: set a unique val here
+            buffer_id: "TODO".into(),
+
+            path: path.to_path_buf(),
+            storage: storage.clone(),
+            generation: 0,
+        }));
+
+        let sender = self.highlight_request_sender.clone();
+        let buffer_clone = buffer.clone();
+        storage.connect_changed(move |_| {
+            let buffer = buffer_clone.borrow_mut();
+
+            let storage = buffer.storage.clone();
+
+            let start = storage.get_start_iter();
+            let end = storage.get_end_iter();
+            let text = storage.get_text(&start, &end, true).unwrap();
+
+            let req = HighlightRequest {
+                buffer_id: buffer.buffer_id.clone(),
+                text: text.to_string(),
+                generation: buffer.generation,
+                path: buffer.path.clone(),
+            };
+            sender.send(req).unwrap();
         });
-        buf.set_text(&contents);
+        storage.set_text(&contents);
 
-        self.buffers.push(buf.clone());
+        self.buffers.push(buffer);
 
-        self.active_view.get_view().set_buffer(Some(&buf));
+        self.active_view.get_view().set_buffer(Some(&storage));
     }
 
     fn handle_minibuf_confirm(&mut self) {
@@ -456,6 +592,9 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     window.add_events(gdk::EventMask::KEY_PRESS_MASK);
 
+    let (hl_req_sender, hl_req_receiver) = crossbeam_channel::unbounded();
+    thread::spawn(|| highlighter_thread(hl_req_receiver));
+
     let mut app = App {
         window: window.clone(),
         minibuf,
@@ -468,10 +607,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         minibuf_state: MinibufState::Inactive,
         cur_seq: KeySequence::default(),
 
-        highlight_cache: Rc::new(RefCell::new(HighlightCache {
-            syntax_set: SyntaxSet::load_defaults_newlines(),
-            theme_set: ThemeSet::load_defaults(),
-        })),
+        highlight_request_sender: hl_req_sender,
     };
 
     for path in &opt.files {
