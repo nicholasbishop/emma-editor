@@ -21,6 +21,12 @@ use syntect::{
     util::LinesWithEndings,
 };
 
+// This global is needed for callbacks on the main thread. On other
+// threads it is None.
+std::thread_local! {
+    static APP: RefCell<Option<App>> = RefCell::new(None);
+}
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum MinibufState {
     Inactive,
@@ -450,7 +456,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     window.add_events(gdk::EventMask::KEY_PRESS_MASK);
 
-    let app = Rc::new(RefCell::new(App {
+    let mut app = App {
         window: window.clone(),
         minibuf,
         views: vec![text.clone()],
@@ -466,14 +472,18 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
             syntax_set: SyntaxSet::load_defaults_newlines(),
             theme_set: ThemeSet::load_defaults(),
         })),
-    }));
+    };
 
     for path in &opt.files {
-        app.borrow_mut().open_file(path);
+        app.open_file(path);
     }
 
+    APP.with(|cell| {
+        *cell.borrow_mut() = Some(app);
+    });
+
     window.connect_key_press_event(move |_, e| {
-        app.borrow_mut().handle_key_press(e)
+        APP.with(|app| app.borrow_mut().as_mut().unwrap().handle_key_press(e))
     });
 
     window.show_all();
