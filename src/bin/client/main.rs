@@ -8,12 +8,14 @@ use key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack};
 use key_sequence::{KeySequence, KeySequenceAtom};
 use pane::Pane;
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::{env, fs};
 use syntect::{
     highlighting::{
-        HighlightState, Highlighter, RangedHighlightIterator, ThemeSet,
+        HighlightState, Highlighter, RangedHighlightIterator, Style, ThemeSet,
     },
     parsing::{ParseState, ScopeStack, SyntaxSet},
     util::LinesWithEndings,
@@ -24,6 +26,25 @@ enum MinibufState {
     Inactive,
     // TODO this will probably become more general
     OpenFile,
+}
+
+#[derive(Eq, PartialEq)]
+struct StyleWithHash(Style);
+
+impl Hash for StyleWithHash {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut hash_color = |c: &syntect::highlighting::Color| {
+            c.r.hash(state);
+            c.g.hash(state);
+            c.b.hash(state);
+            c.a.hash(state);
+        };
+
+        // TODO: would be nice if Style just implemented Hash.
+        hash_color(&self.0.foreground);
+        hash_color(&self.0.background);
+        self.0.font_style.hash(state);
+    }
 }
 
 fn gdk_rgba_from_syntect_color(
@@ -147,6 +168,8 @@ impl HighlightCache {
     //
     // TODO: path from buffer?
     fn highlight_buffer(&self, buf: &sourceview::Buffer, path: &Path) {
+        let tag_table = buf.get_tag_table().unwrap();
+
         // TODO: unwraps
         let syntax =
             self.syntax_set.find_syntax_for_file(path).unwrap().unwrap();
@@ -162,9 +185,12 @@ impl HighlightCache {
 
         let start = buf.get_start_iter();
         let end = buf.get_end_iter();
-        let text = buf.get_text(&start, &end, false).unwrap();
+        buf.remove_all_tags(&start, &end);
+        let text = buf.get_text(&start, &end, true).unwrap();
 
         let mut offset = 0;
+
+        let mut style_to_tag = HashMap::new();
 
         // TODO: maybe better to use a gtk/sourceview iter if it exists?
         for line in LinesWithEndings::from(&text) {
@@ -178,21 +204,22 @@ impl HighlightCache {
             );
 
             for (style, _, range) in iter {
-                // TODO: not sure how expensive creating tags is,
-                // should we be keeping track of tags in a hashmap or
-                // something? Could be that duplicate tags are already
-                // handled internally in gtk.
-                let tag = gtk::TextTag::new(None);
-                // TODO: set other properties
-                tag.set_property_foreground_rgba(Some(
-                    &gdk_rgba_from_syntect_color(&style.foreground),
-                ));
-                buf.get_tag_table().unwrap().add(&tag);
+                let tag = style_to_tag
+                    .entry(StyleWithHash(style))
+                    .or_insert_with(|| {
+                        let tag = gtk::TextTag::new(None);
+                        // TODO: set other properties
+                        tag.set_property_foreground_rgba(Some(
+                            &gdk_rgba_from_syntect_color(&style.foreground),
+                        ));
+                        tag_table.add(&tag);
+                        tag
+                    });
 
                 // Apply tag.
                 let start = buf.get_iter_at_offset(offset + range.start as i32);
                 let end = buf.get_iter_at_offset(offset + range.end as i32);
-                buf.apply_tag(&tag, &start, &end);
+                buf.apply_tag(tag, &start, &end);
             }
 
             offset += line.len() as i32;
@@ -343,7 +370,6 @@ impl App {
     }
 
     fn open_file(&mut self, path: &Path) {
-        dbg!("open_file start");
         // TODO: we may end up not needing sourceview since we're
         // already not using it for highlighting...
 
