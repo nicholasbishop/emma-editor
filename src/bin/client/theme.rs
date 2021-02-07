@@ -3,14 +3,16 @@
 //!
 //! See `emma.theme.yml` for an example.
 
-use anyhow::{anyhow, bail, Error};
-use fehler::throws;
-use serde::Deserialize;
-use std::collections::HashMap;
-use syntect::highlighting::{
-    Color, ParseThemeError, ScopeSelectors, StyleModifier, Theme, ThemeItem,
+use {
+    anyhow::{anyhow, bail, Error},
+    fehler::throws,
+    serde::Deserialize,
+    std::collections::HashMap,
+    syntect::highlighting::{
+        Color, ParseThemeError, ScopeSelectors, StyleModifier, Theme, ThemeItem,
+    },
+    syntect::LoadingError,
 };
-use syntect::LoadingError;
 
 #[derive(Debug, Deserialize)]
 struct YamlThemeSettings {

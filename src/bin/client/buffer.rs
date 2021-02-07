@@ -1,6 +1,5 @@
 use {
-    rand::distributions::Alphanumeric,
-    rand::{thread_rng, Rng},
+    rand::{distributions::Alphanumeric, thread_rng, Rng},
     std::path::PathBuf,
 };
 

@@ -1,5 +1,4 @@
-use crate::key_sequence::KeySequence;
-use std::collections::BTreeMap;
+use {crate::key_sequence::KeySequence, std::collections::BTreeMap};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {

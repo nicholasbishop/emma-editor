@@ -1,20 +1,24 @@
-use crate::{
-    buffer::{Buffer, BufferGeneration, BufferId},
-    theme, APP,
-};
-use crossbeam_channel::Receiver;
-use gio::prelude::*;
-use gtk::prelude::*;
-use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
-use std::ops::Range;
-use std::path::PathBuf;
-use syntect::{
-    highlighting::{
-        HighlightState, Highlighter, RangedHighlightIterator, Style, Theme,
+use {
+    crate::{
+        buffer::{Buffer, BufferGeneration, BufferId},
+        theme, APP,
     },
-    parsing::{ParseState, ScopeStack, SyntaxSet},
-    util::LinesWithEndings,
+    crossbeam_channel::Receiver,
+    gio::prelude::*,
+    gtk::prelude::*,
+    std::{
+        collections::HashMap,
+        hash::{Hash, Hasher},
+        ops::Range,
+        path::PathBuf,
+    },
+    syntect::{
+        highlighting::{
+            HighlightState, Highlighter, RangedHighlightIterator, Style, Theme,
+        },
+        parsing::{ParseState, ScopeStack, SyntaxSet},
+        util::LinesWithEndings,
+    },
 };
 
 #[derive(Eq, PartialEq)]

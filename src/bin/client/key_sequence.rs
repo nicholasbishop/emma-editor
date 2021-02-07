@@ -1,8 +1,10 @@
-use fehler::{throw, throws};
-use gdk::keys::constants as keys;
-use gdk::{EventKey, ModifierType};
-use glib::translate::FromGlib;
-use std::collections::HashMap;
+use {
+    fehler::{throw, throws},
+    gdk::keys::constants as keys,
+    gdk::{EventKey, ModifierType},
+    glib::translate::FromGlib,
+    std::collections::HashMap,
+};
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct KeySequenceAtom {

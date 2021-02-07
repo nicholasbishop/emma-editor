@@ -5,18 +5,22 @@ mod key_sequence;
 mod pane;
 mod theme;
 
-use buffer::EmBuf;
-use crossbeam_channel::Sender;
-use gio::prelude::*;
-use gtk::prelude::*;
-use highlight::{highlighter_thread, HighlightRequest};
-use key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack};
-use key_sequence::{KeySequence, KeySequenceAtom};
-use pane::Pane;
-use std::cell::RefCell;
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::{env, fs, thread};
+use {
+    buffer::EmBuf,
+    crossbeam_channel::Sender,
+    gio::prelude::*,
+    gtk::prelude::*,
+    highlight::{highlighter_thread, HighlightRequest},
+    key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
+    key_sequence::{KeySequence, KeySequenceAtom},
+    pane::Pane,
+    std::{
+        cell::RefCell,
+        path::{Path, PathBuf},
+        rc::Rc,
+        {env, fs, thread},
+    },
+};
 
 // This global is needed for callbacks on the main thread. On other
 // threads it is None.
