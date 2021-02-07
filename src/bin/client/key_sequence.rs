@@ -1,8 +1,9 @@
 use {
     fehler::{throw, throws},
-    gdk::keys::constants as keys,
-    gdk::{EventKey, ModifierType},
-    glib::translate::FromGlib,
+    gtk4::{
+        gdk::{self, keys::constants as keys, ModifierType},
+        glib::translate::FromGlib,
+    },
     std::collections::HashMap,
 };
 
@@ -13,16 +14,14 @@ pub struct KeySequenceAtom {
 }
 
 impl KeySequenceAtom {
-    pub fn from_event(e: &EventKey) -> KeySequenceAtom {
-        let key = e.get_keyval();
-
-        // Try to convert the key to lowercase as a way to normalize.
-        let lower = gdk::keyval_to_lower(*key);
-        let key = gdk::keys::Key::from_glib(lower);
-
+    pub fn from_event(
+        key: gdk::keys::Key,
+        state: ModifierType,
+    ) -> KeySequenceAtom {
         KeySequenceAtom {
-            modifiers: e.get_state(),
-            key,
+            modifiers: state,
+            // Convert the key to lowercase as a way to normalize.
+            key: key.to_lower(),
         }
     }
 }
@@ -32,7 +31,7 @@ fn single_modifier_to_string(m: &ModifierType) -> &'static str {
         "ctrl"
     } else if *m == ModifierType::SHIFT_MASK {
         "shift"
-    } else if *m == ModifierType::MOD1_MASK {
+    } else if *m == ModifierType::ALT_MASK {
         "alt"
     } else {
         "unknown"
@@ -91,7 +90,7 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
     let mut names = HashMap::new();
     names.insert("ctrl", ParseItem::Modifier(ModifierType::CONTROL_MASK));
     names.insert("shift", ParseItem::Modifier(ModifierType::SHIFT_MASK));
-    names.insert("alt", ParseItem::Modifier(ModifierType::MOD1_MASK));
+    names.insert("alt", ParseItem::Modifier(ModifierType::ALT_MASK));
     names.insert("esc", ParseItem::Key(keys::Escape));
     names.insert("space", ParseItem::Key(keys::space));
     names.insert("ret", ParseItem::Key(keys::Return));
@@ -109,8 +108,9 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
                     items.push(ParseItem::Append);
                 } else {
                     let keyval = gdk::unicode_to_keyval(c as u32);
-                    items
-                        .push(ParseItem::Key(gdk::keys::Key::from_glib(keyval)))
+                    // TODO: any safe way to do this?
+                    let key = unsafe { gdk::keys::Key::from_glib(keyval) };
+                    items.push(ParseItem::Key(key))
                 }
             }
             State::InEscape => {

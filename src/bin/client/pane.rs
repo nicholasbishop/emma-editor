@@ -1,4 +1,7 @@
-use {crate::buffer::Buffer, gtk::prelude::*};
+use {
+    crate::buffer::Buffer,
+    gtk4::{self as gtk, prelude::*},
+};
 
 type View = gtk::TextView;
 
@@ -16,21 +19,17 @@ impl Pane {
     pub fn new() -> Pane {
         let view = View::new();
         view.set_monospace(true);
-        let adj: Option<&gtk::Adjustment> = None;
-        let scrolled_window = gtk::ScrolledWindow::new(adj, adj);
-        scrolled_window.add(&view);
+        let scrolled_window = gtk::ScrolledWindow::new();
+        scrolled_window.set_child(Some(&view));
+        scrolled_window.set_vexpand(true);
 
         let info = gtk::Label::new(Some("TODO"));
         info.set_widget_name("info");
         info.set_xalign(0.0);
 
         let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        let expand = true;
-        let fill = true;
-        let padding = 0;
-        container.pack_start(&scrolled_window, expand, fill, padding);
-        let expand = false;
-        container.pack_start(&info, expand, fill, padding);
+        container.append(&scrolled_window);
+        container.append(&info);
 
         Pane {
             container,

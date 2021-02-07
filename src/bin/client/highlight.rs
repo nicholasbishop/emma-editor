@@ -4,8 +4,7 @@ use {
         theme, APP,
     },
     crossbeam_channel::Receiver,
-    gio::prelude::*,
-    gtk::prelude::*,
+    gtk4::{self as gtk, gdk, glib, prelude::*},
     std::{
         collections::HashMap,
         hash::{Hash, Hasher},
@@ -45,10 +44,10 @@ fn gdk_rgba_from_syntect_color(
     color: &syntect::highlighting::Color,
 ) -> gdk::RGBA {
     gdk::RGBA {
-        red: (color.r as f64) / 255.0,
-        green: (color.g as f64) / 255.0,
-        blue: (color.b as f64) / 255.0,
-        alpha: (color.a as f64) / 255.0,
+        red: (color.r as f32) / 255.0,
+        green: (color.g as f32) / 255.0,
+        blue: (color.b as f32) / 255.0,
+        alpha: (color.a as f32) / 255.0,
     }
 }
 
@@ -113,7 +112,7 @@ fn calc_highlight_spans(
 }
 
 fn highlight_buffer(buf: &Buffer, spans: &[HighlightSpan]) {
-    let tag_table = buf.get_tag_table().unwrap();
+    let tag_table = buf.get_tag_table();
 
     let mut style_to_tag = HashMap::new();
 

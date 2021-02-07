@@ -1,6 +1,6 @@
 Build deps:
 
-    dnf install gtksourceview3-devel
+    dnf install graphene-devel gtk4-devel
 
 Build/test/run:
 
