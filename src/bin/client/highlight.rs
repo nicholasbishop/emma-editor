@@ -4,8 +4,7 @@ use {
         theme, APP,
     },
     crossbeam_channel::Receiver,
-    gio::prelude::*,
-    gtk::prelude::*,
+    gtk4::prelude::*,
     std::{
         collections::HashMap,
         hash::{Hash, Hasher},

@@ -1,4 +1,4 @@
-use {crate::buffer::Buffer, gtk::prelude::*};
+use {crate::buffer::Buffer, gtk4::prelude::*};
 
 type View = gtk::TextView;
 

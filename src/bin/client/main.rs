@@ -8,8 +8,7 @@ mod theme;
 use {
     buffer::EmBuf,
     crossbeam_channel::Sender,
-    gio::prelude::*,
-    gtk::prelude::*,
+    gtk4::prelude::*,
     highlight::{highlighter_thread, HighlightRequest},
     key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
     key_sequence::{KeySequence, KeySequenceAtom},

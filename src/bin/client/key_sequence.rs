@@ -1,8 +1,10 @@
 use {
     fehler::{throw, throws},
-    gdk::keys::constants as keys,
-    gdk::{EventKey, ModifierType},
-    glib::translate::FromGlib,
+    gtk4::{
+        gdk::{keys::constants as keys, ModifierType},
+        glib::translate::FromGlib,
+        EventKey,
+    },
     std::collections::HashMap,
 };
 
