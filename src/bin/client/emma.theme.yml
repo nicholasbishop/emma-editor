@@ -1,0 +1,17 @@
+name: "Emma"
+
+vars:
+  plain: "#dcdccc"
+  blue: "#729fcf"
+
+settings:
+  foreground: "$plain"
+
+scopes:
+  comment:
+    scope: "comment"
+    foreground: "#f57900"
+
+  keyword:
+    scope: "keyword, storage.type"
+    foreground: "$blue"

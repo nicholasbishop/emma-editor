@@ -2,6 +2,7 @@ mod highlight;
 mod key_map;
 mod key_sequence;
 mod pane;
+mod theme;
 
 use crossbeam_channel::Sender;
 use gio::prelude::*;

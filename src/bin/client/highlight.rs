@@ -1,16 +1,14 @@
-use crate::{BufferGeneration, BufferId, APP};
+use crate::{theme, BufferGeneration, BufferId, APP};
 use crossbeam_channel::Receiver;
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::io::Cursor;
 use std::ops::Range;
 use std::path::PathBuf;
 use syntect::{
     highlighting::{
         HighlightState, Highlighter, RangedHighlightIterator, Style, Theme,
-        ThemeSet,
     },
     parsing::{ParseState, ScopeStack, SyntaxSet},
     util::LinesWithEndings,
@@ -144,10 +142,9 @@ pub struct HighlightRequest {
 
 pub fn highlighter_thread(receiver: Receiver<HighlightRequest>) {
     let syntax_set = SyntaxSet::load_defaults_newlines();
-    let theme_bytes = include_bytes!("emma.tmTheme");
-    let mut cursor = Cursor::new(theme_bytes);
-
-    let theme = ThemeSet::load_from_reader(&mut cursor).unwrap();
+    // TODO: consider moving this to the main thread so it panics the
+    // whole program
+    let theme = theme::load_default_theme().unwrap();
     // Plan for speed improvement:
     //
     // Have a background thread for doing the
