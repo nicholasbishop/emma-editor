@@ -26,6 +26,10 @@ scopes:
     scope: "entity.name.function"
     foreground: "$yellow"
 
+  operators:
+    scope: "keyword.operator"
+    foreground: "$plain"
+
   macro:
     scope: "support.macro, meta.annotation"
     foreground: "$tan"
