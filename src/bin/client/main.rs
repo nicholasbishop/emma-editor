@@ -5,6 +5,7 @@ mod key_sequence;
 mod pane;
 mod theme;
 
+use buffer::EmBuf;
 use crossbeam_channel::Sender;
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -141,13 +142,6 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
         }
     }
     map
-}
-
-struct EmBuf {
-    buffer_id: String,
-    path: PathBuf,
-    storage: buffer::Buffer,
-    generation: u64,
 }
 
 struct App {
