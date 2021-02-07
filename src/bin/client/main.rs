@@ -143,8 +143,7 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     map
 }
 
-// TODO: rename this
-struct Buffer {
+struct EmBuf {
     buffer_id: String,
     path: PathBuf,
     storage: buffer::Buffer,
@@ -155,7 +154,7 @@ struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
     views: Vec<Pane>,
-    buffers: Vec<Rc<RefCell<Buffer>>>,
+    buffers: Vec<Rc<RefCell<EmBuf>>>,
     active_view: Pane,
 
     base_keymap: KeyMap,
@@ -307,7 +306,7 @@ impl App {
         let tag_table: Option<&gtk::TextTagTable> = None;
         let storage = buffer::Buffer::new(tag_table);
 
-        let buffer = Rc::new(RefCell::new(Buffer {
+        let buffer = Rc::new(RefCell::new(EmBuf {
             buffer_id: make_buffer_id(),
 
             path: path.to_path_buf(),
