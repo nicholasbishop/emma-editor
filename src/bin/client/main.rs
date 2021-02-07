@@ -310,7 +310,7 @@ impl App {
 
         self.buffers.push(buffer);
 
-        self.active_view.get_view().set_buffer(Some(&storage));
+        self.active_view.set_buffer(&storage);
     }
 
     fn handle_minibuf_confirm(&mut self) {

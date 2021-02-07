@@ -1,3 +1,4 @@
+use crate::buffer::Buffer;
 use gtk::prelude::*;
 
 type View = gtk::TextView;
@@ -54,7 +55,7 @@ impl Pane {
         self.view.grab_focus();
     }
 
-    pub fn get_view(&self) -> &View {
-        &self.view
+    pub fn set_buffer(&self, buffer: &Buffer) {
+        self.view.set_buffer(Some(buffer));
     }
 }
