@@ -1,4 +1,7 @@
-use {crate::key_sequence::KeySequence, std::collections::BTreeMap};
+use {
+    crate::key_sequence::KeySequence, gtk4::gdk::ModifierType,
+    std::collections::BTreeMap,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {
@@ -75,7 +78,7 @@ impl KeyMap {
         // want the default insertion action to occur.
         if seq.0.len() == 1
             && (seq.0[0].modifiers.is_empty()
-                || seq.0[0].modifiers == gdk::ModifierType::SHIFT_MASK)
+                || seq.0[0].modifiers == ModifierType::SHIFT_MASK)
         {
             return KeyMapLookup::NoEntry;
         }

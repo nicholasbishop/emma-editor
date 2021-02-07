@@ -1,9 +1,10 @@
 use {
+    gtk4::{TextBuffer, TextTagTable},
     rand::{distributions::Alphanumeric, thread_rng, Rng},
     std::path::PathBuf,
 };
 
-pub type Buffer = gtk::TextBuffer;
+pub type Buffer = TextBuffer;
 pub type BufferId = String;
 pub type BufferGeneration = u64;
 
@@ -25,7 +26,7 @@ pub struct EmBuf {
 
 impl EmBuf {
     pub fn new(path: PathBuf) -> EmBuf {
-        let tag_table: Option<&gtk::TextTagTable> = None;
+        let tag_table: Option<&TextTagTable> = None;
 
         EmBuf {
             buffer_id: make_buffer_id(),
