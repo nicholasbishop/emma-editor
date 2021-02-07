@@ -73,9 +73,8 @@ impl YamlTheme {
 #[throws]
 fn parse_color(s: &Option<String>) -> Option<Color> {
     if let Some(s) = s {
-        if s.starts_with('#') {
+        if let Some(rest) = s.strip_prefix('#') {
             // TODO: support shorthand colors like "#555"?
-            let rest = &s[1..];
             if rest.len() == 6 {
                 // TODO: alpha support
                 Some(Color {
