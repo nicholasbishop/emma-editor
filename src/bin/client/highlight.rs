@@ -17,6 +17,7 @@ use syntect::{
 #[derive(Eq, PartialEq)]
 struct StyleWithHash(Style);
 
+#[allow(clippy::derive_hash_xor_eq)]
 impl Hash for StyleWithHash {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let mut hash_color = |c: &syntect::highlighting::Color| {
