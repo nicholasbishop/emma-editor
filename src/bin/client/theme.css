@@ -7,6 +7,7 @@ textview text {
     color: #dcdccc;
 }
 
-#footer {
+#info {
     background-color: #2e3330;
+    color: #edd400;
 }
