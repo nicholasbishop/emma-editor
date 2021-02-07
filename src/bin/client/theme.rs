@@ -8,9 +8,9 @@ use fehler::throws;
 use serde::Deserialize;
 use std::collections::HashMap;
 use syntect::highlighting::{
-    Color, ScopeSelector, ScopeSelectors, StyleModifier, Theme, ThemeItem,
+    Color, ParseThemeError, ScopeSelectors, StyleModifier, Theme, ThemeItem,
 };
-use syntect::parsing::{Scope, ScopeStack};
+use syntect::LoadingError;
 
 #[derive(Debug, Deserialize)]
 struct YamlThemeSettings {
@@ -26,22 +26,9 @@ struct YamlThemeScope {
 }
 
 impl YamlThemeScope {
-    #[throws]
-    fn scope_selectors(&self) -> Vec<ScopeSelector> {
-        // TODO: it seems likely from the complexity of the types here
-        // that there are more complex ways to specify scopes than
-        // what we currently have (e.g. excludes and scope stacks), so
-        // more parsing stuff is probably needed here.
-        self.scope
-            .split(",")
-            .map(|s| -> Result<ScopeSelector, Error> {
-                Ok(ScopeSelector {
-                    path: ScopeStack::from_vec(vec![Scope::new(s.trim())
-                        .map_err(|e| anyhow!("ParseScopeError({:?})", e))?]),
-                    excludes: Vec::new(),
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?
+    #[throws(ParseThemeError)]
+    fn scope_selectors(&self) -> ScopeSelectors {
+        self.scope.parse()?
     }
 }
 
@@ -119,9 +106,7 @@ fn load_theme(theme: &str) -> Theme {
     theme.settings.foreground = parse_color(&yaml.settings.foreground)?;
     for scope in yaml.scopes.values() {
         theme.scopes.push(ThemeItem {
-            scope: ScopeSelectors {
-                selectors: scope.scope_selectors()?,
-            },
+            scope: scope.scope_selectors().map_err(LoadingError::from)?,
             style: StyleModifier {
                 foreground: parse_color(&scope.foreground)?,
                 background: parse_color(&scope.background)?,
