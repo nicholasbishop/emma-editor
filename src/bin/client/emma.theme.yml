@@ -2,7 +2,12 @@ name: "Emma"
 
 vars:
   plain: "#dcdccc"
+
   blue: "#729fcf"
+  orange: "#f57900"
+  purple: "#ad7fa8"
+  tan: "#e9b96e"
+  yellow: "#edd400"
 
 settings:
   foreground: "$plain"
@@ -10,8 +15,28 @@ settings:
 scopes:
   comment:
     scope: "comment"
-    foreground: "#f57900"
+    foreground: "$orange"
 
   keyword:
     scope: "keyword, storage.type"
     foreground: "$blue"
+
+  function:
+    scope: "entity.name.function"
+    foreground: "$yellow"
+
+  macro:
+    scope: "support.macro, meta.annotation"
+    foreground: "$tan"
+
+  namespace:
+    scope: "meta.path"
+    foreground: "$blue"
+
+  namespace-separator:
+    scope: "punctuation.accessor"
+    foreground: "$plain"
+
+  string:
+    scope: "string"
+    foreground: "$purple"
