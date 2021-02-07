@@ -283,19 +283,11 @@ impl App {
         // TODO: handle error
         let contents = fs::read_to_string(path).unwrap();
 
-        let tag_table: Option<&gtk::TextTagTable> = None;
-        let storage = buffer::Buffer::new(tag_table);
-
-        let buffer = Rc::new(RefCell::new(EmBuf {
-            buffer_id: buffer::make_buffer_id(),
-
-            path: path.to_path_buf(),
-            storage: storage.clone(),
-            generation: 0,
-        }));
+        let buffer = Rc::new(RefCell::new(EmBuf::new(path.into())));
 
         let sender = self.highlight_request_sender.clone();
         let buffer_clone = buffer.clone();
+        let storage = buffer.borrow().storage.clone();
         storage.connect_changed(move |_| {
             let mut buffer = buffer_clone.borrow_mut();
             buffer.generation += 1;
