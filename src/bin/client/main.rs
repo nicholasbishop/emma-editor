@@ -342,7 +342,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     window.set_title("emma");
     window.set_position(gtk::WindowPosition::Center);
-    window.set_default_size(800, 1200);
+    window.set_default_size(800, 800);
 
     let css = gtk::CssProvider::new();
     css.load_from_data(include_bytes!("theme.css")).unwrap();
