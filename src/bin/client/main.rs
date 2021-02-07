@@ -13,24 +13,10 @@ use highlight::{highlighter_thread, HighlightRequest};
 use key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack};
 use key_sequence::{KeySequence, KeySequenceAtom};
 use pane::Pane;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::{env, fs, thread};
-
-type BufferId = String;
-type BufferGeneration = u64;
-
-fn make_buffer_id() -> BufferId {
-    let r: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(8)
-        .map(char::from)
-        .collect();
-    format!("buffer-{}", r)
-}
 
 // This global is needed for callbacks on the main thread. On other
 // threads it is None.
@@ -301,7 +287,7 @@ impl App {
         let storage = buffer::Buffer::new(tag_table);
 
         let buffer = Rc::new(RefCell::new(EmBuf {
-            buffer_id: make_buffer_id(),
+            buffer_id: buffer::make_buffer_id(),
 
             path: path.to_path_buf(),
             storage: storage.clone(),

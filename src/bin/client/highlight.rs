@@ -1,4 +1,7 @@
-use crate::{buffer::Buffer, theme, BufferGeneration, BufferId, APP};
+use crate::{
+    buffer::{Buffer, BufferGeneration, BufferId},
+    theme, APP,
+};
 use crossbeam_channel::Receiver;
 use gio::prelude::*;
 use gtk::prelude::*;
