@@ -1,3 +1,4 @@
+mod buffer;
 mod highlight;
 mod key_map;
 mod key_sequence;
@@ -142,10 +143,11 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     map
 }
 
+// TODO: rename this
 struct Buffer {
     buffer_id: String,
     path: PathBuf,
-    storage: sourceview::Buffer,
+    storage: buffer::Buffer,
     generation: u64,
 }
 
@@ -303,7 +305,7 @@ impl App {
         let contents = fs::read_to_string(path).unwrap();
 
         let tag_table: Option<&gtk::TextTagTable> = None;
-        let storage = sourceview::Buffer::new(tag_table);
+        let storage = buffer::Buffer::new(tag_table);
 
         let buffer = Rc::new(RefCell::new(Buffer {
             buffer_id: make_buffer_id(),

@@ -1,4 +1,4 @@
-use crate::{theme, BufferGeneration, BufferId, APP};
+use crate::{buffer::Buffer, theme, BufferGeneration, BufferId, APP};
 use crossbeam_channel::Receiver;
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -105,7 +105,7 @@ fn calc_highlight_spans(
     spans
 }
 
-fn highlight_buffer(buf: &sourceview::Buffer, spans: &[HighlightSpan]) {
+fn highlight_buffer(buf: &Buffer, spans: &[HighlightSpan]) {
     let tag_table = buf.get_tag_table().unwrap();
 
     let mut style_to_tag = HashMap::new();

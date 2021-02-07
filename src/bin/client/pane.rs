@@ -1,14 +1,16 @@
 use gtk::prelude::*;
 
+type View = gtk::TextView;
+
 #[derive(Clone, Eq, PartialEq)]
 pub struct Pane {
     scrolled_window: gtk::ScrolledWindow,
-    view: sourceview::View,
+    view: View,
 }
 
 impl Pane {
     pub fn new() -> Pane {
-        let view = sourceview::View::new();
+        let view = View::new();
         view.set_monospace(true);
         let adj: Option<&gtk::Adjustment> = None;
         let scrolled_window = gtk::ScrolledWindow::new(adj, adj);
@@ -33,7 +35,7 @@ impl Pane {
         self.view.grab_focus();
     }
 
-    pub fn get_view(&self) -> &sourceview::View {
+    pub fn get_view(&self) -> &View {
         &self.view
     }
 }
