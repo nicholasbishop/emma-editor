@@ -30,3 +30,4 @@ See `src/bin/client/highlight.rs`.
 Reference:
 
 Rust Sublime syntax: https://github.com/rust-lang/rust-enhanced/blob/master/RustEnhanced.sublime-syntax
+Textmate docs: https://macromates.com/manual/en/scope_selectors
