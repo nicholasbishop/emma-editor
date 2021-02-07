@@ -4,6 +4,7 @@ vars:
   plain: "#dcdccc"
 
   blue: "#729fcf"
+  green: "#8ae234"
   orange: "#f57900"
   purple: "#ad7fa8"
   tan: "#e9b96e"
@@ -40,3 +41,13 @@ scopes:
   string:
     scope: "string"
     foreground: "$purple"
+
+  # Types
+
+  function_param_types:
+    scope: "meta.function.parameters - variable.parameter - punctuation"
+    foreground: "$green"
+
+  types:
+    scope: "entity.name.enum, entity.name.struct, entity.name.trait, entity.name.type, support.type"
+    foreground: "$green"
