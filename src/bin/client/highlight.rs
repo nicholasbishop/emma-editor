@@ -80,6 +80,7 @@ fn calc_highlight_spans(
     // TODO: maybe better to use a gtk/sourceview iter if it exists?
     for line in LinesWithEndings::from(&req.text) {
         let changes = parse_state.parse_line(&line, syntax_set);
+        println!("{:#?}", changes);
 
         let iter = RangedHighlightIterator::new(
             &mut highlight_state,

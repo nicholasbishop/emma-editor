@@ -4,6 +4,7 @@ vars:
   plain: "#dcdccc"
 
   blue: "#729fcf"
+  green: "#8ae234"
   orange: "#f57900"
   purple: "#ad7fa8"
   tan: "#e9b96e"
@@ -13,30 +14,36 @@ settings:
   foreground: "$plain"
 
 scopes:
-  comment:
-    scope: "comment"
-    foreground: "$orange"
+  # comment:
+  #   scope: "comment"
+  #   foreground: "$orange"
 
-  keyword:
-    scope: "keyword, storage.type"
-    foreground: "$blue"
+  # keyword:
+  #   scope: "keyword, storage.type"
+  #   foreground: "$blue"
 
-  function:
-    scope: "entity.name.function"
-    foreground: "$yellow"
+  # function:
+  #   scope: "entity.name.function"
+  #   foreground: "$yellow"
 
-  macro:
-    scope: "support.macro, meta.annotation"
-    foreground: "$tan"
+  # macro:
+  #   scope: "support.macro, meta.annotation"
+  #   foreground: "$tan"
 
-  namespace:
-    scope: "meta.path"
-    foreground: "$blue"
+  # namespace:
+  #   scope: "meta.path"
+  #   foreground: "$blue"
 
-  namespace-separator:
-    scope: "punctuation.accessor"
-    foreground: "$plain"
+  # namespace-separator:
+  #   scope: "punctuation.accessor"
+  #   foreground: "$plain"
 
-  string:
-    scope: "string"
-    foreground: "$purple"
+  # string:
+  #   scope: "string"
+  #   foreground: "$purple"
+
+  type:
+    #scope: "entity.name.enum, entity.name.struct, support.type"
+    #scope: "support.type"
+    scope: "meta.function.parameters - variable.parameter"
+    foreground: "$green"
