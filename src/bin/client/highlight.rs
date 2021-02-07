@@ -4,11 +4,13 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::io::Cursor;
 use std::ops::Range;
 use std::path::PathBuf;
 use syntect::{
     highlighting::{
-        HighlightState, Highlighter, RangedHighlightIterator, Style, ThemeSet,
+        HighlightState, Highlighter, RangedHighlightIterator, Style, Theme,
+        ThemeSet,
     },
     parsing::{ParseState, ScopeStack, SyntaxSet},
     util::LinesWithEndings,
@@ -54,7 +56,7 @@ type HighlightSpan = (Range<i32>, Style);
 // TODO rename
 fn calc_highlight_spans(
     syntax_set: &SyntaxSet,
-    theme_set: &ThemeSet,
+    theme: &Theme,
     req: &HighlightRequest,
 ) -> Vec<HighlightSpan> {
     // TODO: unwraps
@@ -63,7 +65,7 @@ fn calc_highlight_spans(
     let mut parse_state = ParseState::new(syntax);
 
     // TODO: our theme
-    let highlighter = Highlighter::new(&theme_set.themes["base16-ocean.dark"]);
+    let highlighter = Highlighter::new(theme);
 
     let mut highlight_state =
         HighlightState::new(&highlighter, ScopeStack::new());
@@ -142,8 +144,10 @@ pub struct HighlightRequest {
 
 pub fn highlighter_thread(receiver: Receiver<HighlightRequest>) {
     let syntax_set = SyntaxSet::load_defaults_newlines();
-    let theme_set = ThemeSet::load_defaults();
+    let theme_bytes = include_bytes!("emma.tmTheme");
+    let mut cursor = Cursor::new(theme_bytes);
 
+    let theme = ThemeSet::load_from_reader(&mut cursor).unwrap();
     // Plan for speed improvement:
     //
     // Have a background thread for doing the
@@ -187,7 +191,7 @@ pub fn highlighter_thread(receiver: Receiver<HighlightRequest>) {
 
             let req = queue.pop().unwrap();
 
-            let spans = calc_highlight_spans(&syntax_set, &theme_set, &req);
+            let spans = calc_highlight_spans(&syntax_set, &theme, &req);
 
             // Send message back
             glib::idle_add(move || {
