@@ -10,7 +10,7 @@ use syntect::{
     highlighting::{
         HighlightState, Highlighter, RangedHighlightIterator, Style, Theme,
     },
-    parsing::{ParseState, ScopeStack, SyntaxSet},
+    parsing::{ParseState, ScopeStack, SyntaxDefinition, SyntaxSet},
     util::LinesWithEndings,
 };
 
@@ -142,7 +142,19 @@ pub struct HighlightRequest {
 }
 
 pub fn highlighter_thread(receiver: Receiver<HighlightRequest>) {
-    let syntax_set = SyntaxSet::load_defaults_newlines();
+    //let syntax_set = SyntaxSet::load_defaults_newlines();
+    let syntax_set = SyntaxSet::new();
+    let updated_rust = SyntaxDefinition::load_from_str(
+        include_str!(
+            "../../../third_party/rust-enhanced/RustEnhanced.sublime-syntax"
+        ),
+        true,
+        None,
+    )
+    .unwrap();
+    let mut builder = syntax_set.into_builder();
+    //builder.add(updated_rust);
+    let syntax_set = builder.build();
     // TODO: consider moving this to the main thread so it panics the
     // whole program
     let theme = theme::load_default_theme().unwrap();
