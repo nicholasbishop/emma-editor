@@ -18,3 +18,11 @@ TODOs:
 * Implement info line in views
 * Implement persistence
 * Figure out the SSH stuff
+
+## Syntax Highlighting
+
+The sourceview widget has built-in syntax highlighting, but it's
+extremely limited in what it can highlight. So instead we use the
+syntect library which is much more powerful, but harder to integrate.
+
+See `src/bin/client/highlight.rs`.
