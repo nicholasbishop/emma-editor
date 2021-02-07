@@ -352,7 +352,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
 
-    let layout = make_box(gtk::Orientation::Vertical);
+    let layout = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
     let split_root = make_box(gtk::Orientation::Horizontal);
     let text = Pane::new();
