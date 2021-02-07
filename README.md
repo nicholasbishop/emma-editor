@@ -26,3 +26,7 @@ extremely limited in what it can highlight. So instead we use the
 syntect library which is much more powerful, but harder to integrate.
 
 See `src/bin/client/highlight.rs`.
+
+Reference:
+
+Rust Sublime syntax: https://github.com/rust-lang/rust-enhanced/blob/master/RustEnhanced.sublime-syntax

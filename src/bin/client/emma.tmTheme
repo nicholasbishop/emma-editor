@@ -18,7 +18,7 @@
 				<key>caret</key>
 				<string>#F8F8F0</string>
 				<key>foreground</key>
-				<string>#F8F8F2</string>
+				<string>#dcdccc</string>
 				<key>invisibles</key>
 				<string>#3B3A32</string>
 				<key>lineHighlight</key>
@@ -49,6 +49,50 @@
 				<string>#AD7FA8</string>
 			</dict>
 		</dict>
+        <dict>
+			<key>name</key>
+			<string>Keyword</string>
+			<key>scope</key>
+			<string>keyword, storage.type</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#729FCF</string>
+			</dict>
+		</dict>
+        <dict>
+			<key>name</key>
+			<string>Macro</string>
+			<key>scope</key>
+			<string>support.macro, meta.annotation</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#e9b96e</string>
+			</dict>
+		</dict>
+        <dict>
+			<key>name</key>
+			<string>Namespace</string>
+			<key>scope</key>
+			<string>meta.path</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#729FCF</string>
+			</dict>
+		</dict>
+        <dict>
+			<key>name</key>
+			<string>Namespace separator</string>
+			<key>scope</key>
+			<string>punctuation.accessor</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#dcdccc</string>
+			</dict>
+		</dict>
 		<dict>
 			<key>name</key>
 			<string>Built-in constant</string>
@@ -73,9 +117,9 @@
 		</dict>
 		<dict>
 			<key>name</key>
-			<string>Class name</string>
+			<string>Type name</string>
 			<key>scope</key>
-			<string>entity.name.class</string>
+			<string>entity.name.storage</string>
 			<key>settings</key>
 			<dict>
 				<key>fontStyle</key>
