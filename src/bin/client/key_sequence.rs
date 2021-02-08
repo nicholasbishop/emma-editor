@@ -1,9 +1,8 @@
 use {
     fehler::{throw, throws},
     gtk4::{
-        gdk::{keys::constants as keys, ModifierType},
+        gdk::{self, keys::constants as keys, ModifierType},
         glib::translate::FromGlib,
-        EventKey,
     },
     std::collections::HashMap,
 };
@@ -15,16 +14,14 @@ pub struct KeySequenceAtom {
 }
 
 impl KeySequenceAtom {
-    pub fn from_event(e: &EventKey) -> KeySequenceAtom {
-        let key = e.get_keyval();
-
-        // Try to convert the key to lowercase as a way to normalize.
-        let lower = gdk::keyval_to_lower(*key);
-        let key = gdk::keys::Key::from_glib(lower);
-
+    pub fn from_event(
+        key: gdk::keys::Key,
+        state: ModifierType,
+    ) -> KeySequenceAtom {
         KeySequenceAtom {
-            modifiers: e.get_state(),
-            key,
+            modifiers: state,
+            // Convert the key to lowercase as a way to normalize.
+            key: key.to_lower(),
         }
     }
 }

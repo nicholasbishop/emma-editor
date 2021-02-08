@@ -1,14 +1,20 @@
-use {crate::buffer::Buffer, gtk4::prelude::*};
+use {
+    crate::buffer::Buffer,
+    gtk4::{
+        prelude::*, Adjustment, Box, Label, Orientation, ScrolledWindow,
+        TextView, Widget,
+    },
+};
 
-type View = gtk::TextView;
+type View = TextView;
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct Pane {
-    container: gtk::Box,
+    container: Box,
 
-    info: gtk::Label,
+    info: Label,
 
-    scrolled_window: gtk::ScrolledWindow,
+    scrolled_window: ScrolledWindow,
     view: View,
 }
 
@@ -16,15 +22,15 @@ impl Pane {
     pub fn new() -> Pane {
         let view = View::new();
         view.set_monospace(true);
-        let adj: Option<&gtk::Adjustment> = None;
-        let scrolled_window = gtk::ScrolledWindow::new(adj, adj);
+        let adj: Option<&Adjustment> = None;
+        let scrolled_window = ScrolledWindow::new(adj, adj);
         scrolled_window.add(&view);
 
-        let info = gtk::Label::new(Some("TODO"));
+        let info = Label::new(Some("TODO"));
         info.set_widget_name("info");
         info.set_xalign(0.0);
 
-        let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let container = Box::new(Orientation::Vertical, 0);
         let expand = true;
         let fill = true;
         let padding = 0;
@@ -40,7 +46,7 @@ impl Pane {
         }
     }
 
-    pub fn get_widget(&self) -> gtk::Widget {
+    pub fn get_widget(&self) -> Widget {
         self.container.clone().upcast()
     }
 

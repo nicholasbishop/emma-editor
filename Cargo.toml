@@ -23,4 +23,5 @@ serde_yaml = "0.8"
 # gio = "0.9"
 # gtk = { version = "0.9", features = ["v3_16"] }
 
+# TODO: hash
 gtk4 = { git = "https://github.com/gtk-rs/gtk4.git" }

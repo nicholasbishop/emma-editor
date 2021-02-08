@@ -8,7 +8,7 @@ mod theme;
 use {
     buffer::EmBuf,
     crossbeam_channel::Sender,
-    gtk4::prelude::*,
+    gtk4::{self as gtk, gdk, prelude::*},
     highlight::{highlighter_thread, HighlightRequest},
     key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
     key_sequence::{KeySequence, KeySequenceAtom},
@@ -40,20 +40,12 @@ fn make_box(o: gtk::Orientation) -> gtk::Box {
 }
 
 fn pack<W: IsA<gtk::Widget>>(layout: &gtk::Box, child: &W) {
-    let expand = true;
-    let fill = true;
-    let padding = 0;
-    layout.pack_start(child, expand, fill, padding);
-}
-
-fn get_widget_index_in_container<
-    L: IsA<gtk::Container>,
-    W: IsA<gtk::Widget>,
->(
-    layout: &L,
-    widget: &W,
-) -> Option<usize> {
-    layout.get_children().iter().position(|elem| elem == widget)
+    // let expand = true;
+    // let fill = true;
+    // let padding = 0;
+    // layout.pack_start(child, expand, fill, padding);
+    // TODO
+    layout.append(child);
 }
 
 fn split_view(
@@ -74,49 +66,30 @@ fn split_view(
 
                 // Check if the layout is in the correct orientation.
                 if layout.get_orientation() == orientation {
-                    // Get the position of the current focused widget
-                    // in its layout so that we can the new widget
-                    // right after it.
-                    let position =
-                        get_widget_index_in_container(layout, &focus).unwrap();
-
-                    pack(&layout, &new_widget);
-                    layout.reorder_child(&new_widget, (position + 1) as i32);
+                    // Insert after active pane.
+                    layout.insert_child_after(&new_widget, Some(&focus));
                 } else {
                     // If there's only the one view in the layout,
                     // just switch the orientation. Otherwise, create
                     // a new layout to subdivide.
-                    if layout.get_children().len() == 1 {
+                    if layout.get_first_child() == layout.get_last_child() {
                         layout.set_orientation(orientation);
                         pack(&layout, &new_widget);
                     } else {
                         let new_layout = make_box(orientation);
 
-                        // Get the position of the current focused
-                        // widget in its layout so that we can later
-                        // put a new layout widget in the same place.
-                        let position =
-                            get_widget_index_in_container(layout, &focus)
-                                .unwrap();
+                        // Insert the new layout after the active pane.
+                        layout.insert_child_after(&new_layout, Some(&focus));
 
-                        // Move the focused view from the old layout
+                        // Move the active pane from the old layout
                         // to the new layout
                         layout.remove(&focus);
                         pack(&new_layout, &focus);
 
-                        // Add the new view and add the new layout.
+                        // Add the new pane to the new layout.
                         pack(&new_layout, &new_widget);
-
-                        // Add the new layout to the old layout, and
-                        // move it to the right location. TODO: not
-                        // sure if there's a better way to do this, or
-                        // if the current way is always correct.
-                        pack(layout, &new_layout);
-                        layout.reorder_child(&new_layout, position as i32);
                     }
                 }
-
-                layout.show_all();
             }
         }
     }
@@ -148,7 +121,11 @@ struct App {
 }
 
 impl App {
-    fn handle_key_press(&mut self, e: &gdk::EventKey) -> Inhibit {
+    fn handle_key_press(
+        &mut self,
+        keyval: u32,
+        state: gdk::ModifierType,
+    ) -> bool {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(self.base_keymap.clone());
         if self.window.get_focus() == Some(self.minibuf.clone().upcast()) {
@@ -156,25 +133,27 @@ impl App {
         }
 
         // Ignore lone modifier presses.
-        if e.get_is_modifier() {
-            return Inhibit(false);
-        }
+        // TODO
+        // if e.get_is_modifier() {
+        //     return Inhibit(false);
+        // }
 
         // TODO: we want to ignore combo modifier presses too if no
         // non-modifier key is selected, e.g. pressing alt and then
         // shift, but currently that is treated as a valid
         // sequence. Need to figure out how to prevent that.
 
-        let atom = KeySequenceAtom::from_event(e);
+        let atom =
+            KeySequenceAtom::from_event(gdk::keys::Key::from(keyval), state);
         self.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
-        let mut inhibit = true;
+        let mut handled = true;
         match keymap_stack.lookup(&self.cur_seq) {
             KeyMapLookup::NoEntry => {
                 // Allow default handling to occur, e.g. inserting a
                 // character into the text widget.
-                inhibit = false;
+                handled = false;
             }
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
@@ -193,13 +172,13 @@ impl App {
                 self.minibuf.grab_focus();
 
                 let prompt = "Open file: ";
-                let buf = self.minibuf.get_buffer().unwrap();
+                let buf = self.minibuf.get_buffer();
 
                 // Create prompt tag.
                 let tag = gtk::TextTag::new(Some("prompt"));
                 tag.set_property_editable(false);
                 tag.set_property_foreground(Some("#edd400"));
-                buf.get_tag_table().unwrap().add(&tag);
+                buf.get_tag_table().add(&tag);
 
                 // Add prompt text and apply tag.
                 buf.set_text(prompt);
@@ -272,7 +251,7 @@ impl App {
             self.cur_seq.0.clear();
         }
 
-        Inhibit(inhibit)
+        handled
     }
 
     fn open_file(&mut self, path: &Path) {
@@ -299,7 +278,7 @@ impl App {
 
             let start = storage.get_start_iter();
             let end = storage.get_end_iter();
-            let text = storage.get_text(&start, &end, true).unwrap();
+            let text = storage.get_text(&start, &end, true);
 
             let req = HighlightRequest {
                 buffer_id: buffer.buffer_id.clone(),
@@ -320,7 +299,7 @@ impl App {
         match self.minibuf_state {
             MinibufState::Inactive => {}
             MinibufState::OpenFile => {
-                let buf = self.minibuf.get_buffer().unwrap();
+                let buf = self.minibuf.get_buffer();
 
                 // TODO: dedup
                 let mark_name = "input-start";
@@ -328,7 +307,7 @@ impl App {
                 let start = buf.get_iter_at_mark(&mark);
                 let end = buf.get_end_iter();
 
-                let text = buf.get_text(&start, &end, false).unwrap();
+                let text = buf.get_text(&start, &end, false);
 
                 buf.set_text("");
 
@@ -343,17 +322,19 @@ impl App {
 fn build_ui(application: &gtk::Application, opt: &Opt) {
     let window = gtk::ApplicationWindow::new(application);
 
-    window.set_title("emma");
-    window.set_position(gtk::WindowPosition::Center);
+    window.set_title(Some("emma"));
+    // TODO
+    // window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(800, 800);
 
-    let css = gtk::CssProvider::new();
-    css.load_from_data(include_bytes!("theme.css")).unwrap();
-    gtk::StyleContext::add_provider_for_screen(
-        &gdk::Screen::get_default().unwrap(),
-        &css,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
+    // TODO
+    // let css = gtk::CssProvider::new();
+    // css.load_from_data(include_bytes!("theme.css")).unwrap();
+    // gtk::StyleContext::add_provider_for_screen(
+    //     &gdk::Screen::get_default().unwrap(),
+    //     &css,
+    //     gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    // );
 
     let layout = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
@@ -365,11 +346,10 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     minibuf.set_size_request(-1, 26); // TODO
 
     pack(&layout, &split_root);
-    layout.pack_start(&minibuf, false, true, 0);
+    // TODO layout.pack_start(&minibuf, false, true, 0);
+    layout.append(&minibuf);
 
-    window.add(&layout);
-
-    window.add_events(gdk::EventMask::KEY_PRESS_MASK);
+    window.set_child(Some(&layout));
 
     let (hl_req_sender, hl_req_receiver) = crossbeam_channel::unbounded();
     thread::spawn(|| highlighter_thread(hl_req_receiver));
@@ -397,9 +377,19 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         *cell.borrow_mut() = Some(app);
     });
 
-    window.connect_key_press_event(move |_, e| {
-        APP.with(|app| app.borrow_mut().as_mut().unwrap().handle_key_press(e))
-    });
+    let key_controller = gtk::EventControllerKey::new(&window);
+    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
+    key_controller.connect_key_pressed(
+        move |_self, keyval, _keycode, state| {
+            dbg!("x");
+            APP.with(|app| {
+                app.borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .handle_key_press(keyval, state)
+            })
+        },
+    );
 
     window.show_all();
 }
