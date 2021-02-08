@@ -109,6 +109,18 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     map
 }
 
+fn is_modifier(key: &gdk::keys::Key) -> bool {
+    matches!(
+        *key,
+        gdk::keys::constants::Alt_L
+            | gdk::keys::constants::Alt_R
+            | gdk::keys::constants::Control_L
+            | gdk::keys::constants::Control_R
+            | gdk::keys::constants::Shift_L
+            | gdk::keys::constants::Shift_R
+    )
+}
+
 struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
@@ -136,10 +148,9 @@ impl App {
         }
 
         // Ignore lone modifier presses.
-        // TODO
-        // if e.get_is_modifier() {
-        //     return Inhibit(false);
-        // }
+        if is_modifier(&key) {
+            return Inhibit(false);
+        }
 
         // TODO: we want to ignore combo modifier presses too if no
         // non-modifier key is selected, e.g. pressing alt and then
@@ -150,12 +161,12 @@ impl App {
         self.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
-        let mut inhibit = Inhibit(false);
+        let mut inhibit = Inhibit(true);
         match keymap_stack.lookup(&self.cur_seq) {
             KeyMapLookup::NoEntry => {
                 // Allow default handling to occur, e.g. inserting a
                 // character into the text widget.
-                inhibit = Inhibit(true);
+                inhibit = Inhibit(false);
             }
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
