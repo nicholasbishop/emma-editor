@@ -51,53 +51,6 @@ fn pack<W: IsA<gtk::Widget>>(layout: &gtk::Box, child: &W) {
     }
 }
 
-fn split_view(
-    window: &gtk::ApplicationWindow,
-    orientation: gtk::Orientation,
-    views: &mut Vec<Pane>,
-) {
-    // TODO: a more explicit tree structure might make this easier --
-    // similar to how we do with the views vec
-    if let Some(focus) = window.get_focus() {
-        if let Some(parent) = focus.get_parent() {
-            if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
-                let new_view = Pane::new();
-                let new_widget = new_view.get_widget();
-                let focus_index =
-                    views.iter().position(|e| e.has_focus()).unwrap();
-                views.insert(focus_index + 1, new_view);
-
-                // Check if the layout is in the correct orientation.
-                if layout.get_orientation() == orientation {
-                    // Insert after active pane.
-                    layout.insert_child_after(&new_widget, Some(&focus));
-                } else {
-                    // If there's only the one view in the layout,
-                    // just switch the orientation. Otherwise, create
-                    // a new layout to subdivide.
-                    if layout.get_first_child() == layout.get_last_child() {
-                        layout.set_orientation(orientation);
-                        pack(&layout, &new_widget);
-                    } else {
-                        let new_layout = make_box(orientation);
-
-                        // Insert the new layout after the active pane.
-                        layout.insert_child_after(&new_layout, Some(&focus));
-
-                        // Move the active pane from the old layout
-                        // to the new layout
-                        layout.remove(&focus);
-                        pack(&new_layout, &focus);
-
-                        // Add the new pane to the new layout.
-                        pack(&new_layout, &new_widget);
-                    }
-                }
-            }
-        }
-    }
-}
-
 fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     let mut map = KeyMap::new();
     match state {
@@ -126,7 +79,7 @@ struct App {
     minibuf: gtk::TextView,
     views: Vec<Pane>,
     buffers: Vec<Rc<RefCell<EmBuf>>>,
-    active_view: Pane,
+    active_pane: Pane,
 
     base_keymap: KeyMap,
     minibuf_state: MinibufState,
@@ -237,18 +190,10 @@ impl App {
                 self.views[next].grab_focus();
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
-                split_view(
-                    &self.window,
-                    gtk::Orientation::Horizontal,
-                    &mut self.views,
-                );
+                self.split_view(gtk::Orientation::Horizontal);
             }
             KeyMapLookup::Action(Action::SplitVertical) => {
-                split_view(
-                    &self.window,
-                    gtk::Orientation::Vertical,
-                    &mut self.views,
-                );
+                self.split_view(gtk::Orientation::Vertical);
             }
             KeyMapLookup::Action(Action::ClosePane) => {
                 todo!();
@@ -305,7 +250,7 @@ impl App {
 
         self.buffers.push(buffer);
 
-        self.active_view.set_buffer(&storage);
+        self.active_pane.set_buffer(&storage);
     }
 
     fn handle_minibuf_confirm(&mut self) {
@@ -327,6 +272,56 @@ impl App {
                 self.minibuf_state = MinibufState::Inactive;
 
                 self.open_file(Path::new(text.as_str()));
+            }
+        }
+    }
+
+    fn split_view(&mut self, orientation: gtk::Orientation) {
+        let active = &self.active_pane;
+
+        // TODO: a more explicit tree structure might make this easier --
+        // similar to how we do with the views vec
+        if let Some(parent) = self.active_pane.get_widget().get_parent() {
+            if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
+                let new_view = Pane::new();
+                let new_widget = new_view.get_widget();
+                // TODO
+                let active_index =
+                    self.views.iter().position(|e| e == active).unwrap();
+                self.views.insert(active_index + 1, new_view);
+
+                // Check if the layout is in the correct orientation.
+                if layout.get_orientation() == orientation {
+                    // Insert after active pane.
+                    layout.insert_child_after(
+                        &new_widget,
+                        Some(&active.get_widget()),
+                    );
+                } else {
+                    // If there's only the one view in the layout,
+                    // just switch the orientation. Otherwise, create
+                    // a new layout to subdivide.
+                    if layout.get_first_child() == layout.get_last_child() {
+                        layout.set_orientation(orientation);
+                        pack(&layout, &new_widget);
+                    } else {
+                        let new_layout = make_box(orientation);
+
+                        // Insert the new layout after the active pane.
+                        layout.insert_child_after(
+                            &new_layout,
+                            Some(&active.get_widget()),
+                        );
+
+                        // Move the active pane from the old layout
+                        // to the new layout
+                        layout.remove(&active.get_widget());
+                        pack(&new_layout, &active.get_widget());
+
+                        // Add the new pane to the new layout.
+                        pack(&new_layout, &new_widget);
+                    }
+                }
             }
         }
     }
@@ -369,7 +364,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         views: vec![text.clone()],
         // TODO: doesn't yet include the initial view's buffer.
         buffers: Vec::new(),
-        active_view: text,
+        active_pane: text,
 
         base_keymap: KeyMap::new(),
         minibuf_state: MinibufState::Inactive,
