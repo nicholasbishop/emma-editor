@@ -39,16 +39,12 @@ fn make_box(o: gtk::Orientation) -> gtk::Box {
     gtk::Box::new(o, spacing)
 }
 
-// TODO consider if we still want this func
-fn pack<W: IsA<gtk::Widget>>(layout: &gtk::Box, child: &W) {
-    layout.append(child);
-    if layout.get_orientation() == gtk::Orientation::Horizontal {
-        child.set_halign(gtk::Align::Fill);
-        child.set_hexpand(true);
-    } else {
-        child.set_valign(gtk::Align::Fill);
-        child.set_vexpand(true);
-    }
+/// Set horizontal+vertical expand+fill on a widget.
+fn make_big<W: IsA<gtk::Widget>>(widget: &W) {
+    widget.set_halign(gtk::Align::Fill);
+    widget.set_valign(gtk::Align::Fill);
+    widget.set_hexpand(true);
+    widget.set_vexpand(true);
 }
 
 fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
@@ -285,6 +281,8 @@ impl App {
             if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
                 let new_view = Pane::new();
                 let new_widget = new_view.get_widget();
+                make_big(&new_widget);
+
                 // TODO
                 let active_index =
                     self.views.iter().position(|e| e == active).unwrap();
@@ -303,9 +301,10 @@ impl App {
                     // a new layout to subdivide.
                     if layout.get_first_child() == layout.get_last_child() {
                         layout.set_orientation(orientation);
-                        pack(&layout, &new_widget);
+                        layout.append(&new_widget);
                     } else {
                         let new_layout = make_box(orientation);
+                        make_big(&new_layout);
 
                         // Insert the new layout after the active pane.
                         layout.insert_child_after(
@@ -316,10 +315,10 @@ impl App {
                         // Move the active pane from the old layout
                         // to the new layout
                         layout.remove(&active.get_widget());
-                        pack(&new_layout, &active.get_widget());
+                        new_layout.append(&active.get_widget());
 
                         // Add the new pane to the new layout.
-                        pack(&new_layout, &new_widget);
+                        new_layout.append(&new_widget);
                     }
                 }
             }
@@ -345,12 +344,14 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     let split_root = make_box(gtk::Orientation::Horizontal);
     let text = Pane::new();
-    pack(&split_root, &text.get_widget());
+    make_big(&split_root);
+    make_big(&text.get_widget());
+    split_root.append(&text.get_widget());
 
     let minibuf = gtk::TextView::new();
     minibuf.set_size_request(-1, 26); // TODO
 
-    pack(&layout, &split_root);
+    layout.append(&split_root);
     layout.append(&minibuf);
 
     window.set_child(Some(&layout));
