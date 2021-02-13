@@ -205,14 +205,14 @@ impl App {
                 }
             }
             KeyMapLookup::Action(Action::PageUp) => {
-                self.active_pane.view.emit_move_cursor(
+                self.active_pane.view().emit_move_cursor(
                     gtk::MovementStep::Pages,
                     -1,
                     false,
                 );
             }
             KeyMapLookup::Action(Action::PageDown) => {
-                self.active_pane.view.emit_move_cursor(
+                self.active_pane.view().emit_move_cursor(
                     gtk::MovementStep::Pages,
                     1,
                     false,
@@ -229,7 +229,7 @@ impl App {
 
     fn set_active_pane(&mut self, pane: &Pane) {
         self.active_pane = pane.clone();
-        pane.view.grab_focus();
+        pane.view().grab_focus();
     }
 
     fn open_file(&mut self, path: &Path) {
@@ -271,7 +271,7 @@ impl App {
 
         self.active_pane.set_buffer(&embuf_clone);
         // Move the cursor from the end to the beginning of the buffer.
-        self.active_pane.view.emit_move_cursor(
+        self.active_pane.view().emit_move_cursor(
             gtk::MovementStep::BufferEnds,
             -1,
             false,
@@ -308,7 +308,7 @@ impl App {
         // similar to how we do with the views vec
         if let Some(parent) = self.active_pane.get_widget().get_parent() {
             if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
-                let new_view = Pane::new(&active.embuf);
+                let new_view = Pane::new(&active.embuf());
                 let new_widget = new_view.get_widget();
                 make_big(&new_widget);
 

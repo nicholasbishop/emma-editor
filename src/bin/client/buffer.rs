@@ -17,6 +17,7 @@ fn make_buffer_id() -> BufferId {
     format!("buffer-{}", r)
 }
 
+// TODO: make caps consistent
 #[derive(Debug, Eq, PartialEq)]
 struct EmbufInternal {
     buffer_id: BufferId,
