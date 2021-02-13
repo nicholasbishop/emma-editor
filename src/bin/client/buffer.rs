@@ -41,20 +41,24 @@ impl EmBuf {
         })))
     }
 
+    fn borrow(&self) -> std::cell::Ref<EmbufInternal> {
+        self.0.borrow()
+    }
+
     pub fn buffer_id(&self) -> BufferId {
-        self.0.borrow().buffer_id.clone()
+        self.borrow().buffer_id.clone()
     }
 
     pub fn path(&self) -> PathBuf {
-        self.0.borrow().path.clone()
+        self.borrow().path.clone()
     }
 
     pub fn storage(&self) -> Buffer {
-        self.0.borrow().storage.clone()
+        self.borrow().storage.clone()
     }
 
     pub fn generation(&self) -> BufferGeneration {
-        self.0.borrow().generation
+        self.borrow().generation
     }
 
     pub fn increment_generation(&self) {
