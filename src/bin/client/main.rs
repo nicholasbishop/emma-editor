@@ -6,7 +6,7 @@ mod pane;
 mod theme;
 
 use {
-    buffer::EmBuf,
+    buffer::Embuf,
     crossbeam_channel::Sender,
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
     highlight::{highlighter_thread, HighlightRequest},
@@ -73,7 +73,7 @@ struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
     views: Vec<Pane>,
-    buffers: Vec<EmBuf>,
+    buffers: Vec<Embuf>,
     active_pane: Pane,
 
     base_keymap: KeyMap,
@@ -243,7 +243,7 @@ impl App {
         // TODO: handle error
         let contents = fs::read_to_string(path).unwrap();
 
-        let embuf = EmBuf::new(path.into());
+        let embuf = Embuf::new(path.into());
 
         let sender = self.highlight_request_sender.clone();
         let storage = embuf.storage();
@@ -372,7 +372,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     let layout = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
     let split_root = make_box(gtk::Orientation::Horizontal);
-    let embuf = EmBuf::new(Path::new("").into()); // TODO: should be path None
+    let embuf = Embuf::new(Path::new("").into()); // TODO: should be path None
     let text = Pane::new(&embuf);
     make_big(&split_root);
     make_big(&text.get_widget());

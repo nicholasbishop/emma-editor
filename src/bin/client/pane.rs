@@ -1,5 +1,5 @@
 use {
-    crate::buffer::EmBuf,
+    crate::buffer::Embuf,
     gtk4::{self as gtk, prelude::*},
     std::{cell::RefCell, rc::Rc},
 };
@@ -15,14 +15,14 @@ struct PaneInternal {
     scrolled_window: gtk::ScrolledWindow,
     view: View,
 
-    embuf: EmBuf,
+    embuf: Embuf,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Pane(Rc<RefCell<PaneInternal>>);
 
 impl Pane {
-    pub fn new(embuf: &EmBuf) -> Pane {
+    pub fn new(embuf: &Embuf) -> Pane {
         let view = View::new();
         view.set_monospace(true);
         let scrolled_window = gtk::ScrolledWindow::new();
@@ -57,7 +57,7 @@ impl Pane {
         self.borrow().view.clone()
     }
 
-    pub fn embuf(&self) -> EmBuf {
+    pub fn embuf(&self) -> Embuf {
         self.borrow().embuf.clone()
     }
 
@@ -65,7 +65,7 @@ impl Pane {
         self.borrow().container.clone().upcast()
     }
 
-    pub fn set_buffer(&self, embuf: &EmBuf) {
+    pub fn set_buffer(&self, embuf: &Embuf) {
         self.0.borrow_mut().embuf = embuf.clone();
         self.borrow().view.set_buffer(Some(&embuf.storage()));
         self.update_info();

@@ -17,7 +17,6 @@ fn make_buffer_id() -> BufferId {
     format!("buffer-{}", r)
 }
 
-// TODO: make caps consistent
 #[derive(Debug, Eq, PartialEq)]
 struct EmbufInternal {
     buffer_id: BufferId,
@@ -27,13 +26,13 @@ struct EmbufInternal {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct EmBuf(Rc<RefCell<EmbufInternal>>);
+pub struct Embuf(Rc<RefCell<EmbufInternal>>);
 
-impl EmBuf {
-    pub fn new(path: PathBuf) -> EmBuf {
+impl Embuf {
+    pub fn new(path: PathBuf) -> Embuf {
         let tag_table: Option<&TextTagTable> = None;
 
-        EmBuf(Rc::new(RefCell::new(EmbufInternal {
+        Embuf(Rc::new(RefCell::new(EmbufInternal {
             buffer_id: make_buffer_id(),
             path,
             storage: Buffer::new(tag_table),
