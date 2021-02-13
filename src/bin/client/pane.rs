@@ -5,7 +5,7 @@ use {
 
 type View = gtk::TextView;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pane {
     container: gtk::Box,
 
@@ -15,8 +15,8 @@ pub struct Pane {
     view: View,
 }
 
-impl Pane {
-    pub fn new() -> Pane {
+impl Default for Pane {
+    fn default() -> Pane {
         let view = View::new();
         view.set_monospace(true);
         let scrolled_window = gtk::ScrolledWindow::new();
@@ -38,7 +38,9 @@ impl Pane {
             view,
         }
     }
+}
 
+impl Pane {
     pub fn get_widget(&self) -> gtk::Widget {
         self.container.clone().upcast()
     }

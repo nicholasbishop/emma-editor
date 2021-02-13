@@ -3,6 +3,7 @@ mod highlight;
 mod key_map;
 mod key_sequence;
 mod pane;
+mod pane_tree;
 mod theme;
 
 use {
@@ -13,6 +14,7 @@ use {
     key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
     key_sequence::{KeySequence, KeySequenceAtom},
     pane::Pane,
+    pane_tree::PaneTree,
     std::{
         cell::RefCell,
         path::{Path, PathBuf},
@@ -34,11 +36,6 @@ enum MinibufState {
     OpenFile,
 }
 
-fn make_box(o: gtk::Orientation) -> gtk::Box {
-    let spacing = 1;
-    gtk::Box::new(o, spacing)
-}
-
 // TODO consider if we still want this func
 fn pack<W: IsA<gtk::Widget>>(layout: &gtk::Box, child: &W) {
     layout.append(child);
@@ -48,53 +45,6 @@ fn pack<W: IsA<gtk::Widget>>(layout: &gtk::Box, child: &W) {
     } else {
         child.set_valign(gtk::Align::Fill);
         child.set_vexpand(true);
-    }
-}
-
-fn split_view(
-    window: &gtk::ApplicationWindow,
-    orientation: gtk::Orientation,
-    views: &mut Vec<Pane>,
-) {
-    // TODO: a more explicit tree structure might make this easier --
-    // similar to how we do with the views vec
-    if let Some(focus) = window.get_focus() {
-        if let Some(parent) = focus.get_parent() {
-            if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
-                let new_view = Pane::new();
-                let new_widget = new_view.get_widget();
-                let focus_index =
-                    views.iter().position(|e| e.has_focus()).unwrap();
-                views.insert(focus_index + 1, new_view);
-
-                // Check if the layout is in the correct orientation.
-                if layout.get_orientation() == orientation {
-                    // Insert after active pane.
-                    layout.insert_child_after(&new_widget, Some(&focus));
-                } else {
-                    // If there's only the one view in the layout,
-                    // just switch the orientation. Otherwise, create
-                    // a new layout to subdivide.
-                    if layout.get_first_child() == layout.get_last_child() {
-                        layout.set_orientation(orientation);
-                        pack(&layout, &new_widget);
-                    } else {
-                        let new_layout = make_box(orientation);
-
-                        // Insert the new layout after the active pane.
-                        layout.insert_child_after(&new_layout, Some(&focus));
-
-                        // Move the active pane from the old layout
-                        // to the new layout
-                        layout.remove(&focus);
-                        pack(&new_layout, &focus);
-
-                        // Add the new pane to the new layout.
-                        pack(&new_layout, &new_widget);
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -121,12 +71,22 @@ fn is_modifier(key: &gdk::keys::Key) -> bool {
     )
 }
 
+fn recursive_unparent<W: IsA<gtk::Widget>>(root: &W) {
+    let mut iter = root.get_first_child();
+    while let Some(child) = iter {
+        recursive_unparent(&child);
+        child.unparent();
+        iter = child.get_next_sibling();
+    }
+}
+
 struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
+    pane_tree: PaneTree,
+    split_root: gtk::Box,
     views: Vec<Pane>,
     buffers: Vec<Rc<RefCell<EmBuf>>>,
-    active_view: Pane,
 
     base_keymap: KeyMap,
     minibuf_state: MinibufState,
@@ -237,18 +197,12 @@ impl App {
                 self.views[next].grab_focus();
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
-                split_view(
-                    &self.window,
-                    gtk::Orientation::Horizontal,
-                    &mut self.views,
-                );
+                self.pane_tree.split(gtk::Orientation::Horizontal);
+                self.update_pane_tree();
             }
             KeyMapLookup::Action(Action::SplitVertical) => {
-                split_view(
-                    &self.window,
-                    gtk::Orientation::Vertical,
-                    &mut self.views,
-                );
+                self.pane_tree.split(gtk::Orientation::Vertical);
+                self.update_pane_tree();
             }
             KeyMapLookup::Action(Action::ClosePane) => {
                 todo!();
@@ -305,7 +259,7 @@ impl App {
 
         self.buffers.push(buffer);
 
-        self.active_view.set_buffer(&storage);
+        self.pane_tree.active().set_buffer(&storage);
     }
 
     fn handle_minibuf_confirm(&mut self) {
@@ -330,6 +284,11 @@ impl App {
             }
         }
     }
+
+    fn update_pane_tree(&self) {
+        recursive_unparent(&self.split_root);
+        self.split_root.append(&self.pane_tree.render());
+    }
 }
 
 fn build_ui(application: &gtk::Application, opt: &Opt) {
@@ -348,9 +307,10 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     let layout = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
-    let split_root = make_box(gtk::Orientation::Horizontal);
-    let text = Pane::new();
-    pack(&split_root, &text.get_widget());
+    let pane_tree = PaneTree::new();
+    // Arbitrary orientation, it only ever holds one widget.
+    let split_root = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    split_root.append(&pane_tree.render());
 
     let minibuf = gtk::TextView::new();
     minibuf.set_size_request(-1, 26); // TODO
@@ -366,10 +326,12 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     let mut app = App {
         window: window.clone(),
         minibuf,
-        views: vec![text.clone()],
+        pane_tree,
+        split_root,
         // TODO: doesn't yet include the initial view's buffer.
         buffers: Vec::new(),
-        active_view: text,
+        // TODO: remove views
+        views: vec![],
 
         base_keymap: KeyMap::new(),
         minibuf_state: MinibufState::Inactive,
