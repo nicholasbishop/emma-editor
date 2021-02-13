@@ -219,23 +219,9 @@ impl KeySequence {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Once;
-
-    // Used to ensure `gdk::init` is called only once. We run the
-    // tests single threaded so the `sync` aspect feels a little
-    // silly but seems necessary.
-    static INIT_SYNC: Once = Once::new();
-
-    fn init() {
-        INIT_SYNC.call_once(|| {
-            gdk::init();
-        });
-    }
 
     #[test]
     fn test_error_display() {
-        init();
-
         assert_eq!(
             format!(
                 "{}",
@@ -262,8 +248,6 @@ mod tests {
 
     #[test]
     fn test_parse_key_sequence() {
-        init();
-
         assert_eq!(
             parse_key_sequence_as_items("aa"),
             Ok(vec![ParseItem::Key(keys::a), ParseItem::Key(keys::a)])
@@ -292,8 +276,6 @@ mod tests {
 
     #[test]
     fn test_sequence_from_items() {
-        init();
-
         assert_eq!(
             KeySequence::from_items(&[ParseItem::Key(keys::a)]),
             Ok(KeySequence(vec![KeySequenceAtom {
