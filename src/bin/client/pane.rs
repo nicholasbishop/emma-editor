@@ -55,5 +55,10 @@ impl Pane {
 
     pub fn set_buffer(&self, buffer: &Buffer) {
         self.view.set_buffer(Some(buffer));
+        self.update_info();
+    }
+
+    fn update_info(&self) {
+        // TODO
     }
 }
