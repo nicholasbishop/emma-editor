@@ -101,8 +101,10 @@ fn load_theme(theme: &str) -> Theme {
     let mut yaml: YamlTheme = serde_yaml::from_str(&theme)?;
     yaml.expand_vars()?;
 
-    let mut theme = Theme::default();
-    theme.name = Some(yaml.name);
+    let mut theme = Theme {
+        name: Some(yaml.name),
+        ..Theme::default()
+    };
 
     theme.settings.foreground = parse_color(&yaml.settings.foreground)?;
     for scope in yaml.scopes.values() {
