@@ -16,7 +16,6 @@ use {
     std::{
         cell::RefCell,
         path::{Path, PathBuf},
-        rc::Rc,
         {env, fs, thread},
     },
 };
@@ -74,7 +73,7 @@ struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
     views: Vec<Pane>,
-    buffers: Vec<Rc<RefCell<EmBuf>>>,
+    buffers: Vec<EmBuf>,
     active_pane: Pane,
 
     base_keymap: KeyMap,
@@ -244,32 +243,30 @@ impl App {
         // TODO: handle error
         let contents = fs::read_to_string(path).unwrap();
 
-        let buffer = Rc::new(RefCell::new(EmBuf::new(path.into())));
+        let embuf = EmBuf::new(path.into());
 
         let sender = self.highlight_request_sender.clone();
-        let buffer_clone = buffer.clone();
-        let storage = buffer.borrow().storage.clone();
-        storage.connect_changed(move |_| {
-            let mut buffer = buffer_clone.borrow_mut();
-            buffer.generation += 1;
+        let storage = embuf.storage();
+        self.buffers.push(embuf.clone());
 
-            let storage = buffer.storage.clone();
+        storage.connect_changed(move |_| {
+            embuf.increment_generation();
+
+            let storage = embuf.storage();
 
             let start = storage.get_start_iter();
             let end = storage.get_end_iter();
             let text = storage.get_text(&start, &end, true);
 
             let req = HighlightRequest {
-                buffer_id: buffer.buffer_id.clone(),
+                buffer_id: embuf.buffer_id(),
                 text: text.to_string(),
-                generation: buffer.generation,
-                path: buffer.path.clone(),
+                generation: embuf.generation(),
+                path: embuf.path().clone(),
             };
             sender.send(req).unwrap();
         });
         storage.set_text(&contents);
-
-        self.buffers.push(buffer);
 
         self.active_pane.set_buffer(&storage);
         // Move the cursor from the end to the beginning of the buffer.

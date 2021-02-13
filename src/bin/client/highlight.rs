@@ -208,12 +208,11 @@ pub fn highlighter_thread(receiver: Receiver<HighlightRequest>) {
                     let buf = app
                         .buffers
                         .iter()
-                        .find(|buf| buf.borrow().buffer_id == req.buffer_id)
+                        .find(|buf| buf.buffer_id() == req.buffer_id)
                         .unwrap();
 
-                    let buf = buf.borrow();
-                    if buf.generation == req.generation {
-                        highlight_buffer(&buf.storage, &spans);
+                    if buf.generation() == req.generation {
+                        highlight_buffer(&buf.storage(), &spans);
                     }
                 });
 
