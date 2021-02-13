@@ -199,6 +199,20 @@ impl App {
                     self.handle_minibuf_confirm();
                 }
             }
+            KeyMapLookup::Action(Action::PageUp) => {
+                self.active_pane.view.emit_move_cursor(
+                    gtk::MovementStep::Pages,
+                    -1,
+                    false,
+                );
+            }
+            KeyMapLookup::Action(Action::PageDown) => {
+                self.active_pane.view.emit_move_cursor(
+                    gtk::MovementStep::Pages,
+                    1,
+                    false,
+                );
+            }
         };
 
         if clear_seq {
@@ -247,6 +261,12 @@ impl App {
         self.buffers.push(buffer);
 
         self.active_pane.set_buffer(&storage);
+        // Move the cursor from the end to the beginning of the buffer.
+        self.active_pane.view.emit_move_cursor(
+            gtk::MovementStep::BufferEnds,
+            -1,
+            false,
+        );
     }
 
     fn handle_minibuf_confirm(&mut self) {

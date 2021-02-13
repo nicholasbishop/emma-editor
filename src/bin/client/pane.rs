@@ -12,7 +12,7 @@ pub struct Pane {
     info: gtk::Label,
 
     scrolled_window: gtk::ScrolledWindow,
-    view: View,
+    pub view: View,
 }
 
 impl Pane {

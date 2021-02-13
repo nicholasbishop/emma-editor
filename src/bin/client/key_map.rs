@@ -13,6 +13,8 @@ pub enum Action {
     SplitVertical,
     ClosePane,
     Confirm,
+    PageDown,
+    PageUp,
 }
 
 pub enum KeyMapLookup {
@@ -51,6 +53,8 @@ impl KeyMap {
             Action::SplitHorizontal,
         );
         map.insert(KeySequence::parse("<ctrl>x+0").unwrap(), Action::ClosePane);
+        map.insert(KeySequence::parse("<ctrl>v").unwrap(), Action::PageDown);
+        map.insert(KeySequence::parse("<alt>v").unwrap(), Action::PageUp);
         map
     }
 
