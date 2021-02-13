@@ -5,7 +5,7 @@ use {
 
 type View = gtk::TextView;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Pane {
     container: gtk::Box,
 
@@ -41,16 +41,6 @@ impl Pane {
 
     pub fn get_widget(&self) -> gtk::Widget {
         self.container.clone().upcast()
-    }
-
-    // TODO: might want to remove this and just stick to a concept of
-    // "active" pane
-    pub fn has_focus(&self) -> bool {
-        self.view.has_focus()
-    }
-
-    pub fn grab_focus(&self) {
-        self.view.grab_focus();
     }
 
     pub fn set_buffer(&self, buffer: &Buffer) {

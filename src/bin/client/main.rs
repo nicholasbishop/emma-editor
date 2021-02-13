@@ -166,24 +166,30 @@ impl App {
                 );
             }
             KeyMapLookup::Action(Action::PreviousPane) => {
-                let pos =
-                    self.views.iter().position(|e| e.has_focus()).unwrap();
+                let pos = self
+                    .views
+                    .iter()
+                    .position(|e| e == &self.active_pane)
+                    .unwrap();
                 let prev = if pos == 0 {
                     self.views.len() - 1
                 } else {
                     pos - 1
                 };
-                self.views[prev].grab_focus();
+                self.set_active_pane(&self.views[prev].clone());
             }
             KeyMapLookup::Action(Action::NextPane) => {
-                let pos =
-                    self.views.iter().position(|e| e.has_focus()).unwrap();
+                let pos = self
+                    .views
+                    .iter()
+                    .position(|e| e == &self.active_pane)
+                    .unwrap();
                 let next = if pos == self.views.len() - 1 {
                     0
                 } else {
                     pos + 1
                 };
-                self.views[next].grab_focus();
+                self.set_active_pane(&self.views[next].clone());
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
                 self.split_view(gtk::Orientation::Horizontal);
@@ -220,6 +226,11 @@ impl App {
         }
 
         inhibit
+    }
+
+    fn set_active_pane(&mut self, pane: &Pane) {
+        self.active_pane = pane.clone();
+        pane.view.grab_focus();
     }
 
     fn open_file(&mut self, path: &Path) {
