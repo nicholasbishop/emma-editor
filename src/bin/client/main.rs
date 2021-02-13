@@ -3,6 +3,7 @@ mod highlight;
 mod key_map;
 mod key_sequence;
 mod pane;
+mod pane_tree;
 mod persistence;
 mod shell;
 mod shell_unix;
@@ -16,6 +17,7 @@ use {
     key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
     key_sequence::{KeySequence, KeySequenceAtom},
     pane::Pane,
+    pane_tree::PaneTree,
     std::{
         cell::RefCell,
         path::{Path, PathBuf},
@@ -35,11 +37,6 @@ enum MinibufState {
     SelectBuffer,
     // TODO this will probably become more general
     OpenFile,
-}
-
-fn make_box(o: gtk::Orientation) -> gtk::Box {
-    let spacing = 1;
-    gtk::Box::new(o, spacing)
 }
 
 /// Set horizontal+vertical expand+fill on a widget.
@@ -73,12 +70,39 @@ fn is_modifier(key: &gdk::keys::Key) -> bool {
     )
 }
 
+// For debugging.
+#[allow(dead_code)]
+fn dump_tree<W: IsA<gtk::Widget>>(widget: &W, title: &str) {
+    fn r<W: IsA<gtk::Widget>>(widget: &W, depth: usize) {
+        for _ in 0..depth {
+            print!("  ");
+        }
+        println!("{} ({:?})", widget.get_widget_name(), widget);
+
+        // Don't recurse into Pane widgets.
+        if widget.get_widget_name() == "Pane" {
+            return;
+        }
+
+        // Dump children.
+        let mut iter = widget.get_first_child();
+        while let Some(child) = iter {
+            r(&child, depth + 1);
+            iter = child.get_next_sibling();
+        }
+    }
+
+    println!("{}", title);
+    r(widget, 0);
+    println!();
+}
+
 struct App {
     window: gtk::ApplicationWindow,
     minibuf: gtk::TextView,
-    views: Vec<Pane>,
+    pane_tree: PaneTree,
+    split_root: gtk::Box,
     buffers: Vec<Embuf>,
-    active_pane: Pane,
 
     base_keymap: KeyMap,
     minibuf_state: MinibufState,
@@ -100,7 +124,7 @@ impl App {
         if self.window.get_focus() == Some(self.minibuf.clone().upcast()) {
             keymap_stack.push(get_minibuf_keymap(self.minibuf_state));
         }
-        if self.active_pane.embuf().has_shell() {
+        if self.pane_tree.active().embuf().has_shell() {
             let mut map = KeyMap::new();
             map.insert(KeySequence::parse("<ret>").unwrap(), Action::Confirm);
             keymap_stack.push(map);
@@ -160,36 +184,30 @@ impl App {
                 self.start_minibuf_input("Select buffer: ", "");
             }
             KeyMapLookup::Action(Action::PreviousPane) => {
-                let pos = self
-                    .views
+                let views = self.pane_tree.leaf_vec();
+                let pos = views
                     .iter()
-                    .position(|e| e == &self.active_pane)
+                    .position(|e| e == &self.pane_tree.active())
                     .unwrap();
-                let prev = if pos == 0 {
-                    self.views.len() - 1
-                } else {
-                    pos - 1
-                };
-                self.set_active_pane(self.views[prev].clone());
+                let prev = if pos == 0 { views.len() - 1 } else { pos - 1 };
+                self.set_active_pane(views[prev].clone());
             }
             KeyMapLookup::Action(Action::NextPane) => {
-                let pos = self
-                    .views
+                let views = self.pane_tree.leaf_vec();
+                let pos = views
                     .iter()
-                    .position(|e| e == &self.active_pane)
+                    .position(|e| e == &self.pane_tree.active())
                     .unwrap();
-                let next = if pos == self.views.len() - 1 {
-                    0
-                } else {
-                    pos + 1
-                };
-                self.set_active_pane(self.views[next].clone());
+                let next = if pos == views.len() - 1 { 0 } else { pos + 1 };
+                self.set_active_pane(views[next].clone());
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
-                self.split_view(gtk::Orientation::Horizontal);
+                self.pane_tree.split(gtk::Orientation::Horizontal);
+                self.update_pane_tree();
             }
             KeyMapLookup::Action(Action::SplitVertical) => {
-                self.split_view(gtk::Orientation::Vertical);
+                self.pane_tree.split(gtk::Orientation::Vertical);
+                self.update_pane_tree();
             }
             KeyMapLookup::Action(Action::ClosePane) => {
                 todo!();
@@ -197,20 +215,20 @@ impl App {
             KeyMapLookup::Action(Action::Confirm) => {
                 if self.minibuf.has_focus() {
                     self.handle_minibuf_confirm();
-                } else if self.active_pane.embuf().has_shell() {
+                } else if self.pane_tree.active().embuf().has_shell() {
                     // TODO: unwrap
-                    self.active_pane.embuf().send_to_shell().unwrap();
+                    self.pane_tree.active().embuf().send_to_shell().unwrap();
                 }
             }
             KeyMapLookup::Action(Action::PageUp) => {
-                self.active_pane.view().emit_move_cursor(
+                self.pane_tree.active().view().emit_move_cursor(
                     gtk::MovementStep::Pages,
                     -1,
                     false,
                 );
             }
             KeyMapLookup::Action(Action::PageDown) => {
-                self.active_pane.view().emit_move_cursor(
+                self.pane_tree.active().view().emit_move_cursor(
                     gtk::MovementStep::Pages,
                     1,
                     false,
@@ -220,7 +238,7 @@ impl App {
                 // TODO fix unwrap
                 let embuf = Embuf::launch_shell("TODO").unwrap();
                 self.buffers.push(embuf.clone());
-                self.active_pane.set_buffer(&embuf);
+                self.pane_tree.active().set_buffer(&embuf);
             }
             KeyMapLookup::Action(Action::Cancel) => {
                 if self.minibuf_state != MinibufState::Inactive {
@@ -273,11 +291,12 @@ impl App {
     }
 
     fn set_active_pane(&mut self, pane: Pane) {
-        self.active_pane = pane;
-        for pane in &self.views {
+        let views = self.pane_tree.leaf_vec();
+        self.pane_tree.set_active(&pane);
+        for pane in views {
             pane.set_active(false);
         }
-        self.active_pane.set_active(true);
+        pane.set_active(true);
     }
 
     fn open_file(&mut self, path: &Path) {
@@ -288,9 +307,9 @@ impl App {
 
         self.buffers.push(embuf.clone());
 
-        self.active_pane.set_buffer(&embuf);
+        self.pane_tree.active().set_buffer(&embuf);
         // Move the cursor from the end to the beginning of the buffer.
-        self.active_pane.view().emit_move_cursor(
+        self.pane_tree.active().view().emit_move_cursor(
             gtk::MovementStep::BufferEnds,
             -1,
             false,
@@ -302,7 +321,7 @@ impl App {
     fn switch_to_buffer(&self, name: &str) {
         for embuf in &self.buffers {
             if embuf.name() == name {
-                self.active_pane.set_buffer(&embuf);
+                self.pane_tree.active().set_buffer(&embuf);
                 break;
             }
         }
@@ -353,57 +372,9 @@ impl App {
         }
     }
 
-    fn split_view(&mut self, orientation: gtk::Orientation) {
-        let active = &self.active_pane;
-
-        // TODO: a more explicit tree structure might make this easier --
-        // similar to how we do with the views vec
-        if let Some(parent) = self.active_pane.get_widget().get_parent() {
-            if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
-                let new_view = Pane::new(&active.embuf());
-                let new_widget = new_view.get_widget();
-                make_big(&new_widget);
-
-                // TODO
-                let active_index =
-                    self.views.iter().position(|e| e == active).unwrap();
-                self.views.insert(active_index + 1, new_view);
-
-                // Check if the layout is in the correct orientation.
-                if layout.get_orientation() == orientation {
-                    // Insert after active pane.
-                    layout.insert_child_after(
-                        &new_widget,
-                        Some(&active.get_widget()),
-                    );
-                } else {
-                    // If there's only the one view in the layout,
-                    // just switch the orientation. Otherwise, create
-                    // a new layout to subdivide.
-                    if layout.get_first_child() == layout.get_last_child() {
-                        layout.set_orientation(orientation);
-                        layout.append(&new_widget);
-                    } else {
-                        let new_layout = make_box(orientation);
-                        make_big(&new_layout);
-
-                        // Insert the new layout after the active pane.
-                        layout.insert_child_after(
-                            &new_layout,
-                            Some(&active.get_widget()),
-                        );
-
-                        // Move the active pane from the old layout
-                        // to the new layout
-                        layout.remove(&active.get_widget());
-                        new_layout.append(&active.get_widget());
-
-                        // Add the new pane to the new layout.
-                        new_layout.append(&new_widget);
-                    }
-                }
-            }
-        }
+    fn update_pane_tree(&self) {
+        pane_tree::recursive_unparent_children(&self.split_root);
+        self.split_root.append(&self.pane_tree.render());
     }
 }
 
@@ -423,13 +394,16 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     let layout = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
-    let split_root = make_box(gtk::Orientation::Horizontal);
     let embuf = Embuf::new(Path::new("").into()); // TODO: should be path None
     let text = Pane::new(&embuf);
-    text.set_active(true);
-    make_big(&split_root);
     make_big(&text.get_widget());
-    split_root.append(&text.get_widget());
+    text.set_active(true);
+
+    let pane_tree = PaneTree::new(text);
+    // Arbitrary orientation, it only ever holds one widget.
+    let split_root = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    make_big(&split_root);
+    split_root.append(&pane_tree.render());
 
     let minibuf = gtk::TextView::new();
     minibuf.set_size_request(-1, 26); // TODO
@@ -445,9 +419,9 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     let mut app = App {
         window: window.clone(),
         minibuf,
-        views: vec![text.clone()],
+        pane_tree,
+        split_root,
         buffers: vec![embuf],
-        active_pane: text,
 
         base_keymap: KeyMap::new(),
         minibuf_state: MinibufState::Inactive,

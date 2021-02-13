@@ -34,6 +34,7 @@ impl Pane {
         info.set_xalign(0.0);
 
         let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        container.set_widget_name("Pane");
         container.append(&scrolled_window);
         container.append(&info);
 
