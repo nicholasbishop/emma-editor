@@ -17,6 +17,7 @@ fn make_buffer_id() -> BufferId {
     format!("buffer-{}", r)
 }
 
+#[derive(Debug, Eq, PartialEq)]
 struct EmbufInternal {
     buffer_id: BufferId,
     path: PathBuf,
@@ -24,7 +25,7 @@ struct EmbufInternal {
     generation: BufferGeneration,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EmBuf(Rc<RefCell<EmbufInternal>>);
 
 impl EmBuf {

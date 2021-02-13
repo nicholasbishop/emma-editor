@@ -248,6 +248,7 @@ impl App {
         let sender = self.highlight_request_sender.clone();
         let storage = embuf.storage();
         self.buffers.push(embuf.clone());
+        let embuf_clone = embuf.clone();
 
         storage.connect_changed(move |_| {
             embuf.increment_generation();
@@ -268,7 +269,7 @@ impl App {
         });
         storage.set_text(&contents);
 
-        self.active_pane.set_buffer(&storage);
+        self.active_pane.set_buffer(&embuf_clone);
         // Move the cursor from the end to the beginning of the buffer.
         self.active_pane.view.emit_move_cursor(
             gtk::MovementStep::BufferEnds,
@@ -307,7 +308,7 @@ impl App {
         // similar to how we do with the views vec
         if let Some(parent) = self.active_pane.get_widget().get_parent() {
             if let Some(layout) = parent.dynamic_cast_ref::<gtk::Box>() {
-                let new_view = Pane::new();
+                let new_view = Pane::new(&active.embuf);
                 let new_widget = new_view.get_widget();
                 make_big(&new_widget);
 
@@ -371,7 +372,8 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     let layout = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
     let split_root = make_box(gtk::Orientation::Horizontal);
-    let text = Pane::new();
+    let embuf = EmBuf::new(Path::new("").into()); // TODO: should be path None
+    let text = Pane::new(&embuf);
     make_big(&split_root);
     make_big(&text.get_widget());
     split_root.append(&text.get_widget());
@@ -391,8 +393,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         window: window.clone(),
         minibuf,
         views: vec![text.clone()],
-        // TODO: doesn't yet include the initial view's buffer.
-        buffers: Vec::new(),
+        buffers: vec![embuf],
         active_pane: text,
 
         base_keymap: KeyMap::new(),
