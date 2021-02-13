@@ -263,7 +263,7 @@ impl App {
                 buffer_id: embuf.buffer_id(),
                 text: text.to_string(),
                 generation: embuf.generation(),
-                path: embuf.path().clone(),
+                path: embuf.path(),
             };
             sender.send(req).unwrap();
         });
@@ -419,7 +419,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
                 app.borrow_mut()
                     .as_mut()
                     .unwrap()
-                    .handle_key_press(gdk::keys::Key::from(keyval), state)
+                    .handle_key_press(keyval, state)
             })
         },
     );
