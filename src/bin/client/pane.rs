@@ -72,10 +72,13 @@ impl Pane {
     }
 
     fn update_info(&self) {
-        // TODO
-        self.0
-            .borrow()
-            .info
-            .set_text(&format!("{}", self.borrow().embuf.path().display()));
+        // TODO: handle multiple buffers with same name.
+        let path = self.borrow().embuf.path();
+        let name = path
+            .file_name()
+            .map(|c| c.to_string_lossy().to_string())
+            .unwrap_or("?".to_string());
+
+        self.borrow().info.set_text(&name);
     }
 }
