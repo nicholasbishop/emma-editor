@@ -15,6 +15,7 @@ pub enum Action {
     Confirm,
     PageDown,
     PageUp,
+    OpenShell,
 }
 
 pub enum KeyMapLookup {
@@ -55,6 +56,10 @@ impl KeyMap {
         map.insert(KeySequence::parse("<ctrl>x+0").unwrap(), Action::ClosePane);
         map.insert(KeySequence::parse("<ctrl>v").unwrap(), Action::PageDown);
         map.insert(KeySequence::parse("<alt>v").unwrap(), Action::PageUp);
+        map.insert(
+            KeySequence::parse("<ctrl>c+<ctrl>s").unwrap(),
+            Action::OpenShell,
+        );
         map
     }
 

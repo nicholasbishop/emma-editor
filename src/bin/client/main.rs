@@ -218,6 +218,9 @@ impl App {
                     false,
                 );
             }
+            KeyMapLookup::Action(Action::OpenShell) => {
+                todo!();
+            }
         };
 
         if clear_seq {
