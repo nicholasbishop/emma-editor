@@ -93,8 +93,15 @@ impl App {
     ) -> Inhibit {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(self.base_keymap.clone());
+
+        // TODO: figure these customizations out better
         if self.window.get_focus() == Some(self.minibuf.clone().upcast()) {
             keymap_stack.push(get_minibuf_keymap(self.minibuf_state));
+        }
+        if self.active_pane.embuf().has_shell() {
+            let mut map = KeyMap::new();
+            map.insert(KeySequence::parse("<ret>").unwrap(), Action::Confirm);
+            keymap_stack.push(map);
         }
 
         // Ignore lone modifier presses.
@@ -204,6 +211,9 @@ impl App {
             KeyMapLookup::Action(Action::Confirm) => {
                 if self.minibuf.has_focus() {
                     self.handle_minibuf_confirm();
+                } else if self.active_pane.embuf().has_shell() {
+                    // TODO: unwrap
+                    self.active_pane.embuf().send_to_shell().unwrap();
                 }
             }
             KeyMapLookup::Action(Action::PageUp) => {

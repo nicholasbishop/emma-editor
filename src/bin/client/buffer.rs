@@ -93,6 +93,18 @@ impl Embuf {
     pub fn increment_generation(&self) {
         self.0.borrow_mut().generation += 1;
     }
+
+    pub fn has_shell(&self) -> bool {
+        self.borrow().shell.is_some()
+    }
+
+    #[throws]
+    pub fn send_to_shell(&self) {
+        if let Some(shell) = &mut self.0.borrow_mut().shell {
+            // TODO
+            shell.send("todo\n".as_bytes())?;
+        }
+    }
 }
 
 impl PartialEq for Embuf {

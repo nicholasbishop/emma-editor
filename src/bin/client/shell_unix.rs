@@ -281,6 +281,10 @@ impl Pty {
     pub fn raw_fd(&self) -> RawFd {
         self.fd.as_raw_fd()
     }
+
+    pub fn file(&mut self) -> &mut File {
+        &mut self.fd
+    }
 }
 
 unsafe fn set_nonblocking(fd: c_int) {

@@ -4,7 +4,7 @@ use {
     fehler::throws,
     gtk4::glib::{self, ffi as glib_sys},
     nix::libc,
-    std::fmt,
+    std::{fmt, io::Write},
 };
 
 #[allow(non_camel_case_types)]
@@ -77,6 +77,11 @@ impl Shell {
         }
 
         Shell(shell)
+    }
+
+    #[throws]
+    pub fn send(&mut self, data: &[u8]) {
+        self.0.pty.file().write_all(data)?;
     }
 }
 
