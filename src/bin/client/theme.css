@@ -9,5 +9,10 @@ textview text {
 
 #info {
     background-color: #2e3330;
+    color: #88b090;
+}
+
+#info-active {
+    background-color: #1e2320;
     color: #edd400;
 }

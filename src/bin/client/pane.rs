@@ -81,4 +81,14 @@ impl Pane {
 
         self.borrow().info.set_text(&name);
     }
+
+    pub fn set_active(&self, active: bool) {
+        let info_name = if active { "info-active" } else { "info" };
+        let internal = self.borrow();
+        internal.info.set_widget_name(info_name);
+
+        if active {
+            internal.view.grab_focus();
+        }
+    }
 }

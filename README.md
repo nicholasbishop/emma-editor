@@ -8,13 +8,15 @@ Build/test/run:
     
 TODOs:
 
-* Show active view with info bar styling
+* Completion for minibuf file operations
+* Save buffer
 * Change active view when clicking to focus a different pane
+* Implement persistence
 * Close view
 * View layout history
 * M-x style commands in minibuf
 * Add line/col to info bar
-* Implement persistence
+* Something like dabbrev-expand (M-/)
 * Figure out the SSH stuff
 * Many TODOs in the code
 

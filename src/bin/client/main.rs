@@ -184,7 +184,7 @@ impl App {
                 } else {
                     pos - 1
                 };
-                self.set_active_pane(&self.views[prev].clone());
+                self.set_active_pane(self.views[prev].clone());
             }
             KeyMapLookup::Action(Action::NextPane) => {
                 let pos = self
@@ -197,7 +197,7 @@ impl App {
                 } else {
                     pos + 1
                 };
-                self.set_active_pane(&self.views[next].clone());
+                self.set_active_pane(self.views[next].clone());
             }
             KeyMapLookup::Action(Action::SplitHorizontal) => {
                 self.split_view(gtk::Orientation::Horizontal);
@@ -245,9 +245,12 @@ impl App {
         inhibit
     }
 
-    fn set_active_pane(&mut self, pane: &Pane) {
-        self.active_pane = pane.clone();
-        pane.view().grab_focus();
+    fn set_active_pane(&mut self, pane: Pane) {
+        self.active_pane = pane;
+        for pane in &self.views {
+            pane.set_active(false);
+        }
+        self.active_pane.set_active(true);
     }
 
     fn open_file(&mut self, path: &Path) {
@@ -392,6 +395,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     let split_root = make_box(gtk::Orientation::Horizontal);
     let embuf = Embuf::new(Path::new("").into()); // TODO: should be path None
     let text = Pane::new(&embuf);
+    text.set_active(true);
     make_big(&split_root);
     make_big(&text.get_widget());
     split_root.append(&text.get_widget());
