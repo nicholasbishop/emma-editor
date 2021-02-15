@@ -236,6 +236,11 @@ impl App {
                 self.buffers.push(embuf.clone());
                 self.active_pane.set_buffer(&embuf);
             }
+            KeyMapLookup::Action(Action::Cancel) => {
+                if self.minibuf_state != MinibufState::Inactive {
+                    self.cancel_minibuf();
+                }
+            }
         };
 
         if clear_seq {
@@ -318,6 +323,19 @@ impl App {
                 self.minibuf_state = MinibufState::Inactive;
 
                 self.open_file(Path::new(text.as_str()));
+            }
+        }
+    }
+
+    fn cancel_minibuf(&mut self) {
+        match self.minibuf_state {
+            MinibufState::Inactive => {}
+            MinibufState::OpenFile => {
+                let buf = self.minibuf.get_buffer();
+
+                buf.set_text("");
+
+                self.minibuf_state = MinibufState::Inactive;
             }
         }
     }

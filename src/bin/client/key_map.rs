@@ -16,6 +16,10 @@ pub enum Action {
     PageDown,
     PageUp,
     OpenShell,
+
+    /// Cancel the current operation, e.g. opening a file from the
+    /// minibuf.
+    Cancel,
 }
 
 pub enum KeyMapLookup {
@@ -60,6 +64,9 @@ impl KeyMap {
             KeySequence::parse("<ctrl>c+<ctrl>s").unwrap(),
             Action::OpenShell,
         );
+        // TODO: make this generic so that any key sequence can be
+        // canceled with ctrl+g.
+        map.insert(KeySequence::parse("<ctrl>g").unwrap(), Action::Cancel);
         map
     }
 
