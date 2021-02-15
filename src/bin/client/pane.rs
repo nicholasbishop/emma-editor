@@ -77,7 +77,7 @@ impl Pane {
         let name = path
             .file_name()
             .map(|c| c.to_string_lossy().to_string())
-            .unwrap_or("?".to_string());
+            .unwrap_or_else(|| "?".to_string());
 
         self.borrow().info.set_text(&name);
     }
