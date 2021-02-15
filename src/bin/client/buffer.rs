@@ -33,6 +33,25 @@ struct EmbufInternal {
     shell: Option<Shell>,
 }
 
+impl EmbufInternal {
+    #[throws]
+    fn send_to_shell(&mut self) {
+        if let Some(shell) = &mut self.shell {
+            let mark = self.storage.get_mark("output_end").unwrap();
+            let mut input: String = self
+                .storage
+                .get_text(
+                    &self.storage.get_iter_at_mark(&mark),
+                    &self.storage.get_end_iter(),
+                    /*include_hidden_chars=*/ false,
+                )
+                .to_string();
+            input.push('\n');
+            shell.send(input.as_bytes())?;
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Embuf(Rc<RefCell<EmbufInternal>>);
 
@@ -62,11 +81,38 @@ impl Embuf {
             let s = String::from_utf8_lossy(bytes);
 
             let embuf = embuf.borrow();
-            embuf
-                .storage
-                .insert(&mut embuf.storage.get_end_iter(), &s.to_string());
+            let storage = &embuf.storage;
+            // TODO shared const for this string or keep TextMark?
+            let mark = storage.get_mark("output_end").unwrap();
+            storage
+                .insert(&mut storage.get_iter_at_mark(&mark), &s.to_string());
+
+            // The output_end mark floats left so that user input goes
+            // after the mark, that means we have to manually move the
+            // mark after the newly inserted shell output.
+            let mut iter = storage.get_iter_at_mark(&mark);
+            // TODO: it's not clear whether forward_chars measures in
+            // bytes or unicode characters or something else.
+            iter.forward_chars(s.len() as i32);
+            storage.move_mark(&mark, &iter);
         }))?;
-        embuf_clone.0.borrow_mut().shell = Some(shell);
+
+        {
+            let mut internal = embuf_clone.0.borrow_mut();
+            internal.storage.create_mark(
+                Some("output_end"),
+                &internal.storage.get_end_iter(),
+                // We kind of want both, not sure how best to
+                // represent this. We want the mark to keep to the
+                // right of shell output, but to the left of user
+                // input. For now set gravity to keep it to the left
+                // of user input, and manually move the mark past
+                // shell output in the callback.
+                /*left_gravity=*/
+                true,
+            );
+            internal.shell = Some(shell);
+        }
         embuf_clone
     }
 
@@ -100,10 +146,7 @@ impl Embuf {
 
     #[throws]
     pub fn send_to_shell(&self) {
-        if let Some(shell) = &mut self.0.borrow_mut().shell {
-            // TODO
-            shell.send("todo\n".as_bytes())?;
-        }
+        self.0.borrow_mut().send_to_shell()?;
     }
 }
 
