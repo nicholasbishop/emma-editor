@@ -8,16 +8,15 @@ Build/test/run:
     
 TODOs:
 
-* Implement next/prev view
-* Implement close view
-* Implement view layout history
-* With splits, prevent view sizes from increasing as you type in them
-* Implement buffers not tied to views
-* Implement opening stuff
-* Implement minibuf
-* Implement info line in views
+* Show active view with info bar styling
+* Change active view when clicking to focus a different pane
+* Close view
+* View layout history
+* M-x style commands in minibuf
+* Add line/col to info bar
 * Implement persistence
 * Figure out the SSH stuff
+* Many TODOs in the code
 
 ## Syntax Highlighting
 
