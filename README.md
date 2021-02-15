@@ -32,3 +32,10 @@ Reference:
 
 Rust Sublime syntax: https://github.com/rust-lang/rust-enhanced/blob/master/RustEnhanced.sublime-syntax
 Textmate docs: https://macromates.com/manual/en/scope_selectors
+
+## Actions
+
+All actions are defined in the `Action` enum in
+`src/bin/client/key_map.rs`. That file also has the default
+keymap. The actual implementations for actions are currently in
+`src/bin/client/main.rs`.
