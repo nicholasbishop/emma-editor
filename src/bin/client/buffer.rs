@@ -38,15 +38,22 @@ impl EmbufInternal {
     fn send_to_shell(&mut self) {
         if let Some(shell) = &mut self.shell {
             let mark = self.storage.get_mark("output_end").unwrap();
+            let mut start_iter = self.storage.get_iter_at_mark(&mark);
+            let mut end_iter = self.storage.get_end_iter();
             let mut input: String = self
                 .storage
                 .get_text(
-                    &self.storage.get_iter_at_mark(&mark),
-                    &self.storage.get_end_iter(),
+                    &start_iter,
+                    &end_iter,
                     /*include_hidden_chars=*/ false,
                 )
                 .to_string();
             input.push('\n');
+
+            // Clear the input text since the shell itself will echo
+            // the input.
+            self.storage.delete(&mut start_iter, &mut end_iter);
+
             shell.send(input.as_bytes())?;
         }
     }
