@@ -77,7 +77,6 @@ impl Embuf {
 
     #[throws]
     pub fn launch_shell() -> Embuf {
-        dbg!("launch");
         let path = Path::new(""); // TODO
         let embuf = Embuf::new(path.into());
         let embuf_clone = embuf.clone();
