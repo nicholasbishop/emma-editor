@@ -3,6 +3,8 @@ mod highlight;
 mod key_map;
 mod key_sequence;
 mod pane;
+mod shell;
+mod shell_unix;
 mod theme;
 
 use {
@@ -219,7 +221,10 @@ impl App {
                 );
             }
             KeyMapLookup::Action(Action::OpenShell) => {
-                todo!();
+                // TODO fix unwrap
+                let embuf = Embuf::launch_shell().unwrap();
+                self.buffers.push(embuf.clone());
+                self.active_pane.set_buffer(&embuf);
             }
         };
 

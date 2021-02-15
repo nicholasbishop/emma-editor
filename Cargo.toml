@@ -11,6 +11,8 @@ thiserror = "1.0"
 
 argh = "0.1"
 crossbeam-channel = "0.5"
+log = "0.4"
+nix = "0.19"
 rand = "0.8"
 syntect = "4.5"
 
