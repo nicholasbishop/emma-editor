@@ -107,7 +107,7 @@ impl Embuf {
             name: path
                 .file_name()
                 .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or("?".to_string()),
+                .unwrap_or_else(|| "?".to_string()),
             path,
             storage: Buffer::new(tag_table),
             generation: 0,
