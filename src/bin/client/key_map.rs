@@ -17,6 +17,9 @@ pub enum Action {
     PageUp,
     OpenShell,
 
+    /// Interactively switch to a different buffer.
+    SwitchToBuffer,
+
     /// Cancel the current operation, e.g. opening a file from the
     /// minibuf.
     Cancel,
@@ -63,6 +66,10 @@ impl KeyMap {
         map.insert(
             KeySequence::parse("<ctrl>c+<ctrl>s").unwrap(),
             Action::OpenShell,
+        );
+        map.insert(
+            KeySequence::parse("<ctrl>x+b").unwrap(),
+            Action::SwitchToBuffer,
         );
         // TODO: make this generic so that any key sequence can be
         // canceled with ctrl+g.

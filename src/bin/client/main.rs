@@ -237,6 +237,9 @@ impl App {
                 self.buffers.push(embuf.clone());
                 self.active_pane.set_buffer(&embuf);
             }
+            KeyMapLookup::Action(Action::SwitchToBuffer) => {
+                todo!();
+            }
             KeyMapLookup::Action(Action::Cancel) => {
                 if self.minibuf_state != MinibufState::Inactive {
                     self.cancel_minibuf();
