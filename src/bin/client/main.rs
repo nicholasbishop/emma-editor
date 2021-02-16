@@ -453,10 +453,11 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         minibuf_state: MinibufState::Inactive,
         cur_seq: KeySequence::default(),
 
-        highlight_request_sender: hl_req_sender,
+        highlight_request_sender: hl_req_sender.clone(),
     };
 
-    app.buffers.extend(persistence::restore_embufs().unwrap());
+    app.buffers
+        .extend(persistence::restore_embufs(hl_req_sender).unwrap());
 
     for path in &opt.files {
         app.open_file(path);

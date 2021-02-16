@@ -150,11 +150,13 @@ impl Embuf {
     }
 
     #[throws]
-    pub fn restore(info: RestoreInfo) -> Embuf {
+    pub fn restore(
+        info: RestoreInfo,
+        highlight_request_sender: Sender<HighlightRequest>,
+    ) -> Embuf {
         match info.kind {
             BufferKind::File => {
-                Embuf::new(info.path)
-                // TODO: load file
+                Embuf::load_file(&info.path, highlight_request_sender)?
                 // TODO: lazy load file
             }
             BufferKind::Shell => {

@@ -1,6 +1,10 @@
 use {
-    crate::buffer::{BufferId, BufferKind, Embuf, RestoreInfo},
+    crate::{
+        buffer::{BufferId, BufferKind, Embuf, RestoreInfo},
+        highlight::HighlightRequest,
+    },
     anyhow::{anyhow, Error},
+    crossbeam_channel::Sender,
     fehler::throws,
     log::error,
     std::{ffi::OsString, fs, os::unix::ffi::OsStringExt, path::PathBuf},
@@ -33,7 +37,9 @@ pub fn init_db() -> Result<(), Error> {
 }
 
 #[throws]
-pub fn restore_embufs() -> Vec<Embuf> {
+pub fn restore_embufs(
+    highlight_request_sender: Sender<HighlightRequest>,
+) -> Vec<Embuf> {
     let conn = open_db()?;
     let mut stmt =
         conn.prepare("SELECT buffer_id, name, path, kind FROM open_buffers")?;
@@ -45,12 +51,16 @@ pub fn restore_embufs() -> Vec<Embuf> {
             let name: String = b.get(1)?;
             let path: Vec<u8> = b.get(2)?;
             let kind: String = b.get(3)?;
-            Ok(Embuf::restore(RestoreInfo {
-                name,
-                path: PathBuf::from(OsString::from_vec(path)),
-                kind: BufferKind::from_str(&kind)
-                    .ok_or_else(|| anyhow!("invalid buffer kind: {}", kind))?,
-            })?)
+            Ok(Embuf::restore(
+                RestoreInfo {
+                    name,
+                    path: PathBuf::from(OsString::from_vec(path)),
+                    kind: BufferKind::from_str(&kind).ok_or_else(|| {
+                        anyhow!("invalid buffer kind: {}", kind)
+                    })?,
+                },
+                highlight_request_sender.clone(),
+            )?)
         })?
         .collect::<Vec<Result<Embuf, Error>>>();
     let mut embufs: Vec<Embuf> = Vec::new();
