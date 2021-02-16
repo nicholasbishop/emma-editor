@@ -3,6 +3,7 @@ mod highlight;
 mod key_map;
 mod key_sequence;
 mod pane;
+mod persistence;
 mod shell;
 mod shell_unix;
 mod theme;
@@ -302,6 +303,8 @@ impl App {
             -1,
             false,
         );
+
+        persistence::add_embuf(&embuf_clone).unwrap();
     }
 
     fn handle_minibuf_confirm(&mut self) {
@@ -443,6 +446,8 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         highlight_request_sender: hl_req_sender,
     };
 
+    app.buffers.extend(persistence::restore_embufs().unwrap());
+
     for path in &opt.files {
         app.open_file(path);
     }
@@ -480,6 +485,8 @@ fn main() {
     // TODO: glib has its own arg parsing that we could look at using,
     // but it's more complicated to understand than argh.
     let opt: Opt = argh::from_env();
+
+    persistence::init_db().unwrap();
 
     let application =
         gtk::Application::new(Some("org.emma.Emma"), Default::default())

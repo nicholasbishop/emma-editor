@@ -11,9 +11,11 @@ thiserror = "1.0"
 
 argh = "0.1"
 crossbeam-channel = "0.5"
+dirs = "3.0"
 log = "0.4"
 nix = "0.19"
 rand = "0.8"
+rusqlite = "0.24"
 syntect = "4.5"
 
 bincode = "1.3"

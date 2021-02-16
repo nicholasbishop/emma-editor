@@ -24,6 +24,37 @@ fn make_buffer_id() -> BufferId {
     format!("buffer-{}", r)
 }
 
+pub struct RestoreInfo {
+    pub path: PathBuf,
+    pub kind: BufferKind,
+}
+
+pub enum BufferKind {
+    File,
+    Shell,
+}
+
+impl BufferKind {
+    pub const fn to_str(&self) -> &'static str {
+        match self {
+            BufferKind::File => "file",
+            BufferKind::Shell => "shell",
+        }
+    }
+}
+
+impl BufferKind {
+    pub fn from_str(s: &str) -> Option<BufferKind> {
+        if s == BufferKind::File.to_str() {
+            Some(BufferKind::File)
+        } else if s == BufferKind::Shell.to_str() {
+            Some(BufferKind::Shell)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug)]
 struct EmbufInternal {
     buffer_id: BufferId,
@@ -76,6 +107,22 @@ impl Embuf {
     }
 
     #[throws]
+    pub fn restore(info: RestoreInfo) -> Embuf {
+        match info.kind {
+            BufferKind::File => {
+                let embuf = Embuf::new(info.path);
+                // TODO: load file
+                // TODO: lazy load file
+                embuf
+            }
+            BufferKind::Shell => {
+                // TODO: set directory
+                Embuf::launch_shell()?
+            }
+        }
+    }
+
+    #[throws]
     pub fn launch_shell() -> Embuf {
         let path = Path::new(""); // TODO
         let embuf = Embuf::new(path.into());
@@ -120,6 +167,14 @@ impl Embuf {
             internal.shell = Some(shell);
         }
         embuf_clone
+    }
+
+    pub fn kind(&self) -> BufferKind {
+        if self.borrow().shell.is_some() {
+            BufferKind::Shell
+        } else {
+            BufferKind::File
+        }
     }
 
     fn borrow(&self) -> std::cell::Ref<EmbufInternal> {
