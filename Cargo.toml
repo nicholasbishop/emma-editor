@@ -9,10 +9,12 @@ anyhow = "1.0"
 fehler = "1.0"
 thiserror = "1.0"
 
+log = "0.4"
+simple_logger = "1.11"
+
 argh = "0.1"
 crossbeam-channel = "0.5"
 dirs = "3.0"
-log = "0.4"
 nix = "0.19"
 rand = "0.8"
 rusqlite = "0.24"

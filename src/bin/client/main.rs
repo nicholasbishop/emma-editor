@@ -482,6 +482,8 @@ struct Opt {
 }
 
 fn main() {
+    simple_logger::SimpleLogger::new().init().unwrap();
+
     // TODO: glib has its own arg parsing that we could look at using,
     // but it's more complicated to understand than argh.
     let opt: Opt = argh::from_env();
