@@ -1,11 +1,13 @@
 use {
-    crate::shell::Shell,
+    crate::{shell::Shell, HighlightRequest},
     anyhow::Error,
+    crossbeam_channel::Sender,
     fehler::throws,
     gtk4::{prelude::*, TextBuffer, TextTagTable},
     rand::{distributions::Alphanumeric, thread_rng, Rng},
     std::{
         cell::RefCell,
+        fs,
         path::{Path, PathBuf},
         rc::Rc,
     },
@@ -111,6 +113,40 @@ impl Embuf {
             generation: 0,
             shell: None,
         })))
+    }
+
+    #[throws]
+    pub fn load_file(
+        path: &Path,
+        highlight_request_sender: Sender<HighlightRequest>,
+    ) -> Embuf {
+        let contents = fs::read_to_string(path)?;
+
+        let embuf = Embuf::new(path.into());
+
+        let storage = embuf.storage();
+        let embuf_clone = embuf.clone();
+
+        storage.connect_changed(move |_| {
+            embuf.increment_generation();
+
+            let storage = embuf.storage();
+
+            let start = storage.get_start_iter();
+            let end = storage.get_end_iter();
+            let text = storage.get_text(&start, &end, true);
+
+            let req = HighlightRequest {
+                buffer_id: embuf.buffer_id(),
+                text: text.to_string(),
+                generation: embuf.generation(),
+                path: embuf.path(),
+            };
+            highlight_request_sender.send(req).unwrap();
+        });
+        storage.set_text(&contents);
+
+        embuf_clone
     }
 
     #[throws]

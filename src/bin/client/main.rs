@@ -19,7 +19,7 @@ use {
     std::{
         cell::RefCell,
         path::{Path, PathBuf},
-        {env, fs, thread},
+        {env, thread},
     },
 };
 
@@ -282,35 +282,13 @@ impl App {
 
     fn open_file(&mut self, path: &Path) {
         // TODO: handle error
-        let contents = fs::read_to_string(path).unwrap();
+        let embuf =
+            Embuf::load_file(path, self.highlight_request_sender.clone())
+                .unwrap();
 
-        let embuf = Embuf::new(path.into());
-
-        let sender = self.highlight_request_sender.clone();
-        let storage = embuf.storage();
         self.buffers.push(embuf.clone());
-        let embuf_clone = embuf.clone();
 
-        storage.connect_changed(move |_| {
-            embuf.increment_generation();
-
-            let storage = embuf.storage();
-
-            let start = storage.get_start_iter();
-            let end = storage.get_end_iter();
-            let text = storage.get_text(&start, &end, true);
-
-            let req = HighlightRequest {
-                buffer_id: embuf.buffer_id(),
-                text: text.to_string(),
-                generation: embuf.generation(),
-                path: embuf.path(),
-            };
-            sender.send(req).unwrap();
-        });
-        storage.set_text(&contents);
-
-        self.active_pane.set_buffer(&embuf_clone);
+        self.active_pane.set_buffer(&embuf);
         // Move the cursor from the end to the beginning of the buffer.
         self.active_pane.view().emit_move_cursor(
             gtk::MovementStep::BufferEnds,
@@ -318,7 +296,7 @@ impl App {
             false,
         );
 
-        persistence::add_embuf(&embuf_clone).unwrap();
+        persistence::add_embuf(&embuf).unwrap();
     }
 
     fn switch_to_buffer(&self, name: &str) {
