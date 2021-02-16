@@ -32,6 +32,7 @@ std::thread_local! {
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum MinibufState {
     Inactive,
+    SelectBuffer,
     // TODO this will probably become more general
     OpenFile,
 }
@@ -53,7 +54,7 @@ fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
     let mut map = KeyMap::new();
     match state {
         MinibufState::Inactive => {}
-        MinibufState::OpenFile => {
+        _ => {
             map.insert(KeySequence::parse("<ret>").unwrap(), Action::Confirm);
         }
     }
@@ -140,39 +141,23 @@ impl App {
             }
             KeyMapLookup::Action(Action::OpenFile) => {
                 self.minibuf_state = MinibufState::OpenFile;
-                self.minibuf.grab_focus();
-
-                let prompt = "Open file: ";
-                let buf = self.minibuf.get_buffer();
-
-                // Create prompt tag.
-                let tag = gtk::TextTag::new(Some("prompt"));
-                tag.set_property_editable(false);
-                tag.set_property_foreground(Some("#edd400"));
-                buf.get_tag_table().add(&tag);
-
-                // Add prompt text and apply tag.
-                buf.set_text(prompt);
-                let start = buf.get_start_iter();
-                let mut prompt_end =
-                    buf.get_iter_at_offset(prompt.len() as i32);
-                buf.apply_tag(&tag, &start, &prompt_end);
-
-                // Insert mark to indicate the beginning of the user
-                // input.
-                let mark_name = "input-start";
-                if let Some(mark) = buf.get_mark(mark_name) {
-                    buf.delete_mark(&mark);
-                }
-                let left_gravity = true;
-                buf.create_mark(Some(mark_name), &prompt_end, left_gravity);
 
                 // Insert current directory.
                 // TODO fix unwrap
-                buf.insert(
-                    &mut prompt_end,
-                    env::current_dir().unwrap().to_str().unwrap(),
-                );
+                let def =
+                    env::current_dir().unwrap().to_str().unwrap().to_string();
+                self.start_minibuf_input("Open file: ", &def);
+            }
+            KeyMapLookup::Action(Action::SwitchToBuffer) => {
+                self.minibuf_state = MinibufState::SelectBuffer;
+
+                // TODO: provide a way to tab complete buffers and
+                // list them, for now just print to console.
+                for embuf in &self.buffers {
+                    println!("{}", embuf.name());
+                }
+
+                self.start_minibuf_input("Select buffer: ", "");
             }
             KeyMapLookup::Action(Action::PreviousPane) => {
                 let pos = self
@@ -237,9 +222,6 @@ impl App {
                 self.buffers.push(embuf.clone());
                 self.active_pane.set_buffer(&embuf);
             }
-            KeyMapLookup::Action(Action::SwitchToBuffer) => {
-                todo!();
-            }
             KeyMapLookup::Action(Action::Cancel) => {
                 if self.minibuf_state != MinibufState::Inactive {
                     self.cancel_minibuf();
@@ -252,6 +234,42 @@ impl App {
         }
 
         inhibit
+    }
+
+    fn start_minibuf_input(&self, prompt: &str, def: &str) {
+        self.minibuf.grab_focus();
+
+        let buf = self.minibuf.get_buffer();
+
+        // Get or create prompt tag.
+        let tag_name = "prompt";
+        let tag = buf.get_tag_table().lookup(tag_name);
+        let tag = if let Some(tag) = tag {
+            tag
+        } else {
+            let tag = gtk::TextTag::new(Some("prompt"));
+            tag.set_property_editable(false);
+            tag.set_property_foreground(Some("#edd400"));
+            buf.get_tag_table().add(&tag);
+            tag
+        };
+
+        // Add prompt text and apply tag.
+        buf.set_text(prompt);
+        let start = buf.get_start_iter();
+        let mut prompt_end = buf.get_iter_at_offset(prompt.len() as i32);
+        buf.apply_tag(&tag, &start, &prompt_end);
+
+        // Insert mark to indicate the beginning of the user
+        // input.
+        let mark_name = "input-start";
+        if let Some(mark) = buf.get_mark(mark_name) {
+            buf.delete_mark(&mark);
+        }
+        let left_gravity = true;
+        buf.create_mark(Some(mark_name), &prompt_end, left_gravity);
+
+        buf.insert(&mut prompt_end, def);
     }
 
     fn set_active_pane(&mut self, pane: Pane) {
@@ -310,33 +328,51 @@ impl App {
         persistence::add_embuf(&embuf_clone).unwrap();
     }
 
+    fn switch_to_buffer(&self, name: &str) {
+        for embuf in &self.buffers {
+            if embuf.name() == name {
+                self.active_pane.set_buffer(&embuf);
+                break;
+            }
+        }
+    }
+
+    fn take_minibuf_input(&self) -> String {
+        let buf = self.minibuf.get_buffer();
+
+        // TODO: dedup
+        let mark_name = "input-start";
+        let mark = buf.get_mark(mark_name).unwrap();
+        let start = buf.get_iter_at_mark(&mark);
+        let end = buf.get_end_iter();
+
+        let text = buf.get_text(&start, &end, false);
+
+        buf.set_text("");
+
+        text.to_string()
+    }
+
     fn handle_minibuf_confirm(&mut self) {
         match self.minibuf_state {
             MinibufState::Inactive => {}
             MinibufState::OpenFile => {
-                let buf = self.minibuf.get_buffer();
-
-                // TODO: dedup
-                let mark_name = "input-start";
-                let mark = buf.get_mark(mark_name).unwrap();
-                let start = buf.get_iter_at_mark(&mark);
-                let end = buf.get_end_iter();
-
-                let text = buf.get_text(&start, &end, false);
-
-                buf.set_text("");
-
-                self.minibuf_state = MinibufState::Inactive;
-
-                self.open_file(Path::new(text.as_str()));
+                let input = self.take_minibuf_input();
+                self.open_file(Path::new(input.as_str()));
+            }
+            MinibufState::SelectBuffer => {
+                let input = self.take_minibuf_input();
+                self.switch_to_buffer(&input);
             }
         }
+
+        self.minibuf_state = MinibufState::Inactive;
     }
 
     fn cancel_minibuf(&mut self) {
         match self.minibuf_state {
             MinibufState::Inactive => {}
-            MinibufState::OpenFile => {
+            _ => {
                 let buf = self.minibuf.get_buffer();
 
                 buf.set_text("");
