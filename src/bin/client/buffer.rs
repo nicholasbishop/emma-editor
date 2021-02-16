@@ -26,6 +26,7 @@ fn make_buffer_id() -> BufferId {
 
 pub struct RestoreInfo {
     pub path: PathBuf,
+    pub name: String,
     pub kind: BufferKind,
 }
 
@@ -59,8 +60,10 @@ impl BufferKind {
 struct EmbufInternal {
     buffer_id: BufferId,
     path: PathBuf,
+    name: String,
     storage: Buffer,
     generation: BufferGeneration,
+
     shell: Option<Shell>,
 }
 
@@ -99,6 +102,10 @@ impl Embuf {
 
         Embuf(Rc::new(RefCell::new(EmbufInternal {
             buffer_id: make_buffer_id(),
+            name: path
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or("?".to_string()),
             path,
             storage: Buffer::new(tag_table),
             generation: 0,
@@ -116,13 +123,13 @@ impl Embuf {
             }
             BufferKind::Shell => {
                 // TODO: set directory
-                Embuf::launch_shell()?
+                Embuf::launch_shell(&info.name)?
             }
         }
     }
 
     #[throws]
-    pub fn launch_shell() -> Embuf {
+    pub fn launch_shell(name: &str) -> Embuf {
         let path = Path::new(""); // TODO
         let embuf = Embuf::new(path.into());
         let embuf_clone = embuf.clone();
@@ -151,6 +158,7 @@ impl Embuf {
 
         {
             let mut internal = embuf_clone.0.borrow_mut();
+            internal.name = name.into();
             internal.storage.create_mark(
                 Some("output_end"),
                 &internal.storage.get_end_iter(),
@@ -166,6 +174,10 @@ impl Embuf {
             internal.shell = Some(shell);
         }
         embuf_clone
+    }
+
+    pub fn name(&self) -> String {
+        self.borrow().name.clone()
     }
 
     pub fn kind(&self) -> BufferKind {
