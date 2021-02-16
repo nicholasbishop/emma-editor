@@ -281,13 +281,6 @@ impl App {
     }
 
     fn open_file(&mut self, path: &Path) {
-        // TODO: we may end up not needing sourceview since we're
-        // already not using it for highlighting...
-
-        // TODO: check out the async loading feature of
-        // sourceview. It says its unmaintained though and to
-        // check out tepl...
-
         // TODO: handle error
         let contents = fs::read_to_string(path).unwrap();
 
