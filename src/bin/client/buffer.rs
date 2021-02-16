@@ -110,10 +110,9 @@ impl Embuf {
     pub fn restore(info: RestoreInfo) -> Embuf {
         match info.kind {
             BufferKind::File => {
-                let embuf = Embuf::new(info.path);
+                Embuf::new(info.path)
                 // TODO: load file
                 // TODO: lazy load file
-                embuf
             }
             BufferKind::Shell => {
                 // TODO: set directory
