@@ -6,7 +6,7 @@ use {
 
 type View = gtk::TextView;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 struct PaneInternal {
     container: gtk::Box,
 
@@ -18,8 +18,16 @@ struct PaneInternal {
     embuf: Embuf,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Pane(Rc<RefCell<PaneInternal>>);
+
+impl PartialEq for Pane {
+    fn eq(&self, other: &Pane) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for Pane {}
 
 impl Pane {
     pub fn new(embuf: &Embuf) -> Pane {
