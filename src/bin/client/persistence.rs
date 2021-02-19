@@ -2,6 +2,7 @@ use {
     crate::{
         buffer::{BufferId, BufferKind, Embuf, RestoreInfo},
         highlight::HighlightRequest,
+        pane_tree::{PaneTree, PaneTreeSerdeNode},
     },
     anyhow::{anyhow, Error},
     crossbeam_channel::Sender,
@@ -31,6 +32,12 @@ pub fn init_db() -> Result<(), Error> {
                       name TEXT,
                       path BLOB,
                       kind TEXT)",
+        rusqlite::NO_PARAMS,
+    )?;
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS layout_history (
+                      id INTEGER PRIMARY KEY,
+                      json TEXT)",
         rusqlite::NO_PARAMS,
     )?;
     Ok(())
@@ -88,4 +95,43 @@ pub fn add_embuf(buffer: &Embuf) -> Result<(), Error> {
         ],
     )?;
     Ok(())
+}
+
+pub fn store_layout(pane_tree: &PaneTree) -> Result<(), Error> {
+    let conn = open_db()?;
+    // TODO: store recent layout history. For now just delete each
+    // time.
+    conn.execute("DELETE FROM layout_history", rusqlite::NO_PARAMS)?;
+    let json = serde_json::to_string(&pane_tree.serialize())?;
+    conn.execute(
+        "INSERT INTO layout_history (id, json)
+         VALUES (?1, ?2)",
+        rusqlite::params![1, json],
+    )?;
+    Ok(())
+}
+
+#[throws]
+pub fn get_layout_history() -> Vec<PaneTreeSerdeNode> {
+    let conn = open_db()?;
+    let mut stmt = conn.prepare("SELECT id, json FROM layout_history")?;
+
+    let v = stmt
+        .query_and_then(rusqlite::NO_PARAMS, |b| {
+            let _id: i64 = b.get(0)?;
+            let json: String = b.get(1)?;
+            let node = serde_json::from_str(&json)?;
+            Ok(node)
+        })?
+        .collect::<Vec<Result<PaneTreeSerdeNode, Error>>>();
+    let mut layouts = Vec::new();
+    for item in v {
+        match item {
+            Ok(l) => layouts.push(l),
+            Err(err) => {
+                error!("failed to load layout: {:#}", err);
+            }
+        }
+    }
+    layouts
 }

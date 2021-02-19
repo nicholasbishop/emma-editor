@@ -375,6 +375,8 @@ impl App {
     fn update_pane_tree(&self) {
         pane_tree::recursive_unparent_children(&self.split_root);
         self.split_root.append(&self.pane_tree.render());
+
+        persistence::store_layout(&self.pane_tree).unwrap();
     }
 }
 
@@ -432,6 +434,13 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     app.buffers
         .extend(persistence::restore_embufs(hl_req_sender).unwrap());
+
+    if let Ok(layout_history) = persistence::get_layout_history() {
+        if let Some(layout) = layout_history.first() {
+            app.pane_tree.deserialize(layout, &app.buffers);
+        }
+    }
+    app.update_pane_tree();
 
     for path in &opt.files {
         app.open_file(path);

@@ -1,12 +1,16 @@
-use crate::pane::Pane;
+use crate::{
+    buffer::{BufferId, Embuf},
+    pane::Pane,
+};
 use gtk4::{self as gtk, prelude::*};
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::{Rc, Weak};
 
-#[derive(Debug, Eq, PartialEq)]
-enum Orientation {
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub enum Orientation {
     None,
     Horizontal,
     Vertical,
@@ -102,6 +106,13 @@ impl<T: LeafValue> Node<T> {
             contents: NodeContents::Leaf(value),
             parent: NodeWeakPtr::new(),
         }))
+    }
+
+    fn internal(&self) -> Option<&InternalNode<T>> {
+        match &self.contents {
+            NodeContents::Internal(ref internal) => Some(internal),
+            _ => None,
+        }
     }
 
     fn internal_mut(&mut self) -> Option<&mut InternalNode<T>> {
@@ -312,6 +323,58 @@ impl Node<Pane> {
             NodeContents::Leaf(view) => view.get_widget(),
         }
     }
+
+    fn serialize(&self, active_pane: &Pane) -> PaneTreeSerdeNode {
+        match &self.contents {
+            NodeContents::Leaf(pane) => PaneTreeSerdeNode::Leaf {
+                active: pane == active_pane,
+                buffer: pane.embuf().buffer_id(),
+            },
+            NodeContents::Internal(internal) => PaneTreeSerdeNode::Internal((
+                internal.orientation,
+                internal
+                    .children
+                    .iter()
+                    .map(|n| n.borrow().serialize(active_pane))
+                    .collect(),
+            )),
+        }
+    }
+
+    fn deserialize(
+        root: &PaneTreeSerdeNode,
+        embufs: &[Embuf],
+        proto: &Pane,
+    ) -> NodePtr<Pane> {
+        match root {
+            PaneTreeSerdeNode::Leaf { active, buffer } => {
+                let pane = proto.split();
+                // TODO: we need to actually restore buffer ids
+                if let Some(embuf) =
+                    embufs.iter().find(|embuf| &embuf.buffer_id() == buffer)
+                {
+                    pane.set_buffer(embuf);
+                }
+                if *active {
+                    pane.set_active(true);
+                }
+                Node::new_leaf(pane)
+            }
+            PaneTreeSerdeNode::Internal((orientation, children)) => {
+                let node = Node::new_internal(
+                    children
+                        .iter()
+                        .map(|c| Node::deserialize(c, embufs, proto))
+                        .collect(),
+                    *orientation,
+                );
+                for child in &node.borrow().internal().unwrap().children {
+                    child.borrow_mut().parent = Rc::downgrade(&node);
+                }
+                node
+            }
+        }
+    }
 }
 
 impl Tree<Pane> {
@@ -330,6 +393,36 @@ impl Tree<Pane> {
             // Should never happen: this pane is not in the tree.
             error!("failed to set active pane");
         }
+    }
+
+    pub fn serialize(&self) -> PaneTreeSerdeNode {
+        self.root.borrow().serialize(&self.active())
+    }
+
+    pub fn deserialize(&mut self, root: &PaneTreeSerdeNode, embufs: &[Embuf]) {
+        self.root = Node::deserialize(root, embufs, &self.active());
+
+        fn find_active(node: NodePtr<Pane>) -> Option<NodePtr<Pane>> {
+            let node_clone = node.clone();
+            match &node.borrow().contents {
+                NodeContents::Leaf(pane) => {
+                    if pane.is_active() {
+                        Some(node_clone)
+                    } else {
+                        None
+                    }
+                }
+                NodeContents::Internal(internal) => {
+                    for child in &internal.children {
+                        if let Some(node) = find_active(child.clone()) {
+                            return Some(node);
+                        }
+                    }
+                    None
+                }
+            }
+        }
+        self.active = find_active(self.root.clone()).unwrap();
     }
 }
 
@@ -356,6 +449,12 @@ pub fn recursive_unparent_children<W: IsA<gtk::Widget>>(root: &W) {
     // root container, outside of the pane tree.
     let check_name = false;
     r(root, check_name);
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum PaneTreeSerdeNode {
+    Leaf { active: bool, buffer: BufferId },
+    Internal((Orientation, Vec<PaneTreeSerdeNode>)),
 }
 
 #[cfg(test)]

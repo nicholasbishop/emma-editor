@@ -16,6 +16,8 @@ struct PaneInternal {
     view: View,
 
     embuf: Embuf,
+
+    is_active: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +54,7 @@ impl Pane {
             scrolled_window,
             view,
             embuf: embuf.clone(),
+            is_active: false,
         })));
 
         pane.set_buffer(embuf);
@@ -88,11 +91,16 @@ impl Pane {
 
     pub fn set_active(&self, active: bool) {
         let info_name = if active { "info-active" } else { "info" };
-        let internal = self.borrow();
+        let mut internal = self.0.borrow_mut();
         internal.info.set_widget_name(info_name);
+        internal.is_active = active;
 
         if active {
             internal.view.grab_focus();
         }
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.borrow().is_active
     }
 }
