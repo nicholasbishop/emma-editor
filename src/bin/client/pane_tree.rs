@@ -9,9 +9,9 @@ use std::cell::RefCell;
 use std::fmt;
 use std::rc::{Rc, Weak};
 
+// TODO: remove this since it now matches gtk::Orientation
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Orientation {
-    None,
     Horizontal,
     Vertical,
 }
@@ -29,7 +29,6 @@ impl From<gtk::Orientation> for Orientation {
 impl PartialEq<gtk::Orientation> for Orientation {
     fn eq(&self, other: &gtk::Orientation) -> bool {
         match self {
-            Self::None => false,
             Self::Horizontal => *other == gtk::Orientation::Horizontal,
             Self::Vertical => *other == gtk::Orientation::Vertical,
         }
@@ -168,7 +167,8 @@ impl<T: LeafValue> Tree<T> {
     /// Create a Tree containing a single View.
     pub fn new(value: T) -> Tree<T> {
         let leaf = Node::new_leaf(value);
-        let root = Node::new_internal(vec![leaf.clone()], Orientation::None);
+        let root =
+            Node::new_internal(vec![leaf.clone()], Orientation::Horizontal);
         leaf.borrow_mut().parent = Rc::downgrade(&root);
         Tree { active: leaf, root }
     }
@@ -198,9 +198,9 @@ impl<T: LeafValue> Tree<T> {
         let position =
             parent_internal.child_index(self.active.clone()).unwrap();
 
-        // If the parent doesn't have an orientation yet (i.e. it has
-        // only one child), just set the correct orientation.
-        if parent_internal.orientation == Orientation::None {
+        // If the parent just has one child, just set the correct
+        // orientation.
+        if parent_internal.children.len() == 1 {
             parent_internal.orientation = orientation.into();
         }
 
@@ -297,10 +297,6 @@ impl Node<Pane> {
         match &self.contents {
             NodeContents::Internal(internal) => {
                 let orientation = match internal.orientation {
-                    Orientation::None => {
-                        // Doesn't matter, arbitrarily pick horizontal.
-                        gtk::Orientation::Horizontal
-                    }
                     Orientation::Horizontal => gtk::Orientation::Horizontal,
                     Orientation::Vertical => gtk::Orientation::Vertical,
                 };
