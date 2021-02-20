@@ -9,32 +9,6 @@ use std::cell::RefCell;
 use std::fmt;
 use std::rc::{Rc, Weak};
 
-// TODO: remove this since it now matches gtk::Orientation
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
-pub enum Orientation {
-    Horizontal,
-    Vertical,
-}
-
-impl From<gtk::Orientation> for Orientation {
-    fn from(o: gtk::Orientation) -> Self {
-        match o {
-            gtk::Orientation::Horizontal => Orientation::Horizontal,
-            gtk::Orientation::Vertical => Orientation::Vertical,
-            _ => panic!("invalid orientation: {}", o),
-        }
-    }
-}
-
-impl PartialEq<gtk::Orientation> for Orientation {
-    fn eq(&self, other: &gtk::Orientation) -> bool {
-        match self {
-            Self::Horizontal => *other == gtk::Orientation::Horizontal,
-            Self::Vertical => *other == gtk::Orientation::Vertical,
-        }
-    }
-}
-
 pub trait Splitable {
     /// Make a new `Self` value from the old one.
     ///
@@ -58,7 +32,7 @@ impl LeafValue for Pane {}
 #[derive(Debug, PartialEq)]
 struct InternalNode<T: LeafValue> {
     children: Vec<NodePtr<T>>,
-    orientation: Orientation,
+    orientation: gtk::Orientation,
 }
 
 impl<T: LeafValue> InternalNode<T> {
@@ -89,7 +63,7 @@ impl<T: LeafValue> PartialEq for Node<T> {
 impl<T: LeafValue> Node<T> {
     fn new_internal(
         children: Vec<NodePtr<T>>,
-        orientation: Orientation,
+        orientation: gtk::Orientation,
     ) -> NodePtr<T> {
         NodePtr::new(RefCell::new(Node {
             contents: NodeContents::Internal(InternalNode {
@@ -167,8 +141,10 @@ impl<T: LeafValue> Tree<T> {
     /// Create a Tree containing a single View.
     pub fn new(value: T) -> Tree<T> {
         let leaf = Node::new_leaf(value);
-        let root =
-            Node::new_internal(vec![leaf.clone()], Orientation::Horizontal);
+        let root = Node::new_internal(
+            vec![leaf.clone()],
+            gtk::Orientation::Horizontal,
+        );
         leaf.borrow_mut().parent = Rc::downgrade(&root);
         Tree { active: leaf, root }
     }
@@ -296,12 +272,8 @@ impl Node<Pane> {
     pub fn render(&self) -> gtk::Widget {
         match &self.contents {
             NodeContents::Internal(internal) => {
-                let orientation = match internal.orientation {
-                    Orientation::Horizontal => gtk::Orientation::Horizontal,
-                    Orientation::Vertical => gtk::Orientation::Vertical,
-                };
                 let spacing = 1;
-                let layout = gtk::Box::new(orientation, spacing);
+                let layout = gtk::Box::new(internal.orientation, spacing);
                 crate::make_big(&layout);
 
                 // Tag the layout so that we know which widgets are
@@ -327,7 +299,7 @@ impl Node<Pane> {
                 buffer: pane.embuf().buffer_id(),
             },
             NodeContents::Internal(internal) => PaneTreeSerdeNode::Internal((
-                internal.orientation,
+                OrientationSerde::from_gtk(internal.orientation),
                 internal
                     .children
                     .iter()
@@ -362,7 +334,7 @@ impl Node<Pane> {
                         .iter()
                         .map(|c| Node::deserialize(c, embufs, proto))
                         .collect(),
-                    *orientation,
+                    orientation.to_gtk(),
                 );
                 for child in &node.borrow().internal().unwrap().children {
                     child.borrow_mut().parent = Rc::downgrade(&node);
@@ -448,9 +420,32 @@ pub fn recursive_unparent_children<W: IsA<gtk::Widget>>(root: &W) {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub enum OrientationSerde {
+    Horizontal,
+    Vertical,
+}
+
+impl OrientationSerde {
+    fn from_gtk(o: gtk::Orientation) -> OrientationSerde {
+        match o {
+            gtk::Orientation::Horizontal => OrientationSerde::Horizontal,
+            gtk::Orientation::Vertical => OrientationSerde::Vertical,
+            _ => panic!("invalid orientation: {}", o),
+        }
+    }
+
+    fn to_gtk(&self) -> gtk::Orientation {
+        match self {
+            OrientationSerde::Horizontal => gtk::Orientation::Horizontal,
+            OrientationSerde::Vertical => gtk::Orientation::Vertical,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum PaneTreeSerdeNode {
     Leaf { active: bool, buffer: BufferId },
-    Internal((Orientation, Vec<PaneTreeSerdeNode>)),
+    Internal((OrientationSerde, Vec<PaneTreeSerdeNode>)),
 }
 
 #[cfg(test)]
@@ -476,7 +471,7 @@ mod tests {
             tree.root,
             Node::new_internal(
                 vec![Node::new_leaf(1), Node::new_leaf(2)],
-                Orientation::Horizontal
+                gtk::Orientation::Horizontal
             )
         );
 
@@ -489,7 +484,7 @@ mod tests {
             tree.root,
             Node::new_internal(
                 vec![Node::new_leaf(1), Node::new_leaf(3), Node::new_leaf(2)],
-                Orientation::Horizontal
+                gtk::Orientation::Horizontal
             )
         );
 
@@ -505,12 +500,12 @@ mod tests {
                 vec![
                     Node::new_internal(
                         vec![Node::new_leaf(1), Node::new_leaf(4)],
-                        Orientation::Vertical
+                        gtk::Orientation::Vertical
                     ),
                     Node::new_leaf(3),
                     Node::new_leaf(2)
                 ],
-                Orientation::Horizontal
+                gtk::Orientation::Horizontal
             )
         );
 
@@ -529,12 +524,12 @@ mod tests {
                             Node::new_leaf(5),
                             Node::new_leaf(4)
                         ],
-                        Orientation::Vertical
+                        gtk::Orientation::Vertical
                     ),
                     Node::new_leaf(3),
                     Node::new_leaf(2)
                 ],
-                Orientation::Horizontal
+                gtk::Orientation::Horizontal
             )
         );
 
