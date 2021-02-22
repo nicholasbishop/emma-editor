@@ -15,6 +15,10 @@ pub trait LeafValue: Clone + fmt::Debug + PartialEq {
     /// For `Pane` this is a new `Pane` with the same buffer as the
     /// old one. For the `u8` tests, it's just a copy of the value.
     fn split(&self) -> Self;
+
+    fn is_active(&self) -> bool;
+
+    fn set_active(&mut self, active: bool);
 }
 
 impl LeafValue for Pane {
@@ -22,6 +26,14 @@ impl LeafValue for Pane {
         let pane = Pane::new(&self.embuf());
         crate::make_big(&pane.get_widget());
         pane
+    }
+
+    fn is_active(&self) -> bool {
+        self.is_active()
+    }
+
+    fn set_active(&mut self, active: bool) {
+        Pane::set_active(self, active);
     }
 }
 
@@ -454,23 +466,52 @@ pub enum PaneTreeSerdeNode {
 mod tests {
     use super::*;
 
-    impl LeafValue for u8 {
+    #[derive(Clone, Debug, PartialEq)]
+    struct TestPane {
+        value: u8,
+        active: bool,
+    }
+
+    impl TestPane {
+        fn new(value: u8) -> TestPane {
+            TestPane {
+                value,
+                active: false,
+            }
+        }
+    }
+
+    impl LeafValue for TestPane {
         fn split(&self) -> Self {
-            *self
+            Self {
+                value: self.value,
+                active: false,
+            }
+        }
+
+        fn is_active(&self) -> bool {
+            self.active
+        }
+
+        fn set_active(&mut self, active: bool) {
+            self.active = active;
         }
     }
 
     #[test]
     fn test_tree() {
-        let mut tree: Tree<u8> = Tree::new(1);
+        let mut tree: Tree<TestPane> = Tree::new(TestPane::new(1));
 
         // Horizontally split a node whose parent has no orientation.
         let new_node = tree.split(gtk::Orientation::Horizontal);
-        *new_node.borrow_mut().leaf_mut().unwrap() = 2;
+        *new_node.borrow_mut().leaf_mut().unwrap() = TestPane::new(2);
         assert_eq!(
             tree.root,
             Node::new_internal(
-                vec![Node::new_leaf(1), Node::new_leaf(2)],
+                vec![
+                    Node::new_leaf(TestPane::new(1)),
+                    Node::new_leaf(TestPane::new(2))
+                ],
                 gtk::Orientation::Horizontal
             )
         );
@@ -479,11 +520,15 @@ mod tests {
         // already horizontal. The "1" node is still active, so the
         // new horizontal layout should be [1, 3, 2].
         let new_node = tree.split(gtk::Orientation::Horizontal);
-        *new_node.borrow_mut().leaf_mut().unwrap() = 3;
+        *new_node.borrow_mut().leaf_mut().unwrap() = TestPane::new(3);
         assert_eq!(
             tree.root,
             Node::new_internal(
-                vec![Node::new_leaf(1), Node::new_leaf(3), Node::new_leaf(2)],
+                vec![
+                    Node::new_leaf(TestPane::new(1)),
+                    Node::new_leaf(TestPane::new(3)),
+                    Node::new_leaf(TestPane::new(2))
+                ],
                 gtk::Orientation::Horizontal
             )
         );
@@ -493,17 +538,20 @@ mod tests {
         // horizontal layout should be [X, 3, 2], where X is a
         // vertical layout containing [1, 4].
         let new_node = tree.split(gtk::Orientation::Vertical);
-        *new_node.borrow_mut().leaf_mut().unwrap() = 4;
+        *new_node.borrow_mut().leaf_mut().unwrap() = TestPane::new(4);
         assert_eq!(
             tree.root,
             Node::new_internal(
                 vec![
                     Node::new_internal(
-                        vec![Node::new_leaf(1), Node::new_leaf(4)],
+                        vec![
+                            Node::new_leaf(TestPane::new(1)),
+                            Node::new_leaf(TestPane::new(4))
+                        ],
                         gtk::Orientation::Vertical
                     ),
-                    Node::new_leaf(3),
-                    Node::new_leaf(2)
+                    Node::new_leaf(TestPane::new(3)),
+                    Node::new_leaf(TestPane::new(2))
                 ],
                 gtk::Orientation::Horizontal
             )
@@ -513,21 +561,21 @@ mod tests {
         // the horizontal layout should still be [X, 3, 2] where X is
         // a vertical layout now containing [1, 5, 4].
         let new_node = tree.split(gtk::Orientation::Vertical);
-        *new_node.borrow_mut().leaf_mut().unwrap() = 5;
+        *new_node.borrow_mut().leaf_mut().unwrap() = TestPane::new(5);
         assert_eq!(
             tree.root,
             Node::new_internal(
                 vec![
                     Node::new_internal(
                         vec![
-                            Node::new_leaf(1),
-                            Node::new_leaf(5),
-                            Node::new_leaf(4)
+                            Node::new_leaf(TestPane::new(1)),
+                            Node::new_leaf(TestPane::new(5)),
+                            Node::new_leaf(TestPane::new(4))
                         ],
                         gtk::Orientation::Vertical
                     ),
-                    Node::new_leaf(3),
-                    Node::new_leaf(2)
+                    Node::new_leaf(TestPane::new(3)),
+                    Node::new_leaf(TestPane::new(2))
                 ],
                 gtk::Orientation::Horizontal
             )
