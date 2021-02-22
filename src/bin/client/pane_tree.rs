@@ -7,7 +7,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::fmt;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 
 pub trait Splitable {
     /// Make a new `Self` value from the old one.
@@ -35,29 +35,48 @@ struct InternalNode<T: LeafValue> {
     orientation: gtk::Orientation,
 }
 
-impl<T: LeafValue> InternalNode<T> {
-    fn child_index(&self, child: NodePtr<T>) -> Option<usize> {
-        self.children.iter().position(|e| Rc::ptr_eq(e, &child))
-    }
-}
-
 #[derive(Debug, PartialEq)]
 enum NodeContents<T: LeafValue> {
     Internal(InternalNode<T>),
     Leaf(T),
 }
 
-#[derive(Debug)]
-pub struct Node<T: LeafValue> {
-    contents: NodeContents<T>,
-    parent: NodeWeakPtr<T>,
+struct SplitInput<T: LeafValue> {
+    cur: NodePtr<T>,
+    orientation: gtk::Orientation,
+    active: NodePtr<T>,
+    new_leaf: NodePtr<T>,
 }
 
-impl<T: LeafValue> PartialEq for Node<T> {
-    fn eq(&self, other: &Node<T>) -> bool {
-        // Ignore parent pointer
-        self.contents == other.contents
+impl<T: LeafValue> SplitInput<T> {
+    fn clone_with_cur(&self, cur: NodePtr<T>) -> Self {
+        Self {
+            cur,
+            orientation: self.orientation,
+            active: self.active.clone(),
+            new_leaf: self.new_leaf.clone(),
+        }
     }
+}
+
+enum SplitResult<T: LeafValue> {
+    Split([NodePtr<T>; 2]),
+    Single(NodePtr<T>),
+}
+
+impl<T: LeafValue> SplitResult<T> {
+    fn get_single(&self) -> Option<NodePtr<T>> {
+        if let Self::Single(node) = self {
+            Some(node.clone())
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Node<T: LeafValue> {
+    contents: NodeContents<T>,
 }
 
 impl<T: LeafValue> Node<T> {
@@ -70,24 +89,16 @@ impl<T: LeafValue> Node<T> {
                 children,
                 orientation,
             }),
-            parent: NodeWeakPtr::new(),
         }))
     }
 
     fn new_leaf(value: T) -> NodePtr<T> {
         NodePtr::new(RefCell::new(Node {
             contents: NodeContents::Leaf(value),
-            parent: NodeWeakPtr::new(),
         }))
     }
 
-    fn internal(&self) -> Option<&InternalNode<T>> {
-        match &self.contents {
-            NodeContents::Internal(ref internal) => Some(internal),
-            _ => None,
-        }
-    }
-
+    #[allow(dead_code)]
     fn internal_mut(&mut self) -> Option<&mut InternalNode<T>> {
         match &mut self.contents {
             NodeContents::Internal(ref mut internal) => Some(internal),
@@ -109,11 +120,6 @@ impl<T: LeafValue> Node<T> {
         }
     }
 
-    fn insert(&mut self, index: usize, child: NodePtr<T>) {
-        // TODO: fewer unwraps?
-        self.internal_mut().unwrap().children.insert(index, child);
-    }
-
     fn leaf_vec(&self) -> Vec<T> {
         match &self.contents {
             NodeContents::Leaf(value) => vec![value.clone()],
@@ -127,10 +133,51 @@ impl<T: LeafValue> Node<T> {
                 }),
         }
     }
+
+    fn split(input: SplitInput<T>) -> SplitResult<T> {
+        if Rc::ptr_eq(&input.cur, &input.active) {
+            return SplitResult::Split([input.active, input.new_leaf]);
+        }
+
+        let mut node = input.cur.borrow_mut();
+        if let NodeContents::Internal(internal) = &mut node.contents {
+            let mut new_children: Vec<NodePtr<T>> = Vec::new();
+            let mut new_orientation = internal.orientation;
+            for child in &internal.children {
+                match Node::split(input.clone_with_cur(child.clone())) {
+                    SplitResult::Split(split_children) => {
+                        if internal.children.len() == 1 {
+                            // Node has only one child, so just align
+                            // the orientation with the split
+                            // orientation.
+                            new_orientation = input.orientation;
+                        }
+
+                        if input.orientation == new_orientation {
+                            // Orientation matches, so just add the
+                            // new child in the appropriate place.
+                            new_children.extend(split_children.iter().cloned());
+                        } else {
+                            // Orientation doesn't match so a new
+                            // internal node is needed.
+                            new_children.push(Node::new_internal(
+                                split_children.to_vec(),
+                                input.orientation,
+                            ));
+                        }
+                    }
+                    SplitResult::Single(child) => new_children.push(child),
+                }
+            }
+            internal.children = new_children;
+            internal.orientation = new_orientation;
+        }
+
+        SplitResult::Single(input.cur.clone())
+    }
 }
 
 type NodePtr<T> = Rc<RefCell<Node<T>>>;
-type NodeWeakPtr<T> = Weak<RefCell<Node<T>>>;
 
 pub struct Tree<T: LeafValue> {
     root: NodePtr<T>,
@@ -145,7 +192,6 @@ impl<T: LeafValue> Tree<T> {
             vec![leaf.clone()],
             gtk::Orientation::Horizontal,
         );
-        leaf.borrow_mut().parent = Rc::downgrade(&root);
         Tree { active: leaf, root }
     }
 
@@ -157,50 +203,18 @@ impl<T: LeafValue> Tree<T> {
     /// returned.
     ///
     /// Note that this does not change the active node.
-    pub fn split(&self, orientation: gtk::Orientation) -> NodePtr<T> {
-        // OK to unwrap, active node is always a leaf.
+    pub fn split(&mut self, orientation: gtk::Orientation) -> NodePtr<T> {
         let new_value = self.active.borrow().leaf().unwrap().split();
-
         let new_leaf = Node::new_leaf(new_value);
 
-        // OK to unwrap: the parent pointer of a leaf node is always
-        // valid and is always an internal node.
-        let parent_ptr = self.active.borrow().parent.upgrade().unwrap();
-        let mut parent = parent_ptr.borrow_mut();
-        let parent_internal = parent.internal_mut().unwrap();
-
-        // Get the position of the active node in its parent. Ok to
-        // unwrap, a child is always in its parent.
-        let position =
-            parent_internal.child_index(self.active.clone()).unwrap();
-
-        // If the parent just has one child, just set the correct
-        // orientation.
-        if parent_internal.children.len() == 1 {
-            parent_internal.orientation = orientation.into();
-        }
-
-        if parent_internal.orientation == orientation {
-            // The orientation already matches, so just insert the new
-            // node right after the active one.
-            parent.insert(position + 1, new_leaf.clone());
-            new_leaf.borrow_mut().parent = Rc::downgrade(&parent_ptr);
-        } else {
-            // Create a new internal node with the correct
-            // orientation. The children are the active node and the
-            // new node.
-            let new_internal = Node::new_internal(
-                vec![self.active.clone(), new_leaf.clone()],
-                orientation.into(),
-            );
-            self.active.borrow_mut().parent = Rc::downgrade(&new_internal);
-            new_leaf.borrow_mut().parent = Rc::downgrade(&new_internal);
-
-            // In the parent, replace the active leaf with the new
-            // internal node.
-            parent_internal.children[position] = new_internal.clone();
-            new_internal.borrow_mut().parent = Rc::downgrade(&parent_ptr);
-        }
+        self.root = Node::split(SplitInput {
+            cur: self.root.clone(),
+            orientation,
+            active: self.active.clone(),
+            new_leaf: new_leaf.clone(),
+        })
+        .get_single()
+        .unwrap();
 
         new_leaf
     }
@@ -336,9 +350,6 @@ impl Node<Pane> {
                         .collect(),
                     orientation.to_gtk(),
                 );
-                for child in &node.borrow().internal().unwrap().children {
-                    child.borrow_mut().parent = Rc::downgrade(&node);
-                }
                 node
             }
         }
@@ -532,8 +543,5 @@ mod tests {
                 gtk::Orientation::Horizontal
             )
         );
-
-        // TODO: consider testing parent pointers in the above since
-        // we've gotten that wrong before.
     }
 }
