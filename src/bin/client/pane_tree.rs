@@ -454,17 +454,15 @@ pub enum PaneTreeSerdeNode {
 mod tests {
     use super::*;
 
-    impl Splitable for u8 {
+    impl LeafValue for u8 {
         fn split(&self) -> Self {
             *self
         }
     }
 
-    impl LeafValue for u8 {}
-
     #[test]
     fn test_tree() {
-        let tree: Tree<u8> = Tree::new(1);
+        let mut tree: Tree<u8> = Tree::new(1);
 
         // Horizontally split a node whose parent has no orientation.
         let new_node = tree.split(gtk::Orientation::Horizontal);
