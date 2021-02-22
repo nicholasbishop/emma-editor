@@ -30,15 +30,9 @@ impl Splitable for Pane {
 impl LeafValue for Pane {}
 
 #[derive(Debug, PartialEq)]
-struct InternalNode<T: LeafValue> {
+pub struct InternalNode<T: LeafValue> {
     children: Vec<NodePtr<T>>,
     orientation: gtk::Orientation,
-}
-
-#[derive(Debug, PartialEq)]
-enum NodeContents<T: LeafValue> {
-    Internal(InternalNode<T>),
-    Leaf(T),
 }
 
 struct SplitInput<T: LeafValue> {
@@ -75,8 +69,9 @@ impl<T: LeafValue> SplitResult<T> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Node<T: LeafValue> {
-    contents: NodeContents<T>,
+pub enum Node<T: LeafValue> {
+    Internal(InternalNode<T>),
+    Leaf(T),
 }
 
 impl<T: LeafValue> Node<T> {
@@ -84,46 +79,42 @@ impl<T: LeafValue> Node<T> {
         children: Vec<NodePtr<T>>,
         orientation: gtk::Orientation,
     ) -> NodePtr<T> {
-        NodePtr::new(RefCell::new(Node {
-            contents: NodeContents::Internal(InternalNode {
-                children,
-                orientation,
-            }),
-        }))
+        NodePtr::new(RefCell::new(Node::Internal(InternalNode {
+            children,
+            orientation,
+        })))
     }
 
     fn new_leaf(value: T) -> NodePtr<T> {
-        NodePtr::new(RefCell::new(Node {
-            contents: NodeContents::Leaf(value),
-        }))
+        NodePtr::new(RefCell::new(Node::Leaf(value)))
     }
 
     #[allow(dead_code)]
     fn internal_mut(&mut self) -> Option<&mut InternalNode<T>> {
-        match &mut self.contents {
-            NodeContents::Internal(ref mut internal) => Some(internal),
+        match self {
+            Node::Internal(ref mut internal) => Some(internal),
             _ => None,
         }
     }
 
     fn leaf(&self) -> Option<&T> {
-        match &self.contents {
-            NodeContents::Leaf(ref value) => Some(value),
+        match &self {
+            Node::Leaf(ref value) => Some(value),
             _ => None,
         }
     }
 
     fn leaf_mut(&mut self) -> Option<&mut T> {
-        match &mut self.contents {
-            NodeContents::Leaf(ref mut value) => Some(value),
+        match self {
+            Node::Leaf(ref mut value) => Some(value),
             _ => None,
         }
     }
 
     fn leaf_vec(&self) -> Vec<T> {
-        match &self.contents {
-            NodeContents::Leaf(value) => vec![value.clone()],
-            NodeContents::Internal(internal) => internal
+        match &self {
+            Node::Leaf(value) => vec![value.clone()],
+            Node::Internal(internal) => internal
                 .children
                 .iter()
                 .map(|n| n.borrow().leaf_vec())
@@ -140,7 +131,7 @@ impl<T: LeafValue> Node<T> {
         }
 
         let mut node = input.cur.borrow_mut();
-        if let NodeContents::Internal(internal) = &mut node.contents {
+        if let Node::Internal(internal) = &mut *node {
             let mut new_children: Vec<NodePtr<T>> = Vec::new();
             let mut new_orientation = internal.orientation;
             for child in &internal.children {
@@ -228,11 +219,11 @@ impl<T: LeafValue> Tree<T> {
             }
 
             let node = node.borrow();
-            match &node.contents {
-                NodeContents::Leaf(value) => {
+            match &*node {
+                Node::Leaf(value) => {
                     println!("{:?}", value);
                 }
-                NodeContents::Internal(internal) => {
+                Node::Internal(internal) => {
                     println!("internal:");
                     for child in &internal.children {
                         r(child.clone(), depth + 1);
@@ -253,15 +244,15 @@ impl<T: LeafValue> Tree<T> {
         ) -> Option<NodePtr<T>> {
             let node_ptr_clone = node_ptr.clone();
             let node = node_ptr.borrow();
-            match &node.contents {
-                NodeContents::Leaf(value) => {
+            match &*node {
+                Node::Leaf(value) => {
                     if f(value) {
                         Some(node_ptr_clone)
                     } else {
                         None
                     }
                 }
-                NodeContents::Internal(internal) => {
+                Node::Internal(internal) => {
                     for child in &internal.children {
                         if let Some(found) = r(child.clone(), f) {
                             return Some(found);
@@ -284,8 +275,8 @@ const PANE_TREE_LAYOUT_TAG: &str = "pane_tree_layout_widget";
 
 impl Node<Pane> {
     pub fn render(&self) -> gtk::Widget {
-        match &self.contents {
-            NodeContents::Internal(internal) => {
+        match &self {
+            Node::Internal(internal) => {
                 let spacing = 1;
                 let layout = gtk::Box::new(internal.orientation, spacing);
                 crate::make_big(&layout);
@@ -302,17 +293,17 @@ impl Node<Pane> {
                 }
                 layout.upcast()
             }
-            NodeContents::Leaf(view) => view.get_widget(),
+            Node::Leaf(view) => view.get_widget(),
         }
     }
 
     fn serialize(&self, active_pane: &Pane) -> PaneTreeSerdeNode {
-        match &self.contents {
-            NodeContents::Leaf(pane) => PaneTreeSerdeNode::Leaf {
+        match &self {
+            Node::Leaf(pane) => PaneTreeSerdeNode::Leaf {
                 active: pane == active_pane,
                 buffer: pane.embuf().buffer_id(),
             },
-            NodeContents::Internal(internal) => PaneTreeSerdeNode::Internal((
+            Node::Internal(internal) => PaneTreeSerdeNode::Internal((
                 OrientationSerde::from_gtk(internal.orientation),
                 internal
                     .children
@@ -383,15 +374,15 @@ impl Tree<Pane> {
 
         fn find_active(node: NodePtr<Pane>) -> Option<NodePtr<Pane>> {
             let node_clone = node.clone();
-            match &node.borrow().contents {
-                NodeContents::Leaf(pane) => {
+            match &*node.borrow() {
+                Node::Leaf(pane) => {
                     if pane.is_active() {
                         Some(node_clone)
                     } else {
                         None
                     }
                 }
-                NodeContents::Internal(internal) => {
+                Node::Internal(internal) => {
                     for child in &internal.children {
                         if let Some(node) = find_active(child.clone()) {
                             return Some(node);
