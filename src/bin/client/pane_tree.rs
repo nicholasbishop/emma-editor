@@ -111,13 +111,14 @@ impl<T: LeafValue> Node<T> {
         }
     }
 
-    fn leaf_vec(&self) -> Vec<T> {
-        match &self {
-            Node::Leaf(value) => vec![value.clone()],
+    fn leaf_node_vec(ptr: NodePtr<T>) -> Vec<NodePtr<T>> {
+        match &*ptr.borrow() {
+            Node::Leaf(_) => vec![ptr.clone()],
             Node::Internal(internal) => internal
                 .children
                 .iter()
-                .map(|n| n.borrow().leaf_vec())
+                .map(|n| Self::leaf_node_vec(n.clone()))
+                // TODO: can use flatten for this?
                 .fold(Vec::new(), |mut v1, v2| {
                     v1.extend(v2);
                     v1
@@ -267,7 +268,10 @@ impl<T: LeafValue> Tree<T> {
     }
 
     pub fn leaf_vec(&self) -> Vec<T> {
-        self.root.borrow().leaf_vec()
+        Node::leaf_node_vec(self.root.clone())
+            .iter()
+            .map(|n| n.borrow().leaf().unwrap().clone())
+            .collect()
     }
 }
 
