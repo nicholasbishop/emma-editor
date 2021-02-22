@@ -38,7 +38,7 @@ pub struct InternalNode<T: LeafValue> {
 struct SplitInput<T: LeafValue> {
     cur: NodePtr<T>,
     orientation: gtk::Orientation,
-    active: NodePtr<T>,
+    active: T,
     new_leaf: NodePtr<T>,
 }
 
@@ -127,8 +127,8 @@ impl<T: LeafValue> Node<T> {
     }
 
     fn split(input: SplitInput<T>) -> SplitResult<T> {
-        if Rc::ptr_eq(&input.cur, &input.active) {
-            return SplitResult::Split([input.active, input.new_leaf]);
+        if input.cur.borrow().leaf() == Some(&input.active) {
+            return SplitResult::Split([input.cur, input.new_leaf]);
         }
 
         let mut node = input.cur.borrow_mut();
@@ -202,7 +202,7 @@ impl<T: LeafValue> Tree<T> {
         self.root = Node::split(SplitInput {
             cur: self.root.clone(),
             orientation,
-            active: self.active.clone(),
+            active: self.active.borrow().leaf().unwrap().clone(),
             new_leaf: new_leaf.clone(),
         })
         .get_single()
