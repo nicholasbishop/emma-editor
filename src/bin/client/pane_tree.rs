@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
 
-pub trait Splitable {
+pub trait LeafValue: Clone + fmt::Debug + PartialEq {
     /// Make a new `Self` value from the old one.
     ///
     /// For `Pane` this is a new `Pane` with the same buffer as the
@@ -17,17 +17,13 @@ pub trait Splitable {
     fn split(&self) -> Self;
 }
 
-pub trait LeafValue: Clone + fmt::Debug + PartialEq + Splitable {}
-
-impl Splitable for Pane {
+impl LeafValue for Pane {
     fn split(&self) -> Self {
         let pane = Pane::new(&self.embuf());
         crate::make_big(&pane.get_widget());
         pane
     }
 }
-
-impl LeafValue for Pane {}
 
 #[derive(Debug, PartialEq)]
 pub struct InternalNode<T: LeafValue> {
