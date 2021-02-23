@@ -246,40 +246,15 @@ impl<T: LeafValue> Tree<T> {
         println!();
     }
 
-    fn find_leaf<F: Fn(&T) -> bool>(&self, f: F) -> Option<NodePtr<T>> {
-        fn r<T: LeafValue, F: Fn(&T) -> bool>(
-            node_ptr: NodePtr<T>,
-            f: &F,
-        ) -> Option<NodePtr<T>> {
-            let node_ptr_clone = node_ptr.clone();
-            let node = node_ptr.borrow();
-            match &*node {
-                Node::Leaf(value) => {
-                    if f(value) {
-                        Some(node_ptr_clone)
-                    } else {
-                        None
-                    }
-                }
-                Node::Internal(internal) => {
-                    for child in &internal.children {
-                        if let Some(found) = r(child.clone(), f) {
-                            return Some(found);
-                        }
-                    }
-                    None
-                }
-            }
-        };
-
-        r(self.root.clone(), &f)
-    }
-
     pub fn leaf_vec(&self) -> Vec<T> {
-        Node::leaf_node_vec(self.root.clone())
+        self.leaf_node_vec()
             .iter()
             .map(|n| n.borrow().leaf().unwrap().clone())
             .collect()
+    }
+
+    fn leaf_node_vec(&self) -> Vec<NodePtr<T>> {
+        Node::leaf_node_vec(self.root.clone())
     }
 }
 
@@ -369,8 +344,12 @@ impl Tree<Pane> {
     }
 
     pub fn set_active(&mut self, pane: &Pane) {
-        if let Some(node) = self.find_leaf(|value| value == pane) {
-            self.active = node;
+        if let Some(node) = self
+            .leaf_node_vec()
+            .iter()
+            .find(|node| node.borrow().leaf().unwrap() == pane)
+        {
+            self.active = node.clone();
         } else {
             // Should never happen: this pane is not in the tree.
             error!("failed to set active pane");
