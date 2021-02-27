@@ -3,7 +3,6 @@ use crate::{
     pane::Pane,
 };
 use gtk4::{self as gtk, prelude::*};
-use log::error;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::fmt;
@@ -204,7 +203,6 @@ type NodePtr<T> = Rc<RefCell<Node<T>>>;
 
 pub struct Tree<T: LeafValue> {
     root: NodePtr<T>,
-    active: NodePtr<T>,
 }
 
 impl<T: LeafValue> Tree<T> {
@@ -215,11 +213,11 @@ impl<T: LeafValue> Tree<T> {
             vec![leaf.clone()],
             gtk::Orientation::Horizontal,
         );
-        Tree { active: leaf, root }
+        Tree { root }
     }
 
     pub fn active(&self) -> T {
-        Node::get_active(self.active.clone())
+        Node::get_active(self.root.clone())
             .map(|node| {
                 // OK to unwrap here because the active node is always a
                 // leaf.
@@ -228,6 +226,13 @@ impl<T: LeafValue> Tree<T> {
             // OK to unwrap here because there is always exactly one
             // active leaf.
             .unwrap()
+    }
+
+    pub fn set_active(&mut self, active: T) {
+        let leaves = self.leaf_vec();
+        for mut leaf in leaves {
+            leaf.set_active(leaf == active);
+        }
     }
 
     /// Split the active node.
@@ -239,13 +244,13 @@ impl<T: LeafValue> Tree<T> {
     ///
     /// Note that this does not change the active node.
     pub fn split(&mut self, orientation: gtk::Orientation) -> NodePtr<T> {
-        let new_value = self.active.borrow().leaf().unwrap().split();
+        let new_value = self.active().split();
         let new_leaf = Node::new_leaf(new_value);
 
         self.root = Node::split(SplitInput {
             cur: self.root.clone(),
             orientation,
-            active: self.active.borrow().leaf().unwrap().clone(),
+            active: self.active().clone(),
             new_leaf: new_leaf.clone(),
         })
         .get_single()
@@ -276,7 +281,7 @@ impl<T: LeafValue> Tree<T> {
             }
         }
 
-        println!("active={:?}, tree=", self.active.borrow().leaf().unwrap());
+        println!("active={:?}, tree=", self.active());
         r(self.root.clone(), 1);
         println!();
     }
@@ -374,47 +379,12 @@ impl Tree<Pane> {
         self.root.borrow().render()
     }
 
-    pub fn set_active(&mut self, pane: &Pane) {
-        if let Some(node) = self
-            .leaf_node_vec()
-            .iter()
-            .find(|node| node.borrow().leaf().unwrap() == pane)
-        {
-            self.active = node.clone();
-        } else {
-            // Should never happen: this pane is not in the tree.
-            error!("failed to set active pane");
-        }
-    }
-
     pub fn serialize(&self) -> PaneTreeSerdeNode {
         self.root.borrow().serialize(&self.active())
     }
 
     pub fn deserialize(&mut self, root: &PaneTreeSerdeNode, embufs: &[Embuf]) {
         self.root = Node::deserialize(root, embufs, &self.active());
-
-        fn find_active(node: NodePtr<Pane>) -> Option<NodePtr<Pane>> {
-            let node_clone = node.clone();
-            match &*node.borrow() {
-                Node::Leaf(pane) => {
-                    if pane.is_active() {
-                        Some(node_clone)
-                    } else {
-                        None
-                    }
-                }
-                Node::Internal(internal) => {
-                    for child in &internal.children {
-                        if let Some(node) = find_active(child.clone()) {
-                            return Some(node);
-                        }
-                    }
-                    None
-                }
-            }
-        }
-        self.active = find_active(self.root.clone()).unwrap();
     }
 }
 

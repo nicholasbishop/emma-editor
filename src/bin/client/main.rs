@@ -291,12 +291,7 @@ impl App {
     }
 
     fn set_active_pane(&mut self, pane: Pane) {
-        let views = self.pane_tree.leaf_vec();
-        self.pane_tree.set_active(&pane);
-        for pane in views {
-            pane.set_active(false);
-        }
-        pane.set_active(true);
+        self.pane_tree.set_active(pane);
     }
 
     fn open_file(&mut self, path: &Path) {
