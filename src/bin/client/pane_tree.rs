@@ -112,6 +112,7 @@ impl<T: LeafValue> Node<T> {
         }
     }
 
+    #[allow(dead_code)]
     fn leaf_mut(&mut self) -> Option<&mut T> {
         match self {
             Node::Leaf(ref mut value) => Some(value),
@@ -175,6 +176,28 @@ impl<T: LeafValue> Node<T> {
 
         SplitResult::Single(input.cur.clone())
     }
+
+    fn get_active(ptr: NodePtr<T>) -> Option<NodePtr<T>> {
+        let ptr_clone = ptr.clone();
+        let node = ptr.borrow();
+        match &*node {
+            Node::Leaf(leaf) => {
+                if leaf.is_active() {
+                    Some(ptr_clone)
+                } else {
+                    None
+                }
+            }
+            Node::Internal(internal) => {
+                for child in &internal.children {
+                    if let Some(active) = Self::get_active(child.clone()) {
+                        return Some(active);
+                    }
+                }
+                None
+            }
+        }
+    }
 }
 
 type NodePtr<T> = Rc<RefCell<Node<T>>>;
@@ -193,6 +216,18 @@ impl<T: LeafValue> Tree<T> {
             gtk::Orientation::Horizontal,
         );
         Tree { active: leaf, root }
+    }
+
+    pub fn active(&self) -> T {
+        Node::get_active(self.active.clone())
+            .map(|node| {
+                // OK to unwrap here because the active node is always a
+                // leaf.
+                node.borrow().leaf().unwrap().clone()
+            })
+            // OK to unwrap here because there is always exactly one
+            // active leaf.
+            .unwrap()
     }
 
     /// Split the active node.
@@ -337,10 +372,6 @@ impl Node<Pane> {
 impl Tree<Pane> {
     pub fn render(&self) -> gtk::Widget {
         self.root.borrow().render()
-    }
-
-    pub fn active(&self) -> Pane {
-        self.active.borrow_mut().leaf_mut().unwrap().clone()
     }
 
     pub fn set_active(&mut self, pane: &Pane) {
