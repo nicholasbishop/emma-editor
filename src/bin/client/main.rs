@@ -321,6 +321,7 @@ impl App {
                 break;
             }
         }
+        persistence::store_layout(&self.pane_tree).unwrap();
     }
 
     fn take_minibuf_input(&self) -> String {

@@ -367,7 +367,6 @@ impl Node<Pane> {
         match root {
             PaneTreeSerdeNode::Leaf { active, buffer } => {
                 let pane = proto.split();
-                // TODO: we need to actually restore buffer ids
                 if let Some(embuf) =
                     embufs.iter().find(|embuf| &embuf.buffer_id() == buffer)
                 {
