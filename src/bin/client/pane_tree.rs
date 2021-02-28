@@ -207,7 +207,8 @@ pub struct Tree<T: LeafValue> {
 
 impl<T: LeafValue> Tree<T> {
     /// Create a Tree containing a single View.
-    pub fn new(value: T) -> Tree<T> {
+    pub fn new(mut value: T) -> Tree<T> {
+        value.set_active(true);
         let leaf = Node::new_leaf(value);
         let root = Node::new_internal(
             vec![leaf.clone()],
@@ -459,6 +460,13 @@ mod tests {
                 active: false,
             }
         }
+
+        fn mkactive(value: u8) -> TestPane {
+            TestPane {
+                value,
+                active: true,
+            }
+        }
     }
 
     impl LeafValue for TestPane {
@@ -489,7 +497,7 @@ mod tests {
             tree.root,
             Node::new_internal(
                 vec![
-                    Node::new_leaf(TestPane::new(1)),
+                    Node::new_leaf(TestPane::mkactive(1)),
                     Node::new_leaf(TestPane::new(2))
                 ],
                 gtk::Orientation::Horizontal
@@ -505,7 +513,7 @@ mod tests {
             tree.root,
             Node::new_internal(
                 vec![
-                    Node::new_leaf(TestPane::new(1)),
+                    Node::new_leaf(TestPane::mkactive(1)),
                     Node::new_leaf(TestPane::new(3)),
                     Node::new_leaf(TestPane::new(2))
                 ],
@@ -525,7 +533,7 @@ mod tests {
                 vec![
                     Node::new_internal(
                         vec![
-                            Node::new_leaf(TestPane::new(1)),
+                            Node::new_leaf(TestPane::mkactive(1)),
                             Node::new_leaf(TestPane::new(4))
                         ],
                         gtk::Orientation::Vertical
@@ -548,7 +556,7 @@ mod tests {
                 vec![
                     Node::new_internal(
                         vec![
-                            Node::new_leaf(TestPane::new(1)),
+                            Node::new_leaf(TestPane::mkactive(1)),
                             Node::new_leaf(TestPane::new(5)),
                             Node::new_leaf(TestPane::new(4))
                         ],
