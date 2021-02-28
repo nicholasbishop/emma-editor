@@ -214,6 +214,16 @@ impl<T: LeafValue> Tree<T> {
         }
     }
 
+    fn take_root(&mut self) -> Node<T> {
+        // TODO: this seems silly, creating a temporary unused node
+        // just so I can move out of self.root, not sure how to avoid
+        // thought.
+        std::mem::replace(
+            &mut self.root,
+            Node::new_internal(Vec::new(), gtk::Orientation::Horizontal),
+        )
+    }
+
     /// Split the active node.
     ///
     /// The new node will be created either to the right of the active
@@ -226,13 +236,7 @@ impl<T: LeafValue> Tree<T> {
         let active = self.active();
         let new_value = active.split();
 
-        // TODO: this seems silly, creating a temporary unused node
-        // just so I can move out of self.root, not sure how to avoid
-        // thought.
-        let root = std::mem::replace(
-            &mut self.root,
-            Node::new_leaf(new_value.clone()),
-        );
+        let root = self.take_root();
         self.root = root
             .split(SplitInput {
                 orientation,
