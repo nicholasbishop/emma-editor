@@ -100,11 +100,11 @@ impl EmbufInternal {
 pub struct Embuf(Rc<RefCell<EmbufInternal>>);
 
 impl Embuf {
-    pub fn new(path: PathBuf) -> Embuf {
+    fn new_with_id(path: PathBuf, buffer_id: BufferId) -> Embuf {
         let tag_table: Option<&TextTagTable> = None;
 
         Embuf(Rc::new(RefCell::new(EmbufInternal {
-            buffer_id: make_buffer_id(),
+            buffer_id,
             name: path
                 .file_name()
                 .map(|s| s.to_string_lossy().to_string())
@@ -116,14 +116,19 @@ impl Embuf {
         })))
     }
 
+    pub fn new(path: PathBuf) -> Embuf {
+        Self::new_with_id(path, make_buffer_id())
+    }
+
     #[throws]
-    pub fn load_file(
+    fn load_file_with_id(
         path: &Path,
         highlight_request_sender: Sender<HighlightRequest>,
+        buffer_id: BufferId,
     ) -> Embuf {
         let contents = fs::read_to_string(path)?;
 
-        let embuf = Embuf::new(path.into());
+        let embuf = Embuf::new_with_id(path.into(), buffer_id);
 
         let storage = embuf.storage();
         let embuf_clone = embuf.clone();
@@ -151,13 +156,29 @@ impl Embuf {
     }
 
     #[throws]
+    pub fn load_file(
+        path: &Path,
+        highlight_request_sender: Sender<HighlightRequest>,
+    ) -> Embuf {
+        Self::load_file_with_id(
+            path,
+            highlight_request_sender,
+            make_buffer_id(),
+        )?
+    }
+
+    #[throws]
     pub fn restore(
         info: RestoreInfo,
         highlight_request_sender: Sender<HighlightRequest>,
     ) -> Embuf {
         match info.kind {
             BufferKind::File => {
-                Embuf::load_file(&info.path, highlight_request_sender)?
+                Embuf::load_file_with_id(
+                    &info.path,
+                    highlight_request_sender,
+                    info.id,
+                )?
                 // TODO: lazy load file
             }
             BufferKind::Shell => {
