@@ -4,9 +4,7 @@ use crate::{
 };
 use gtk4::{self as gtk, prelude::*};
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
 use std::fmt;
-use std::rc::Rc;
 
 pub trait LeafValue: Clone + fmt::Debug + PartialEq {
     /// Make a new `Self` value from the old one.
@@ -38,37 +36,26 @@ impl LeafValue for Pane {
 
 #[derive(Debug, PartialEq)]
 pub struct InternalNode<T: LeafValue> {
-    children: Vec<NodePtr<T>>,
+    children: Vec<Node<T>>,
     orientation: gtk::Orientation,
 }
 
+#[derive(Clone)]
 struct SplitInput<T: LeafValue> {
-    cur: NodePtr<T>,
     orientation: gtk::Orientation,
     active: T,
-    new_leaf: NodePtr<T>,
-}
-
-impl<T: LeafValue> SplitInput<T> {
-    fn clone_with_cur(&self, cur: NodePtr<T>) -> Self {
-        Self {
-            cur,
-            orientation: self.orientation,
-            active: self.active.clone(),
-            new_leaf: self.new_leaf.clone(),
-        }
-    }
+    new_leaf: T,
 }
 
 enum SplitResult<T: LeafValue> {
-    Split([NodePtr<T>; 2]),
-    Single(NodePtr<T>),
+    Split([Node<T>; 2]),
+    Single(Node<T>),
 }
 
 impl<T: LeafValue> SplitResult<T> {
-    fn get_single(&self) -> Option<NodePtr<T>> {
+    fn get_single(self) -> Option<Node<T>> {
         if let Self::Single(node) = self {
-            Some(node.clone())
+            Some(node)
         } else {
             None
         }
@@ -83,17 +70,17 @@ pub enum Node<T: LeafValue> {
 
 impl<T: LeafValue> Node<T> {
     fn new_internal(
-        children: Vec<NodePtr<T>>,
+        children: Vec<Node<T>>,
         orientation: gtk::Orientation,
-    ) -> NodePtr<T> {
-        NodePtr::new(RefCell::new(Node::Internal(InternalNode {
+    ) -> Node<T> {
+        Node::Internal(InternalNode {
             children,
             orientation,
-        })))
+        })
     }
 
-    fn new_leaf(value: T) -> NodePtr<T> {
-        NodePtr::new(RefCell::new(Node::Leaf(value)))
+    fn new_leaf(value: T) -> Node<T> {
+        Node::Leaf(value)
     }
 
     #[allow(dead_code)]
@@ -119,13 +106,13 @@ impl<T: LeafValue> Node<T> {
         }
     }
 
-    fn leaf_node_vec(ptr: NodePtr<T>) -> Vec<NodePtr<T>> {
-        match &*ptr.borrow() {
-            Node::Leaf(_) => vec![ptr.clone()],
+    fn leaf_vec(&self) -> Vec<T> {
+        match self {
+            Node::Leaf(leaf) => vec![leaf.clone()],
             Node::Internal(internal) => internal
                 .children
                 .iter()
-                .map(|n| Self::leaf_node_vec(n.clone()))
+                .map(|n| n.leaf_vec())
                 // TODO: can use flatten for this?
                 .fold(Vec::new(), |mut v1, v2| {
                     v1.extend(v2);
@@ -134,19 +121,19 @@ impl<T: LeafValue> Node<T> {
         }
     }
 
-    fn split(input: SplitInput<T>) -> SplitResult<T> {
-        if input.cur.borrow().leaf() == Some(&input.active) {
-            return SplitResult::Split([input.cur, input.new_leaf]);
+    fn split(self, input: SplitInput<T>) -> SplitResult<T> {
+        if self.leaf() == Some(&input.active) {
+            return SplitResult::Split([self, Node::new_leaf(input.new_leaf)]);
         }
 
-        let mut node = input.cur.borrow_mut();
-        if let Node::Internal(internal) = &mut *node {
-            let mut new_children: Vec<NodePtr<T>> = Vec::new();
+        if let Node::Internal(mut internal) = self {
+            let mut new_children: Vec<Node<T>> = Vec::new();
             let mut new_orientation = internal.orientation;
-            for child in &internal.children {
-                match Node::split(input.clone_with_cur(child.clone())) {
-                    SplitResult::Split(split_children) => {
-                        if internal.children.len() == 1 {
+            let num_children = internal.children.len();
+            for child in internal.children {
+                match child.split(input.clone()) {
+                    SplitResult::Split([child1, child2]) => {
+                        if num_children == 1 {
                             // Node has only one child, so just align
                             // the orientation with the split
                             // orientation.
@@ -156,12 +143,13 @@ impl<T: LeafValue> Node<T> {
                         if input.orientation == new_orientation {
                             // Orientation matches, so just add the
                             // new child in the appropriate place.
-                            new_children.extend(split_children.iter().cloned());
+                            new_children.push(child1);
+                            new_children.push(child2);
                         } else {
                             // Orientation doesn't match so a new
                             // internal node is needed.
                             new_children.push(Node::new_internal(
-                                split_children.to_vec(),
+                                vec![child1, child2],
                                 input.orientation,
                             ));
                         }
@@ -171,25 +159,24 @@ impl<T: LeafValue> Node<T> {
             }
             internal.children = new_children;
             internal.orientation = new_orientation;
+            SplitResult::Single(Node::Internal(internal))
+        } else {
+            SplitResult::Single(self)
         }
-
-        SplitResult::Single(input.cur.clone())
     }
 
-    fn get_active(ptr: NodePtr<T>) -> Option<NodePtr<T>> {
-        let ptr_clone = ptr.clone();
-        let node = ptr.borrow();
-        match &*node {
+    fn get_active(&self) -> Option<T> {
+        match self {
             Node::Leaf(leaf) => {
                 if leaf.is_active() {
-                    Some(ptr_clone)
+                    Some(leaf.clone())
                 } else {
                     None
                 }
             }
             Node::Internal(internal) => {
                 for child in &internal.children {
-                    if let Some(active) = Self::get_active(child.clone()) {
+                    if let Some(active) = Self::get_active(child) {
                         return Some(active);
                     }
                 }
@@ -199,10 +186,8 @@ impl<T: LeafValue> Node<T> {
     }
 }
 
-type NodePtr<T> = Rc<RefCell<Node<T>>>;
-
 pub struct Tree<T: LeafValue> {
-    root: NodePtr<T>,
+    root: Node<T>,
 }
 
 impl<T: LeafValue> Tree<T> {
@@ -210,20 +195,13 @@ impl<T: LeafValue> Tree<T> {
     pub fn new(mut value: T) -> Tree<T> {
         value.set_active(true);
         let leaf = Node::new_leaf(value);
-        let root = Node::new_internal(
-            vec![leaf.clone()],
-            gtk::Orientation::Horizontal,
-        );
+        let root = Node::new_internal(vec![leaf], gtk::Orientation::Horizontal);
         Tree { root }
     }
 
     pub fn active(&self) -> T {
-        Node::get_active(self.root.clone())
-            .map(|node| {
-                // OK to unwrap here because the active node is always a
-                // leaf.
-                node.borrow().leaf().unwrap().clone()
-            })
+        self.root
+            .get_active()
             // OK to unwrap here because there is always exactly one
             // active leaf.
             .unwrap()
@@ -244,58 +222,57 @@ impl<T: LeafValue> Tree<T> {
     /// returned.
     ///
     /// Note that this does not change the active node.
-    pub fn split(&mut self, orientation: gtk::Orientation) -> NodePtr<T> {
-        let new_value = self.active().split();
-        let new_leaf = Node::new_leaf(new_value);
+    pub fn split(&mut self, orientation: gtk::Orientation) -> T {
+        let active = self.active();
+        let new_value = active.split();
 
-        self.root = Node::split(SplitInput {
-            cur: self.root.clone(),
-            orientation,
-            active: self.active().clone(),
-            new_leaf: new_leaf.clone(),
-        })
-        .get_single()
-        .unwrap();
+        // TODO: this seems silly, creating a temporary unused node
+        // just so I can move out of self.root, not sure how to avoid
+        // thought.
+        let root = std::mem::replace(
+            &mut self.root,
+            Node::new_leaf(new_value.clone()),
+        );
+        self.root = root
+            .split(SplitInput {
+                orientation,
+                active,
+                new_leaf: new_value.clone(),
+            })
+            .get_single()
+            .unwrap();
 
-        new_leaf
+        new_value
     }
 
     // For debugging.
     #[allow(dead_code)]
     fn dump(&self) {
-        fn r<T: LeafValue>(node: NodePtr<T>, depth: usize) {
+        fn r<T: LeafValue>(node: &Node<T>, depth: usize) {
             for _ in 0..depth {
                 print!("-");
             }
 
-            let node = node.borrow();
-            match &*node {
+            match node {
                 Node::Leaf(value) => {
                     println!("{:?}", value);
                 }
                 Node::Internal(internal) => {
                     println!("internal:");
                     for child in &internal.children {
-                        r(child.clone(), depth + 1);
+                        r(child, depth + 1);
                     }
                 }
             }
         }
 
         println!("active={:?}, tree=", self.active());
-        r(self.root.clone(), 1);
+        r(&self.root, 1);
         println!();
     }
 
     pub fn leaf_vec(&self) -> Vec<T> {
-        self.leaf_node_vec()
-            .iter()
-            .map(|n| n.borrow().leaf().unwrap().clone())
-            .collect()
-    }
-
-    fn leaf_node_vec(&self) -> Vec<NodePtr<T>> {
-        Node::leaf_node_vec(self.root.clone())
+        self.root.leaf_vec()
     }
 }
 
@@ -315,7 +292,7 @@ impl Node<Pane> {
                 layout.set_widget_name(PANE_TREE_LAYOUT_TAG);
 
                 for child in &internal.children {
-                    let child_widget = child.borrow().render();
+                    let child_widget = child.render();
                     crate::make_big(&child_widget);
                     layout.append(&child_widget);
                 }
@@ -336,7 +313,7 @@ impl Node<Pane> {
                 internal
                     .children
                     .iter()
-                    .map(|n| n.borrow().serialize(active_pane))
+                    .map(|n| n.serialize(active_pane))
                     .collect(),
             )),
         }
@@ -346,7 +323,7 @@ impl Node<Pane> {
         root: &PaneTreeSerdeNode,
         embufs: &[Embuf],
         proto: &Pane,
-    ) -> NodePtr<Pane> {
+    ) -> Node<Pane> {
         match root {
             PaneTreeSerdeNode::Leaf { active, buffer } => {
                 let pane = proto.split();
@@ -377,11 +354,11 @@ impl Node<Pane> {
 
 impl Tree<Pane> {
     pub fn render(&self) -> gtk::Widget {
-        self.root.borrow().render()
+        self.root.render()
     }
 
     pub fn serialize(&self) -> PaneTreeSerdeNode {
-        self.root.borrow().serialize(&self.active())
+        self.root.serialize(&self.active())
     }
 
     pub fn deserialize(&mut self, root: &PaneTreeSerdeNode, embufs: &[Embuf]) {
@@ -446,59 +423,58 @@ pub enum PaneTreeSerdeNode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     #[derive(Clone, Debug, PartialEq)]
-    struct TestPane {
+    struct TestPaneData {
         value: u8,
         active: bool,
     }
 
-    impl TestPane {
-        fn new(value: u8) -> TestPane {
-            TestPane {
-                value,
-                active: false,
-            }
-        }
+    type TestPane = Rc<RefCell<TestPaneData>>;
 
-        fn mkactive(value: u8) -> TestPane {
-            TestPane {
-                value,
-                active: true,
-            }
-        }
+    fn mkinactive(value: u8) -> TestPane {
+        Rc::new(RefCell::new(TestPaneData {
+            value,
+            active: false,
+        }))
+    }
+
+    fn mkactive(value: u8) -> TestPane {
+        Rc::new(RefCell::new(TestPaneData {
+            value,
+            active: true,
+        }))
     }
 
     impl LeafValue for TestPane {
         fn split(&self) -> Self {
-            Self {
-                value: self.value,
-                active: false,
-            }
+            mkinactive(self.borrow().value)
         }
 
         fn is_active(&self) -> bool {
-            self.active
+            self.borrow().active
         }
 
         fn set_active(&mut self, active: bool) {
-            self.active = active;
+            self.borrow_mut().active = active;
         }
     }
 
     #[test]
     fn test_tree() {
-        let mut tree: Tree<TestPane> = Tree::new(TestPane::new(1));
+        let mut tree: Tree<TestPane> = Tree::new(mkinactive(1));
 
         // Horizontally split a node whose parent has no orientation.
-        let new_node = tree.split(gtk::Orientation::Horizontal);
-        *new_node.borrow_mut().leaf_mut().unwrap() = TestPane::new(2);
+        let new_leaf = tree.split(gtk::Orientation::Horizontal);
+        new_leaf.borrow_mut().value = 2;
         assert_eq!(
             tree.root,
             Node::new_internal(
                 vec![
-                    Node::new_leaf(TestPane::mkactive(1)),
-                    Node::new_leaf(TestPane::new(2))
+                    Node::new_leaf(mkactive(1)),
+                    Node::new_leaf(mkinactive(2))
                 ],
                 gtk::Orientation::Horizontal
             )
@@ -507,15 +483,15 @@ mod tests {
         // Horizontally split a node whose parent's orientation is
         // already horizontal. The "1" node is still active, so the
         // new horizontal layout should be [1, 3, 2].
-        let new_node = tree.split(gtk::Orientation::Horizontal);
-        *new_node.borrow_mut().leaf_mut().unwrap() = TestPane::new(3);
+        let new_leaf = tree.split(gtk::Orientation::Horizontal);
+        new_leaf.borrow_mut().value = 3;
         assert_eq!(
             tree.root,
             Node::new_internal(
                 vec![
-                    Node::new_leaf(TestPane::mkactive(1)),
-                    Node::new_leaf(TestPane::new(3)),
-                    Node::new_leaf(TestPane::new(2))
+                    Node::new_leaf(mkactive(1)),
+                    Node::new_leaf(mkinactive(3)),
+                    Node::new_leaf(mkinactive(2))
                 ],
                 gtk::Orientation::Horizontal
             )
@@ -525,21 +501,21 @@ mod tests {
         // horizontal. The "1" node is still active, so the new
         // horizontal layout should be [X, 3, 2], where X is a
         // vertical layout containing [1, 4].
-        let new_node = tree.split(gtk::Orientation::Vertical);
-        *new_node.borrow_mut().leaf_mut().unwrap() = TestPane::new(4);
+        let new_leaf = tree.split(gtk::Orientation::Vertical);
+        new_leaf.borrow_mut().value = 4;
         assert_eq!(
             tree.root,
             Node::new_internal(
                 vec![
                     Node::new_internal(
                         vec![
-                            Node::new_leaf(TestPane::mkactive(1)),
-                            Node::new_leaf(TestPane::new(4))
+                            Node::new_leaf(mkactive(1)),
+                            Node::new_leaf(mkinactive(4))
                         ],
                         gtk::Orientation::Vertical
                     ),
-                    Node::new_leaf(TestPane::new(3)),
-                    Node::new_leaf(TestPane::new(2))
+                    Node::new_leaf(mkinactive(3)),
+                    Node::new_leaf(mkinactive(2))
                 ],
                 gtk::Orientation::Horizontal
             )
@@ -548,22 +524,22 @@ mod tests {
         // Split vertically again. The "1" node is still active, so
         // the horizontal layout should still be [X, 3, 2] where X is
         // a vertical layout now containing [1, 5, 4].
-        let new_node = tree.split(gtk::Orientation::Vertical);
-        *new_node.borrow_mut().leaf_mut().unwrap() = TestPane::new(5);
+        let new_leaf = tree.split(gtk::Orientation::Vertical);
+        new_leaf.borrow_mut().value = 5;
         assert_eq!(
             tree.root,
             Node::new_internal(
                 vec![
                     Node::new_internal(
                         vec![
-                            Node::new_leaf(TestPane::mkactive(1)),
-                            Node::new_leaf(TestPane::new(5)),
-                            Node::new_leaf(TestPane::new(4))
+                            Node::new_leaf(mkactive(1)),
+                            Node::new_leaf(mkinactive(5)),
+                            Node::new_leaf(mkinactive(4))
                         ],
                         gtk::Orientation::Vertical
                     ),
-                    Node::new_leaf(TestPane::new(3)),
-                    Node::new_leaf(TestPane::new(2))
+                    Node::new_leaf(mkinactive(3)),
+                    Node::new_leaf(mkinactive(2))
                 ],
                 gtk::Orientation::Horizontal
             )
