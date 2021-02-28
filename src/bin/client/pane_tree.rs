@@ -155,6 +155,33 @@ impl<T: LeafValue> Node<T> {
         }
     }
 
+    fn close(self) -> Option<Node<T>> {
+        match self {
+            Node::Leaf(leaf) => {
+                if leaf.is_active() {
+                    None
+                } else {
+                    Some(Node::new_leaf(leaf))
+                }
+            }
+            Node::Internal(mut internal) => {
+                internal.children = internal
+                    .children
+                    .into_iter()
+                    .filter_map(|elem| elem.close())
+                    .collect();
+                if internal.children.is_empty() {
+                    // This should never happen.
+                    panic!("empty internal node");
+                } else if internal.children.len() == 1 {
+                    Some(internal.children.into_iter().next().unwrap())
+                } else {
+                    Some(Node::Internal(internal))
+                }
+            }
+        }
+    }
+
     fn get_active(&self) -> Option<T> {
         match self {
             Node::Leaf(leaf) => {
@@ -240,6 +267,26 @@ impl<T: LeafValue> Tree<T> {
         };
 
         new_value
+    }
+
+    pub fn close(&mut self) {
+        // TODO: dedup with main
+        let leaves = self.leaf_vec();
+        if leaves.len() == 1 {
+            // There's only one leaf, so we can't close anything.
+            return;
+        }
+        let pos = leaves
+            .iter()
+            .position(|leaf| leaf.is_active())
+            // OK to unwrap, exactly one leaf is always active.
+            .unwrap();
+        let next = if pos == leaves.len() - 1 { 0 } else { pos + 1 };
+        let new_active = leaves[next].clone();
+
+        let root = self.take_root();
+        self.root = root.close().unwrap();
+        self.set_active(new_active);
     }
 
     // For debugging.

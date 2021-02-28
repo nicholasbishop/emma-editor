@@ -210,7 +210,8 @@ impl App {
                 self.update_pane_tree();
             }
             KeyMapLookup::Action(Action::ClosePane) => {
-                todo!();
+                self.pane_tree.close();
+                self.update_pane_tree();
             }
             KeyMapLookup::Action(Action::Confirm) => {
                 if self.minibuf.has_focus() {
