@@ -102,12 +102,8 @@ impl<T: LeafValue> Node<T> {
             Node::Internal(internal) => internal
                 .children
                 .iter()
-                .map(|n| n.leaf_vec())
-                // TODO: can use flatten for this?
-                .fold(Vec::new(), |mut v1, v2| {
-                    v1.extend(v2);
-                    v1
-                }),
+                .flat_map(|n| n.leaf_vec())
+                .collect(),
         }
     }
 
