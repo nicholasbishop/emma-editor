@@ -27,6 +27,7 @@ fn make_buffer_id() -> BufferId {
 }
 
 pub struct RestoreInfo {
+    pub id: BufferId,
     pub path: PathBuf,
     pub name: String,
     pub kind: BufferKind,

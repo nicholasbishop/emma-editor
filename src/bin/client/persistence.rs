@@ -53,13 +53,13 @@ pub fn restore_embufs(
 
     let v = stmt
         .query_and_then(rusqlite::NO_PARAMS, |b| {
-            // TODO: what's the point of this ID?
-            let _id: BufferId = b.get(0)?;
+            let id: BufferId = b.get(0)?;
             let name: String = b.get(1)?;
             let path: Vec<u8> = b.get(2)?;
             let kind: String = b.get(3)?;
             Ok(Embuf::restore(
                 RestoreInfo {
+                    id,
                     name,
                     path: PathBuf::from(OsString::from_vec(path)),
                     kind: BufferKind::from_str(&kind).ok_or_else(|| {
