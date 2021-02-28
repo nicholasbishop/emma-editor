@@ -52,16 +52,6 @@ enum SplitResult<T: LeafValue> {
     Single(Node<T>),
 }
 
-impl<T: LeafValue> SplitResult<T> {
-    fn get_single(self) -> Option<Node<T>> {
-        if let Self::Single(node) = self {
-            Some(node)
-        } else {
-            None
-        }
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub enum Node<T: LeafValue> {
     Internal(InternalNode<T>),
@@ -191,12 +181,12 @@ pub struct Tree<T: LeafValue> {
 }
 
 impl<T: LeafValue> Tree<T> {
-    /// Create a Tree containing a single View.
+    /// Create a Tree containing a single leaf.
     pub fn new(mut value: T) -> Tree<T> {
         value.set_active(true);
-        let leaf = Node::new_leaf(value);
-        let root = Node::new_internal(vec![leaf], gtk::Orientation::Horizontal);
-        Tree { root }
+        Tree {
+            root: Node::new_leaf(value),
+        }
     }
 
     pub fn active(&self) -> T {
@@ -237,14 +227,17 @@ impl<T: LeafValue> Tree<T> {
         let new_value = active.split();
 
         let root = self.take_root();
-        self.root = root
-            .split(SplitInput {
-                orientation,
-                active,
-                new_leaf: new_value.clone(),
-            })
-            .get_single()
-            .unwrap();
+        let sr = root.split(SplitInput {
+            orientation,
+            active,
+            new_leaf: new_value.clone(),
+        });
+        self.root = match sr {
+            SplitResult::Single(single) => single,
+            SplitResult::Split([child1, child2]) => {
+                Node::new_internal(vec![child1, child2], orientation)
+            }
+        };
 
         new_value
     }
