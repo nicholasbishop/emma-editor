@@ -2,6 +2,7 @@ mod buffer;
 mod highlight;
 mod key_map;
 mod key_sequence;
+mod minibuf;
 mod pane;
 mod pane_tree;
 mod persistence;
@@ -16,6 +17,7 @@ use {
     highlight::{highlighter_thread, HighlightRequest},
     key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
     key_sequence::{KeySequence, KeySequenceAtom},
+    minibuf::{get_minibuf_keymap, MinibufState},
     pane::Pane,
     pane_tree::PaneTree,
     std::{
@@ -34,35 +36,12 @@ std::thread_local! {
     static APP: RefCell<Option<App>> = RefCell::new(None);
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum MinibufState {
-    Inactive,
-    SelectBuffer,
-    // TODO this will probably become more general
-    OpenFile,
-}
-
 /// Set horizontal+vertical expand+fill on a widget.
 fn make_big<W: IsA<gtk::Widget>>(widget: &W) {
     widget.set_halign(gtk::Align::Fill);
     widget.set_valign(gtk::Align::Fill);
     widget.set_hexpand(true);
     widget.set_vexpand(true);
-}
-
-fn get_minibuf_keymap(state: MinibufState) -> KeyMap {
-    let mut map = KeyMap::new();
-    match state {
-        MinibufState::Inactive => {}
-        _ => {
-            map.insert(
-                KeySequence::parse("<ctrl>i").unwrap(),
-                Action::Autocomplete,
-            );
-            map.insert(KeySequence::parse("<ret>").unwrap(), Action::Confirm);
-        }
-    }
-    map
 }
 
 fn is_modifier(key: &gdk::keys::Key) -> bool {
