@@ -135,7 +135,7 @@ impl Minibuf {
         }
     }
 
-    pub fn get_minibuf_input(&self) -> String {
+    pub fn get_input(&self) -> String {
         let buf = self.view.get_buffer();
 
         // TODO: dedup
@@ -200,7 +200,7 @@ impl Minibuf {
                 // TODO
             }
             MinibufState::OpenFile => {
-                let text = self.get_minibuf_input();
+                let text = self.get_input();
                 let cur_path = Path::new(&text);
 
                 // Get the parent directory (the contents of which
