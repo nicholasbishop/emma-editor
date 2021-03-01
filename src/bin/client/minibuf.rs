@@ -16,7 +16,6 @@ fn list_dir_no_error(dir: &Path) -> Vec<OsString> {
         iter.filter_map(|entry| entry.ok().map(|entry| entry.file_name()))
             .collect()
     } else {
-        dbg!("err");
         Vec::new()
     }
 }
