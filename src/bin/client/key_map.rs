@@ -23,6 +23,10 @@ pub enum Action {
     /// Cancel the current operation, e.g. opening a file from the
     /// minibuf.
     Cancel,
+
+    /// Try to autocomplete something in the minibuf, e.g. a file
+    /// path.
+    Autocomplete,
 }
 
 pub enum KeyMapLookup {
