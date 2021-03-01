@@ -63,9 +63,8 @@ fn calc_highlight_spans(
     syntax_set: &SyntaxSet,
     theme: &Theme,
     req: &HighlightRequest,
-) -> Vec<HighlightSpan> {
-    // TODO: unwraps
-    let syntax = syntax_set.find_syntax_for_file(&req.path).unwrap().unwrap();
+) -> Option<Vec<HighlightSpan>> {
+    let syntax = syntax_set.find_syntax_for_file(&req.path).ok()??;
 
     let mut parse_state = ParseState::new(syntax);
 
@@ -74,11 +73,6 @@ fn calc_highlight_spans(
 
     let mut highlight_state =
         HighlightState::new(&highlighter, ScopeStack::new());
-
-    // let start = buf.get_start_iter();
-    // let end = buf.get_end_iter();
-    // buf.remove_all_tags(&start, &end);
-    // let text = buf.get_text(&start, &end, true).unwrap();
 
     let mut offset = 0;
 
@@ -108,7 +102,7 @@ fn calc_highlight_spans(
         offset += line.len() as i32;
     }
 
-    spans
+    Some(spans)
 }
 
 fn highlight_buffer(buf: &Buffer, spans: &[HighlightSpan]) {
@@ -195,7 +189,13 @@ pub fn highlighter_thread(receiver: Receiver<HighlightRequest>) {
 
             let req = queue.pop().unwrap();
 
-            let spans = calc_highlight_spans(&syntax_set, &theme, &req);
+            let spans = if let Some(spans) =
+                calc_highlight_spans(&syntax_set, &theme, &req)
+            {
+                spans
+            } else {
+                continue;
+            };
 
             // Send message back
             glib::idle_add(move || {
