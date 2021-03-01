@@ -138,7 +138,6 @@ impl Minibuf {
     pub fn get_input(&self) -> String {
         let buf = self.view.get_buffer();
 
-        // TODO: dedup
         let mark = buf.get_mark(INPUT_START).unwrap();
         let start = buf.get_iter_at_mark(&mark);
         let end = buf.get_end_iter();
@@ -148,25 +147,18 @@ impl Minibuf {
     }
 
     pub fn take_input(&self) -> String {
+        let text = self.get_input();
+
         let buf = self.view.get_buffer();
-
-        // TODO: dedup
-        let mark = buf.get_mark(INPUT_START).unwrap();
-        let start = buf.get_iter_at_mark(&mark);
-        let end = buf.get_end_iter();
-
-        let text = buf.get_text(&start, &end, false);
-
         buf.set_text("");
 
-        text.to_string()
+        text
     }
 
     /// Replace the text after the prompt.
     pub fn set_input(&self, text: &str) {
         let buf = self.view.get_buffer();
 
-        // TODO: dedup
         let mark = buf.get_mark(INPUT_START).unwrap();
         let mut start = buf.get_iter_at_mark(&mark);
         let mut end = buf.get_end_iter();
