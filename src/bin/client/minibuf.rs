@@ -7,6 +7,8 @@ use {
     std::{ffi::OsString, fs, path::Path},
 };
 
+const INPUT_START: &str = "input-start";
+
 /// Get the names of the children of `dir`. All errors are silently
 /// ignored.
 fn list_dir_no_error(dir: &Path) -> Vec<OsString> {
@@ -111,12 +113,11 @@ impl Minibuf {
 
         // Insert mark to indicate the beginning of the user
         // input.
-        let mark_name = "input-start";
-        if let Some(mark) = buf.get_mark(mark_name) {
+        if let Some(mark) = buf.get_mark(INPUT_START) {
             buf.delete_mark(&mark);
         }
         let left_gravity = true;
-        buf.create_mark(Some(mark_name), &prompt_end, left_gravity);
+        buf.create_mark(Some(INPUT_START), &prompt_end, left_gravity);
 
         buf.insert(&mut prompt_end, def);
     }
@@ -138,8 +139,7 @@ impl Minibuf {
         let buf = self.view.get_buffer();
 
         // TODO: dedup
-        let mark_name = "input-start";
-        let mark = buf.get_mark(mark_name).unwrap();
+        let mark = buf.get_mark(INPUT_START).unwrap();
         let start = buf.get_iter_at_mark(&mark);
         let end = buf.get_end_iter();
 
@@ -151,8 +151,7 @@ impl Minibuf {
         let buf = self.view.get_buffer();
 
         // TODO: dedup
-        let mark_name = "input-start";
-        let mark = buf.get_mark(mark_name).unwrap();
+        let mark = buf.get_mark(INPUT_START).unwrap();
         let start = buf.get_iter_at_mark(&mark);
         let end = buf.get_end_iter();
 
@@ -168,8 +167,7 @@ impl Minibuf {
         let buf = self.view.get_buffer();
 
         // TODO: dedup
-        let mark_name = "input-start";
-        let mark = buf.get_mark(mark_name).unwrap();
+        let mark = buf.get_mark(INPUT_START).unwrap();
         let mut start = buf.get_iter_at_mark(&mark);
         let mut end = buf.get_end_iter();
 
