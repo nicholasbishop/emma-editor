@@ -51,6 +51,18 @@ pub enum MinibufState {
 pub struct Minibuf {
     view: gtk::TextView,
     state: MinibufState,
+
+    popover_child: gtk::Label,
+    popover: gtk::Popover,
+}
+
+impl Drop for Minibuf {
+    fn drop(&mut self) {
+        // This fixes a bug where on exit the program loops endlessly
+        // displaying a "GtkPopover is not a child of GtkTextView"
+        // warning.
+        self.popover.unparent();
+    }
 }
 
 impl Minibuf {
@@ -58,9 +70,18 @@ impl Minibuf {
         let view = gtk::TextView::new();
         view.set_size_request(-1, 26); // TODO
 
+        let popover_child = gtk::Label::new(None);
+
+        let popover = gtk::Popover::new();
+        popover.set_parent(&view);
+        popover.set_child(Some(&popover_child));
+        popover.set_autohide(false); // Disable grab.
+
         Minibuf {
             view,
             state: MinibufState::Inactive,
+            popover_child,
+            popover,
         }
     }
 
@@ -69,6 +90,8 @@ impl Minibuf {
     }
 
     pub fn set_state(&mut self, state: MinibufState) {
+        self.popover.hide();
+
         self.state = state;
     }
 
@@ -129,7 +152,7 @@ impl Minibuf {
 
                 buf.set_text("");
 
-                self.state = MinibufState::Inactive;
+                self.set_state(MinibufState::Inactive);
             }
         }
     }
@@ -226,8 +249,6 @@ impl Minibuf {
 
                 children.sort_unstable();
 
-                dbg!(&children);
-
                 // TODO: look into that path library that assumes utf8
 
                 // If there's just one completion, fill it in. If that
@@ -247,6 +268,9 @@ impl Minibuf {
                     let new_path = dir.join(longest_prefix);
                     let new_path_str = new_path.to_str().unwrap().to_string();
                     self.set_input(&new_path_str);
+
+                    self.popover_child.set_label(&children.join("\n"));
+                    self.popover.show();
                 }
             }
         }
