@@ -33,6 +33,7 @@ pub struct RestoreInfo {
     pub kind: BufferKind,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum BufferKind {
     File,
     Shell,
@@ -234,6 +235,19 @@ impl Embuf {
             internal.shell = Some(shell);
         }
         embuf_clone
+    }
+
+    pub fn save(&self) {
+        // TODO: report errors in some way
+        if self.kind() == BufferKind::File {
+            let storage = self.storage();
+
+            let start = storage.get_start_iter();
+            let end = storage.get_end_iter();
+            let text = storage.get_text(&start, &end, true);
+
+            fs::write(self.path(), text.as_str()).unwrap();
+        }
     }
 
     pub fn name(&self) -> String {

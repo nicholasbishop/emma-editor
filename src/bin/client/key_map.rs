@@ -7,6 +7,7 @@ use {
 pub enum Action {
     Exit,
     OpenFile,
+    SaveFile,
     PreviousPane,
     NextPane,
     SplitHorizontal,
@@ -47,6 +48,10 @@ impl KeyMap {
         map.insert(
             KeySequence::parse("<ctrl>x+<ctrl>f").unwrap(),
             Action::OpenFile,
+        );
+        map.insert(
+            KeySequence::parse("<ctrl>x+<ctrl>s").unwrap(),
+            Action::SaveFile,
         );
         map.insert(
             KeySequence::parse("<ctrl><shift>j").unwrap(),

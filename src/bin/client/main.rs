@@ -155,6 +155,9 @@ impl App {
                     env::current_dir().unwrap().to_str().unwrap().to_string();
                 self.minibuf.start_input("Open file: ", &def);
             }
+            KeyMapLookup::Action(Action::SaveFile) => {
+                self.pane_tree.active().embuf().save();
+            }
             KeyMapLookup::Action(Action::SwitchToBuffer) => {
                 self.minibuf.set_state(MinibufState::SelectBuffer);
 
