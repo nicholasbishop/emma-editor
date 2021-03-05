@@ -3,6 +3,7 @@ use {
         key_map::{Action, KeyMap},
         key_sequence::KeySequence,
     },
+    anyhow::Error,
     gtk4::{self as gtk, prelude::*},
     std::{ffi::OsString, fs, path::Path},
 };
@@ -83,6 +84,11 @@ impl Minibuf {
             popover_child,
             popover,
         }
+    }
+
+    pub fn show_error(&self, err: Error) {
+        let buf = self.view.get_buffer();
+        buf.set_text(&format!("{:#}", err));
     }
 
     pub fn widget(&self) -> gtk::Widget {

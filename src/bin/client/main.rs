@@ -11,8 +11,10 @@ mod shell_unix;
 mod theme;
 
 use {
+    anyhow::Error,
     buffer::Embuf,
     crossbeam_channel::Sender,
+    fehler::throws,
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
     highlight::{highlighter_thread, HighlightRequest},
     key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
@@ -201,7 +203,12 @@ impl App {
             }
             KeyMapLookup::Action(Action::Confirm) => {
                 if self.minibuf.has_focus() {
-                    self.handle_minibuf_confirm();
+                    if let Err(err) = self.handle_minibuf_confirm() {
+                        self.minibuf.set_state(MinibufState::Inactive);
+                        self.minibuf.show_error(err);
+                    } else {
+                        self.minibuf.set_state(MinibufState::Inactive);
+                    }
                 } else if self.pane_tree.active().embuf().has_shell() {
                     // TODO: unwrap
                     self.pane_tree.active().embuf().send_to_shell().unwrap();
@@ -251,11 +258,11 @@ impl App {
         self.pane_tree.set_active(pane);
     }
 
+    #[throws]
     fn open_file(&mut self, path: &Path) {
         // TODO: handle error
         let embuf =
-            Embuf::load_file(path, self.highlight_request_sender.clone())
-                .unwrap();
+            Embuf::load_file(path, self.highlight_request_sender.clone())?;
 
         self.buffers.push(embuf.clone());
 
@@ -280,20 +287,19 @@ impl App {
         persistence::store_layout(&self.pane_tree).unwrap();
     }
 
-    pub fn handle_minibuf_confirm(&mut self) {
+    #[throws]
+    fn handle_minibuf_confirm(&mut self) {
         match self.minibuf.state() {
             MinibufState::Inactive => {}
             MinibufState::OpenFile => {
                 let input = self.minibuf.take_input();
-                self.open_file(Path::new(input.as_str()));
+                self.open_file(Path::new(input.as_str()))?;
             }
             MinibufState::SelectBuffer => {
                 let input = self.minibuf.take_input();
                 self.switch_to_buffer(&input);
             }
         }
-
-        self.minibuf.set_state(MinibufState::Inactive);
     }
 
     fn update_pane_tree(&self) {
@@ -365,7 +371,8 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     app.update_pane_tree();
 
     for path in &opt.files {
-        app.open_file(path);
+        // TODO: unwrap
+        app.open_file(path).unwrap();
     }
 
     APP.with(|cell| {
