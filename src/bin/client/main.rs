@@ -235,6 +235,20 @@ impl App {
                     false,
                 );
             }
+            KeyMapLookup::Action(Action::BackLine) => {
+                text_view.emit_move_cursor(
+                    gtk::MovementStep::DisplayLines,
+                    -1,
+                    false,
+                );
+            }
+            KeyMapLookup::Action(Action::ForwardLine) => {
+                text_view.emit_move_cursor(
+                    gtk::MovementStep::DisplayLines,
+                    1,
+                    false,
+                );
+            }
             KeyMapLookup::Action(Action::PageUp) => {
                 self.pane_tree.active().view().emit_move_cursor(
                     gtk::MovementStep::Pages,

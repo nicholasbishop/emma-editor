@@ -8,6 +8,9 @@ pub enum Action {
     BackChar,
     ForwardChar,
 
+    BackLine,
+    ForwardLine,
+
     Exit,
     OpenFile,
     SaveFile,
@@ -50,6 +53,8 @@ impl KeyMap {
         map.insert(KeySequence::parse("<esc>").unwrap(), Action::Exit);
         map.insert(KeySequence::parse("<ctrl>b").unwrap(), Action::BackChar);
         map.insert(KeySequence::parse("<ctrl>f").unwrap(), Action::ForwardChar);
+        map.insert(KeySequence::parse("<ctrl>p").unwrap(), Action::BackLine);
+        map.insert(KeySequence::parse("<ctrl>n").unwrap(), Action::ForwardLine);
         map.insert(
             KeySequence::parse("<ctrl>x+<ctrl>f").unwrap(),
             Action::OpenFile,
