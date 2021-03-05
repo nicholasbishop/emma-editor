@@ -258,6 +258,7 @@ impl App {
             KeyMapLookup::Action(Action::Cancel) => {
                 if self.minibuf.state() != MinibufState::Inactive {
                     self.minibuf.cancel();
+                    self.pane_tree.active().grab_focus();
                 }
             }
             // TODO: move keymap handling for minibuf to minibuf impl?
