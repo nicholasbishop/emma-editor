@@ -95,6 +95,10 @@ impl Minibuf {
         self.view.clone().upcast()
     }
 
+    pub fn view(&self) -> gtk::TextView {
+        self.view.clone()
+    }
+
     pub fn set_state(&mut self, state: MinibufState) {
         self.popover.hide();
 

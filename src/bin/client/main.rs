@@ -115,6 +115,12 @@ impl App {
             keymap_stack.push(map);
         }
 
+        let text_view = if self.minibuf.state() == MinibufState::Inactive {
+            self.pane_tree.active().view()
+        } else {
+            self.minibuf.view()
+        };
+
         // Ignore lone modifier presses.
         if is_modifier(&key) {
             return Inhibit(false);
@@ -214,6 +220,20 @@ impl App {
                     // TODO: unwrap
                     self.pane_tree.active().embuf().send_to_shell().unwrap();
                 }
+            }
+            KeyMapLookup::Action(Action::BackChar) => {
+                text_view.emit_move_cursor(
+                    gtk::MovementStep::VisualPositions,
+                    -1,
+                    false,
+                );
+            }
+            KeyMapLookup::Action(Action::ForwardChar) => {
+                text_view.emit_move_cursor(
+                    gtk::MovementStep::VisualPositions,
+                    1,
+                    false,
+                );
             }
             KeyMapLookup::Action(Action::PageUp) => {
                 self.pane_tree.active().view().emit_move_cursor(

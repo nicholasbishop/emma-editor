@@ -5,6 +5,9 @@ use {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {
+    BackChar,
+    ForwardChar,
+
     Exit,
     OpenFile,
     SaveFile,
@@ -45,6 +48,8 @@ impl KeyMap {
         let mut map = KeyMap::default();
         // TODO: for now make it easy to quit
         map.insert(KeySequence::parse("<esc>").unwrap(), Action::Exit);
+        map.insert(KeySequence::parse("<ctrl>b").unwrap(), Action::BackChar);
+        map.insert(KeySequence::parse("<ctrl>f").unwrap(), Action::ForwardChar);
         map.insert(
             KeySequence::parse("<ctrl>x+<ctrl>f").unwrap(),
             Action::OpenFile,
