@@ -209,6 +209,7 @@ impl App {
                     } else {
                         self.minibuf.set_state(MinibufState::Inactive);
                     }
+                    self.pane_tree.active().grab_focus();
                 } else if self.pane_tree.active().embuf().has_shell() {
                     // TODO: unwrap
                     self.pane_tree.active().embuf().send_to_shell().unwrap();
