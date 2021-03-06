@@ -93,8 +93,8 @@ pub fn restore_embufs(
 pub fn persist_app(app: &App) {
     let mut conn = open_db()?;
 
-    persist_embufs(&mut conn, &app.buffers).unwrap();
-    persist_layout_history(&mut conn, &app.pane_tree).unwrap();
+    persist_embufs(&mut conn, &app.buffers)?;
+    persist_layout_history(&mut conn, &app.pane_tree)?;
 }
 
 #[throws]
