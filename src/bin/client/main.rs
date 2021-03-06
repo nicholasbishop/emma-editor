@@ -353,8 +353,12 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         highlight_request_sender: hl_req_sender.clone(),
     };
 
-    app.buffers
-        .extend(persistence::restore_embufs(hl_req_sender).unwrap());
+    match persistence::restore_embufs(hl_req_sender) {
+        Ok(restore_info) => app.buffers.extend(restore_info),
+        Err(err) => {
+            error!("failed to restore buffers: {:#}", err);
+        }
+    }
 
     if let Ok(layout_history) = persistence::get_layout_history() {
         if let Some(layout) = layout_history.first() {
