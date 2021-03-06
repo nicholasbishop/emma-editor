@@ -1,16 +1,25 @@
 use {
     crate::key_sequence::KeySequence, gtk4::gdk::ModifierType,
-    std::collections::BTreeMap,
+    gtk4::MovementStep, std::collections::BTreeMap,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Direction {
+    Dec,
+    Inc,
+}
+
+impl Direction {
+    pub fn to_i32(&self) -> i32 {
+        match self {
+            Direction::Dec => -1,
+            Direction::Inc => 1,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {
-    BackChar,
-    ForwardChar,
-
-    BackLine,
-    ForwardLine,
-
     Exit,
     OpenFile,
     SaveFile,
@@ -20,9 +29,10 @@ pub enum Action {
     SplitVertical,
     ClosePane,
     Confirm,
-    PageDown,
-    PageUp,
     OpenShell,
+
+    /// Move the cursor in the active pane (or minibuf).
+    Move(MovementStep, Direction),
 
     /// Interactively switch to a different buffer.
     SwitchToBuffer,
@@ -51,10 +61,32 @@ impl KeyMap {
         let mut map = KeyMap::default();
         // TODO: for now make it easy to quit
         map.insert(KeySequence::parse("<esc>").unwrap(), Action::Exit);
-        map.insert(KeySequence::parse("<ctrl>b").unwrap(), Action::BackChar);
-        map.insert(KeySequence::parse("<ctrl>f").unwrap(), Action::ForwardChar);
-        map.insert(KeySequence::parse("<ctrl>p").unwrap(), Action::BackLine);
-        map.insert(KeySequence::parse("<ctrl>n").unwrap(), Action::ForwardLine);
+
+        map.insert(
+            KeySequence::parse("<ctrl>b").unwrap(),
+            Action::Move(MovementStep::VisualPositions, Direction::Dec),
+        );
+        map.insert(
+            KeySequence::parse("<ctrl>f").unwrap(),
+            Action::Move(MovementStep::VisualPositions, Direction::Inc),
+        );
+        map.insert(
+            KeySequence::parse("<ctrl>p").unwrap(),
+            Action::Move(MovementStep::DisplayLines, Direction::Dec),
+        );
+        map.insert(
+            KeySequence::parse("<ctrl>n").unwrap(),
+            Action::Move(MovementStep::DisplayLines, Direction::Inc),
+        );
+        map.insert(
+            KeySequence::parse("<alt>v").unwrap(),
+            Action::Move(MovementStep::Pages, Direction::Dec),
+        );
+        map.insert(
+            KeySequence::parse("<ctrl>v").unwrap(),
+            Action::Move(MovementStep::Pages, Direction::Inc),
+        );
+
         map.insert(
             KeySequence::parse("<ctrl>x+<ctrl>f").unwrap(),
             Action::OpenFile,
@@ -80,8 +112,6 @@ impl KeyMap {
             Action::SplitHorizontal,
         );
         map.insert(KeySequence::parse("<ctrl>x+0").unwrap(), Action::ClosePane);
-        map.insert(KeySequence::parse("<ctrl>v").unwrap(), Action::PageDown);
-        map.insert(KeySequence::parse("<alt>v").unwrap(), Action::PageUp);
         map.insert(
             KeySequence::parse("<ctrl>c+<ctrl>s").unwrap(),
             Action::OpenShell,

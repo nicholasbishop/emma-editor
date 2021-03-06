@@ -221,47 +221,8 @@ impl App {
                     self.pane_tree.active().embuf().send_to_shell().unwrap();
                 }
             }
-            KeyMapLookup::Action(Action::BackChar) => {
-                text_view.emit_move_cursor(
-                    gtk::MovementStep::VisualPositions,
-                    -1,
-                    false,
-                );
-            }
-            KeyMapLookup::Action(Action::ForwardChar) => {
-                text_view.emit_move_cursor(
-                    gtk::MovementStep::VisualPositions,
-                    1,
-                    false,
-                );
-            }
-            KeyMapLookup::Action(Action::BackLine) => {
-                text_view.emit_move_cursor(
-                    gtk::MovementStep::DisplayLines,
-                    -1,
-                    false,
-                );
-            }
-            KeyMapLookup::Action(Action::ForwardLine) => {
-                text_view.emit_move_cursor(
-                    gtk::MovementStep::DisplayLines,
-                    1,
-                    false,
-                );
-            }
-            KeyMapLookup::Action(Action::PageUp) => {
-                self.pane_tree.active().view().emit_move_cursor(
-                    gtk::MovementStep::Pages,
-                    -1,
-                    false,
-                );
-            }
-            KeyMapLookup::Action(Action::PageDown) => {
-                self.pane_tree.active().view().emit_move_cursor(
-                    gtk::MovementStep::Pages,
-                    1,
-                    false,
-                );
+            KeyMapLookup::Action(Action::Move(step, direction)) => {
+                text_view.emit_move_cursor(step, direction.to_i32(), false);
             }
             KeyMapLookup::Action(Action::OpenShell) => {
                 // TODO fix unwrap
