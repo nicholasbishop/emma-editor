@@ -8,6 +8,7 @@ use {
     anyhow::{anyhow, Error},
     crossbeam_channel::Sender,
     fehler::throws,
+    gtk4::prelude::*,
     log::error,
     std::{ffi::OsString, fs, os::unix::ffi::OsStringExt, path::PathBuf},
 };
@@ -32,7 +33,8 @@ pub fn init_db() -> Result<(), Error> {
                       buffer_id TEXT PRIMARY KEY,
                       name TEXT,
                       path BLOB,
-                      kind TEXT)",
+                      kind TEXT,
+                      cursor_position INTEGER)",
         rusqlite::NO_PARAMS,
     )?;
     conn.execute(
@@ -49,8 +51,10 @@ pub fn restore_embufs(
     highlight_request_sender: Sender<HighlightRequest>,
 ) -> Vec<Embuf> {
     let conn = open_db()?;
-    let mut stmt =
-        conn.prepare("SELECT buffer_id, name, path, kind FROM open_buffers")?;
+    let mut stmt = conn.prepare(
+        "SELECT buffer_id, name, path, kind, cursor_position
+                      FROM open_buffers",
+    )?;
 
     let v = stmt
         .query_and_then(rusqlite::NO_PARAMS, |b| {
@@ -58,6 +62,7 @@ pub fn restore_embufs(
             let name: String = b.get(1)?;
             let path: Vec<u8> = b.get(2)?;
             let kind: String = b.get(3)?;
+            let cursor_position: i32 = b.get(4)?;
             Ok(Embuf::restore(
                 RestoreInfo {
                     id,
@@ -66,6 +71,7 @@ pub fn restore_embufs(
                     kind: BufferKind::from_str(&kind).ok_or_else(|| {
                         anyhow!("invalid buffer kind: {}", kind)
                     })?,
+                    cursor_position,
                 },
                 highlight_request_sender.clone(),
             )?)
@@ -100,13 +106,14 @@ fn persist_embufs(conn: &mut rusqlite::Connection, embufs: &[Embuf]) {
     // TODO: batch
     for embuf in embufs {
         tx.execute(
-            "INSERT INTO open_buffers (buffer_id, name, path, kind)
-                  VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO open_buffers (buffer_id, name, path, kind, cursor_position)
+                  VALUES (?1, ?2, ?3, ?4, ?5)",
             rusqlite::params![
                 embuf.buffer_id(),
                 embuf.name(),
                 embuf.path().into_os_string().into_vec(),
-                embuf.kind().to_str()
+                embuf.kind().to_str(),
+                embuf.storage().get_property_cursor_position(),
             ],
         )?;
     }

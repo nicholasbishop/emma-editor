@@ -31,6 +31,7 @@ pub struct RestoreInfo {
     pub path: PathBuf,
     pub name: String,
     pub kind: BufferKind,
+    pub cursor_position: i32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -175,12 +176,16 @@ impl Embuf {
     ) -> Embuf {
         match info.kind {
             BufferKind::File => {
-                Embuf::load_file_with_id(
+                // TODO: lazy load file
+                let embuf = Embuf::load_file_with_id(
                     &info.path,
                     highlight_request_sender,
                     info.id,
-                )?
-                // TODO: lazy load file
+                )?;
+                let storage = embuf.storage();
+                let iter = storage.get_iter_at_offset(info.cursor_position);
+                storage.place_cursor(&iter);
+                embuf
             }
             BufferKind::Shell => {
                 // TODO: set directory
