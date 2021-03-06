@@ -54,9 +54,6 @@ fn key_to_string(key: &gdk::keys::Key) -> String {
 
 #[derive(thiserror::Error, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
-    #[error("invalid escape sequence: \"\\{0}\"")]
-    InvalidEscape(char),
-
     #[error("invalid name: \"{0}\"")]
     InvalidName(String),
 
@@ -82,7 +79,6 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
     enum State {
         Initial,
         InName,
-        InEscape,
     }
 
     let mut state = State::Initial;
@@ -94,15 +90,16 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
     names.insert("esc", ParseItem::Key(keys::Escape));
     names.insert("space", ParseItem::Key(keys::space));
     names.insert("ret", ParseItem::Key(keys::Return));
+    names.insert("plus", ParseItem::Key(keys::plus));
+    names.insert("less", ParseItem::Key(keys::less));
+    names.insert("greater", ParseItem::Key(keys::greater));
 
     let mut items = Vec::new();
     let mut name = String::new();
     for c in s.chars() {
         match state {
             State::Initial => {
-                if c == '\\' {
-                    state = State::InEscape;
-                } else if c == '<' {
+                if c == '<' {
                     state = State::InName;
                 } else if c == '+' {
                     items.push(ParseItem::Append);
@@ -112,20 +109,6 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
                     let key = unsafe { gdk::keys::Key::from_glib(keyval) };
                     items.push(ParseItem::Key(key))
                 }
-            }
-            State::InEscape => {
-                if c == '<' {
-                    items.push(ParseItem::Key(keys::leftanglebracket));
-                } else if c == '>' {
-                    items.push(ParseItem::Key(keys::rightanglebracket));
-                } else if c == '\\' {
-                    items.push(ParseItem::Key(keys::backslash));
-                } else if c == '+' {
-                    items.push(ParseItem::Key(keys::plus));
-                } else {
-                    throw!(Error::InvalidEscape(c));
-                }
-                state = State::Initial;
             }
             State::InName => {
                 if c == '>' {
@@ -261,12 +244,7 @@ mod tests {
             ])
         );
 
-        // Errors
-
-        assert_eq!(
-            parse_key_sequence_as_items("\\a"),
-            Err(Error::InvalidEscape('a'))
-        );
+        // Error
 
         assert_eq!(
             parse_key_sequence_as_items("<invalid>"),
