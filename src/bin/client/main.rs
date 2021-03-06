@@ -15,10 +15,11 @@ use {
     buffer::Embuf,
     crossbeam_channel::Sender,
     fehler::throws,
-    gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
+    gtk4::{self as gtk, gdk, glib, glib::signal::Inhibit, prelude::*},
     highlight::{highlighter_thread, HighlightRequest},
     key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
     key_sequence::{KeySequence, KeySequenceAtom},
+    log::error,
     minibuf::{Minibuf, MinibufState},
     pane::Pane,
     pane_tree::PaneTree,
@@ -83,7 +84,7 @@ fn dump_tree<W: IsA<gtk::Widget>>(widget: &W, title: &str) {
     println!();
 }
 
-struct App {
+pub struct App {
     window: gtk::ApplicationWindow,
     minibuf: Minibuf,
     pane_tree: PaneTree,
@@ -270,8 +271,6 @@ impl App {
             -1,
             false,
         );
-
-        persistence::add_embuf(&embuf).unwrap();
     }
 
     fn switch_to_buffer(&self, name: &str) {
@@ -281,7 +280,6 @@ impl App {
                 break;
             }
         }
-        persistence::store_layout(&self.pane_tree).unwrap();
     }
 
     #[throws]
@@ -302,8 +300,6 @@ impl App {
     fn update_pane_tree(&self) {
         pane_tree::recursive_unparent_children(&self.split_root);
         self.split_root.append(&self.pane_tree.render());
-
-        persistence::store_layout(&self.pane_tree).unwrap();
     }
 }
 
@@ -391,6 +387,23 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     window.add_controller(&key_controller);
 
     window.show();
+
+    glib::timeout_add_seconds(1, || {
+        APP.with(|app| {
+            let app = app.borrow();
+            // OK to unwrap because APP is always set on the main
+            // thread by the time this timeout callback is added.
+            let app = app.as_ref().expect("APP is not set");
+            // TODO: right now this is going to force a wakeup and DB
+            // write every second, not very power friendly. Should
+            // think about how to do a dirty bit without making things
+            // too complicated.
+            if let Err(err) = persistence::persist_app(app) {
+                error!("persist failed: {:#}", err);
+            }
+        });
+        Continue(true)
+    });
 }
 
 /// Emma text editor.

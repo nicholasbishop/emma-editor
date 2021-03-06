@@ -3,6 +3,7 @@ use {
         buffer::{BufferId, BufferKind, Embuf, RestoreInfo},
         highlight::HighlightRequest,
         pane_tree::{PaneTree, PaneTreeSerdeNode},
+        App,
     },
     anyhow::{anyhow, Error},
     crossbeam_channel::Sender,
@@ -82,33 +83,55 @@ pub fn restore_embufs(
     embufs
 }
 
-pub fn add_embuf(buffer: &Embuf) -> Result<(), Error> {
-    let conn = open_db()?;
-    conn.execute(
-        "INSERT INTO open_buffers (buffer_id, name, path, kind)
-                  VALUES (?1, ?2, ?3, ?4)",
-        rusqlite::params![
-            buffer.buffer_id(),
-            buffer.name(),
-            buffer.path().into_os_string().into_vec(),
-            buffer.kind().to_str()
-        ],
-    )?;
-    Ok(())
+#[throws]
+pub fn persist_app(app: &App) {
+    let mut conn = open_db()?;
+
+    persist_embufs(&mut conn, &app.buffers).unwrap();
+    persist_layout_history(&mut conn, &app.pane_tree).unwrap();
 }
 
-pub fn store_layout(pane_tree: &PaneTree) -> Result<(), Error> {
-    let conn = open_db()?;
-    // TODO: store recent layout history. For now just delete each
-    // time.
-    conn.execute("DELETE FROM layout_history", rusqlite::NO_PARAMS)?;
+#[throws]
+fn persist_embufs(conn: &mut rusqlite::Connection, embufs: &[Embuf]) {
+    let tx = conn.transaction()?;
+
+    tx.execute("DELETE FROM open_buffers", rusqlite::NO_PARAMS)?;
+
+    // TODO: batch
+    for embuf in embufs {
+        tx.execute(
+            "INSERT INTO open_buffers (buffer_id, name, path, kind)
+                  VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![
+                embuf.buffer_id(),
+                embuf.name(),
+                embuf.path().into_os_string().into_vec(),
+                embuf.kind().to_str()
+            ],
+        )?;
+    }
+
+    tx.commit()?;
+}
+
+#[throws]
+fn persist_layout_history(
+    conn: &mut rusqlite::Connection,
+    pane_tree: &PaneTree,
+) {
+    let tx = conn.transaction()?;
+
+    tx.execute("DELETE FROM layout_history", rusqlite::NO_PARAMS)?;
+    // TODO: store recent layout history. For now just store the
+    // current layout.
     let json = serde_json::to_string(&pane_tree.serialize())?;
-    conn.execute(
+    tx.execute(
         "INSERT INTO layout_history (id, json)
          VALUES (?1, ?2)",
         rusqlite::params![1, json],
     )?;
-    Ok(())
+
+    tx.commit()?;
 }
 
 #[throws]
