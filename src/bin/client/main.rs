@@ -152,7 +152,6 @@ impl App {
                 // Waiting for the sequence to be completed.
             }
             KeyMapLookup::Action(Action::Exit) => {
-                dbg!("close!");
                 self.window.close();
             }
             KeyMapLookup::Action(Action::OpenFile) => {
