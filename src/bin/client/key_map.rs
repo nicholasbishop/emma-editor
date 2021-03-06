@@ -86,6 +86,14 @@ impl KeyMap {
             KeySequence::parse("<ctrl>v").unwrap(),
             Action::Move(MovementStep::Pages, Direction::Inc),
         );
+        map.insert(
+            KeySequence::parse("<alt><shift><less>").unwrap(),
+            Action::Move(MovementStep::BufferEnds, Direction::Dec),
+        );
+        map.insert(
+            KeySequence::parse("<alt><shift><greater>").unwrap(),
+            Action::Move(MovementStep::BufferEnds, Direction::Inc),
+        );
 
         map.insert(
             KeySequence::parse("<ctrl>x+<ctrl>f").unwrap(),
