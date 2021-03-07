@@ -1,5 +1,4 @@
 use {
-    crate::shell::Shell,
     anyhow::Error,
     fehler::throws,
     fs_err as fs,
@@ -67,34 +66,6 @@ struct EmbufInternal {
     name: String,
     storage: Buffer,
     generation: BufferGeneration,
-
-    shell: Option<Shell>,
-}
-
-impl EmbufInternal {
-    #[throws]
-    fn send_to_shell(&mut self) {
-        if let Some(shell) = &mut self.shell {
-            let mark = self.storage.get_mark("output_end").unwrap();
-            let mut start_iter = self.storage.get_iter_at_mark(&mark);
-            let mut end_iter = self.storage.get_end_iter();
-            let mut input: String = self
-                .storage
-                .get_text(
-                    &start_iter,
-                    &end_iter,
-                    /*include_hidden_chars=*/ false,
-                )
-                .to_string();
-            input.push('\n');
-
-            // Clear the input text since the shell itself will echo
-            // the input.
-            self.storage.delete(&mut start_iter, &mut end_iter);
-
-            shell.send(input.as_bytes())?;
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -113,7 +84,6 @@ impl Embuf {
             path,
             storage: Buffer::new(tag_table),
             generation: 0,
-            shell: None,
         })))
     }
 
@@ -162,62 +132,9 @@ impl Embuf {
             }
             BufferKind::Shell => {
                 // TODO: set directory
-                Embuf::launch_shell_with_id(&info.name, info.id)?
+                todo!();
             }
         }
-    }
-
-    #[throws]
-    pub fn launch_shell_with_id(name: &str, buffer_id: BufferId) -> Embuf {
-        let path = Path::new(""); // TODO
-        let embuf = Embuf::new_with_id(path.into(), buffer_id);
-        let embuf_clone = embuf.clone();
-        let shell = Shell::launch(Box::new(move |bytes| {
-            // TODO: this conversion is not necessarily correct
-            // because we might have read up to part way through a
-            // character, need to think about how to do this correctly
-            let s = String::from_utf8_lossy(bytes);
-
-            let embuf = embuf.borrow();
-            let storage = &embuf.storage;
-            // TODO shared const for this string or keep TextMark?
-            let mark = storage.get_mark("output_end").unwrap();
-            storage
-                .insert(&mut storage.get_iter_at_mark(&mark), &s.to_string());
-
-            // The output_end mark floats left so that user input goes
-            // after the mark, that means we have to manually move the
-            // mark after the newly inserted shell output.
-            let mut iter = storage.get_iter_at_mark(&mark);
-            // TODO: it's not clear whether forward_chars measures in
-            // bytes or unicode characters or something else.
-            iter.forward_chars(s.len() as i32);
-            storage.move_mark(&mark, &iter);
-        }))?;
-
-        {
-            let mut internal = embuf_clone.0.borrow_mut();
-            internal.name = name.into();
-            internal.storage.create_mark(
-                Some("output_end"),
-                &internal.storage.get_end_iter(),
-                // We kind of want both, not sure how best to
-                // represent this. We want the mark to keep to the
-                // right of shell output, but to the left of user
-                // input. For now set gravity to keep it to the left
-                // of user input, and manually move the mark past
-                // shell output in the callback.
-                /*left_gravity=*/
-                true,
-            );
-            internal.shell = Some(shell);
-        }
-        embuf_clone
-    }
-
-    #[throws]
-    pub fn launch_shell(name: &str) -> Embuf {
-        Self::launch_shell_with_id(name, make_buffer_id())?
     }
 
     pub fn save(&self) {
@@ -238,11 +155,7 @@ impl Embuf {
     }
 
     pub fn kind(&self) -> BufferKind {
-        if self.borrow().shell.is_some() {
-            BufferKind::Shell
-        } else {
-            BufferKind::File
-        }
+        BufferKind::File
     }
 
     fn borrow(&self) -> std::cell::Ref<EmbufInternal> {
@@ -270,12 +183,7 @@ impl Embuf {
     }
 
     pub fn has_shell(&self) -> bool {
-        self.borrow().shell.is_some()
-    }
-
-    #[throws]
-    pub fn send_to_shell(&self) {
-        self.0.borrow_mut().send_to_shell()?;
+        false
     }
 }
 

@@ -1,8 +1,6 @@
 mod buffer;
 mod pane;
 mod pane_tree;
-mod shell;
-mod shell_unix;
 mod theme;
 
 use {
