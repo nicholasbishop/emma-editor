@@ -422,6 +422,10 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     );
     window.add_controller(&key_controller);
 
+    if let Err(err) = persistence::restore_window_layout(&window) {
+        error!("failed to restore window layout: {:#}", err);
+    }
+
     window.show();
 
     glib::timeout_add_seconds(1, || {
