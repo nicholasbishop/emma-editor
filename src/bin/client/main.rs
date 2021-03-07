@@ -5,7 +5,6 @@ mod key_sequence;
 mod minibuf;
 mod pane;
 mod pane_tree;
-mod persistence;
 mod shell;
 mod shell_unix;
 mod theme;
@@ -219,18 +218,6 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         highlight_request_sender: hl_req_sender.clone(),
     };
 
-    match persistence::restore_embufs(hl_req_sender) {
-        Ok(restore_info) => app.buffers.extend(restore_info),
-        Err(err) => {
-            error!("failed to restore buffers: {:#}", err);
-        }
-    }
-
-    if let Ok(layout_history) = persistence::get_layout_history() {
-        if let Some(layout) = layout_history.first() {
-            app.pane_tree.deserialize(layout, &app.buffers);
-        }
-    }
     app.update_pane_tree();
 
     // Scrolling doesn't work until the window is shown, so post it to
@@ -255,28 +242,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         *cell.borrow_mut() = Some(app);
     });
 
-    if let Err(err) = persistence::restore_window_layout(&window) {
-        error!("failed to restore window layout: {:#}", err);
-    }
-
     window.show();
-
-    glib::timeout_add_seconds(1, || {
-        APP.with(|app| {
-            let app = app.borrow();
-            // OK to unwrap because APP is always set on the main
-            // thread by the time this timeout callback is added.
-            let app = app.as_ref().expect("APP is not set");
-            // TODO: right now this is going to force a wakeup and DB
-            // write every second, not very power friendly. Should
-            // think about how to do a dirty bit without making things
-            // too complicated.
-            if let Err(err) = persistence::persist_app(app) {
-                error!("persist failed: {:#}", err);
-            }
-        });
-        Continue(true)
-    });
 }
 
 /// Emma text editor.
@@ -293,8 +259,6 @@ fn main() {
     // TODO: glib has its own arg parsing that we could look at using,
     // but it's more complicated to understand than argh.
     let opt: Opt = argh::from_env();
-
-    persistence::init_db().unwrap();
 
     let application =
         gtk::Application::new(Some("org.emma.Emma"), Default::default())
