@@ -189,15 +189,15 @@ impl Embuf {
             }
             BufferKind::Shell => {
                 // TODO: set directory
-                Embuf::launch_shell(&info.name)?
+                Embuf::launch_shell_with_id(&info.name, info.id)?
             }
         }
     }
 
     #[throws]
-    pub fn launch_shell(name: &str) -> Embuf {
+    pub fn launch_shell_with_id(name: &str, buffer_id: BufferId) -> Embuf {
         let path = Path::new(""); // TODO
-        let embuf = Embuf::new(path.into());
+        let embuf = Embuf::new_with_id(path.into(), buffer_id);
         let embuf_clone = embuf.clone();
         let shell = Shell::launch(Box::new(move |bytes| {
             // TODO: this conversion is not necessarily correct
@@ -240,6 +240,11 @@ impl Embuf {
             internal.shell = Some(shell);
         }
         embuf_clone
+    }
+
+    #[throws]
+    pub fn launch_shell(name: &str) -> Embuf {
+        Self::launch_shell_with_id(name, make_buffer_id())?
     }
 
     pub fn save(&self) {
