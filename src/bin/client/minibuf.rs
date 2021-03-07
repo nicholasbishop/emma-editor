@@ -4,8 +4,9 @@ use {
         key_sequence::KeySequence,
     },
     anyhow::Error,
+    fs_err as fs,
     gtk4::{self as gtk, prelude::*},
-    std::{ffi::OsString, fs, path::Path},
+    std::{ffi::OsString, path::Path},
 };
 
 const INPUT_START: &str = "input-start";

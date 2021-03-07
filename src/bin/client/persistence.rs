@@ -8,9 +8,10 @@ use {
     anyhow::{anyhow, Error},
     crossbeam_channel::Sender,
     fehler::throws,
+    fs_err as fs,
     gtk4::prelude::*,
     log::error,
-    std::{ffi::OsString, fs, os::unix::ffi::OsStringExt, path::PathBuf},
+    std::{ffi::OsString, os::unix::ffi::OsStringExt, path::PathBuf},
 };
 
 fn open_db() -> Result<rusqlite::Connection, Error> {

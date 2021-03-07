@@ -257,6 +257,7 @@ dependencies = [
  "dirs",
  "env_logger",
  "fehler",
+ "fs-err",
  "gtk4",
  "log",
  "nix",
@@ -362,6 +363,12 @@ dependencies = [
  "libc",
  "pkg-config",
 ]
+
+[[package]]
+name = "fs-err"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcd1163ae48bda72a20ae26d66a04d3094135cadab911cff418ae5e33f253431"
 
 [[package]]
 name = "futures-channel"

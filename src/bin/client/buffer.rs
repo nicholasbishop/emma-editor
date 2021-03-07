@@ -3,11 +3,11 @@ use {
     anyhow::Error,
     crossbeam_channel::Sender,
     fehler::throws,
+    fs_err as fs,
     gtk4::{prelude::*, TextBuffer, TextTagTable},
     rand::{distributions::Alphanumeric, thread_rng, Rng},
     std::{
         cell::RefCell,
-        fs,
         path::{Path, PathBuf},
         rc::Rc,
     },

@@ -2,8 +2,9 @@ use anyhow::Error;
 use crossbeam_channel::Receiver;
 use emma::comm::*;
 use fehler::throws;
+use fs_err as fs;
 use std::io;
-use std::{fs, thread};
+use std::thread;
 
 #[throws]
 fn response_thread(rx: Receiver<Response>) {
