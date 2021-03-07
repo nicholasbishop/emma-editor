@@ -1,5 +1,4 @@
 mod buffer;
-mod highlight;
 mod pane;
 mod pane_tree;
 mod shell;
@@ -9,18 +8,13 @@ mod theme;
 use {
     anyhow::Error,
     buffer::Embuf,
-    crossbeam_channel::Sender,
     fehler::throws,
     gtk4::{self as gtk, gdk, prelude::*},
-    highlight::HighlightRequest,
-    log::error,
     pane::Pane,
     pane_tree::PaneTree,
     std::{
         cell::RefCell,
-        env,
         path::{Path, PathBuf},
-        thread,
     },
 };
 
@@ -43,8 +37,6 @@ pub struct App {
     pane_tree: PaneTree,
     split_root: gtk::Box,
     buffers: Vec<Embuf>,
-
-    highlight_request_sender: Sender<HighlightRequest>,
 }
 
 impl App {
@@ -55,8 +47,7 @@ impl App {
     #[throws]
     fn open_file(&mut self, path: &Path) {
         // TODO: handle error
-        let embuf =
-            Embuf::load_file(path, self.highlight_request_sender.clone())?;
+        let embuf = Embuf::load_file(path)?;
 
         self.buffers.push(embuf.clone());
 
@@ -135,15 +126,11 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     window.set_child(Some(&layout));
 
-    let (hl_req_sender, hl_req_receiver) = crossbeam_channel::unbounded();
-
     let mut app = App {
         window: window.clone(),
         pane_tree,
         split_root,
         buffers: vec![embuf],
-
-        highlight_request_sender: hl_req_sender.clone(),
     };
 
     app.update_pane_tree();

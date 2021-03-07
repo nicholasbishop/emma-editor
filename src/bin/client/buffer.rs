@@ -1,7 +1,6 @@
 use {
-    crate::{shell::Shell, HighlightRequest},
+    crate::shell::Shell,
     anyhow::Error,
-    crossbeam_channel::Sender,
     fehler::throws,
     fs_err as fs,
     gtk4::{prelude::*, TextBuffer, TextTagTable},
@@ -123,11 +122,7 @@ impl Embuf {
     }
 
     #[throws]
-    fn load_file_with_id(
-        path: &Path,
-        highlight_request_sender: Sender<HighlightRequest>,
-        buffer_id: BufferId,
-    ) -> Embuf {
+    fn load_file_with_id(path: &Path, buffer_id: BufferId) -> Embuf {
         let contents = fs::read_to_string(path)?;
 
         let embuf = Embuf::new_with_id(path.into(), buffer_id);
@@ -143,14 +138,6 @@ impl Embuf {
             let start = storage.get_start_iter();
             let end = storage.get_end_iter();
             let text = storage.get_text(&start, &end, true);
-
-            let req = HighlightRequest {
-                buffer_id: embuf.buffer_id(),
-                text: text.to_string(),
-                generation: embuf.generation(),
-                path: embuf.path(),
-            };
-            highlight_request_sender.send(req).unwrap();
         });
         storage.set_text(&contents);
 
@@ -158,30 +145,16 @@ impl Embuf {
     }
 
     #[throws]
-    pub fn load_file(
-        path: &Path,
-        highlight_request_sender: Sender<HighlightRequest>,
-    ) -> Embuf {
-        Self::load_file_with_id(
-            path,
-            highlight_request_sender,
-            make_buffer_id(),
-        )?
+    pub fn load_file(path: &Path) -> Embuf {
+        Self::load_file_with_id(path, make_buffer_id())?
     }
 
     #[throws]
-    pub fn restore(
-        info: RestoreInfo,
-        highlight_request_sender: Sender<HighlightRequest>,
-    ) -> Embuf {
+    pub fn restore(info: RestoreInfo) -> Embuf {
         match info.kind {
             BufferKind::File => {
                 // TODO: lazy load file
-                let embuf = Embuf::load_file_with_id(
-                    &info.path,
-                    highlight_request_sender,
-                    info.id,
-                )?;
+                let embuf = Embuf::load_file_with_id(&info.path, info.id)?;
                 let storage = embuf.storage();
                 let iter = storage.get_iter_at_offset(info.cursor_position);
                 storage.place_cursor(&iter);
