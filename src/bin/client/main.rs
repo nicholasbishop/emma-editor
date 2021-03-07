@@ -1,4 +1,4 @@
-use gtk4::{self as gtk, gdk, prelude::*};
+use gtk4::{self as gtk, prelude::*};
 
 /// Set horizontal+vertical expand+fill on a widget.
 fn make_big<W: IsA<gtk::Widget>>(widget: &W) {
@@ -19,7 +19,6 @@ fn build_ui(application: &gtk::Application) {
     // Arbitrary orientation, it only ever holds one widget.
     let split_root = gtk::Box::new(gtk::Orientation::Vertical, 0);
     make_big(&split_root);
-    //split_root.append(&pane_tree.render());
     let tv = gtk::TextView::new();
     make_big(&tv);
     split_root.append(&tv);
