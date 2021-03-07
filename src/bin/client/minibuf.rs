@@ -213,6 +213,10 @@ impl Minibuf {
                     KeySequence::parse("<ret>").unwrap(),
                     Action::Confirm,
                 );
+                map.insert(
+                    KeySequence::parse("<ctrl>m").unwrap(),
+                    Action::Confirm,
+                );
             }
         }
         map
