@@ -203,7 +203,6 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     window.set_child(Some(&layout));
 
     let (hl_req_sender, hl_req_receiver) = crossbeam_channel::unbounded();
-    thread::spawn(|| highlighter_thread(hl_req_receiver));
 
     let mut app = App {
         window: window.clone(),
@@ -219,19 +218,6 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     };
 
     app.update_pane_tree();
-
-    // Scrolling doesn't work until the window is shown, so post it to
-    // an idle callback.
-    glib::idle_add(|| {
-        APP.with(|app| {
-            let app = app.borrow();
-            // OK to unwrap because APP is always set on the main
-            // thread by the time this callback is run.
-            let app = app.as_ref().expect("APP is not set");
-            restore_scroll_positions(app);
-        });
-        Continue(false)
-    });
 
     for path in &opt.files {
         // TODO: unwrap
