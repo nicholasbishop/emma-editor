@@ -1,13 +1,4 @@
-use {
-    gtk4::{self as gtk, gdk, prelude::*},
-    std::{cell::RefCell, path::PathBuf},
-};
-
-// This global is needed for callbacks on the main thread. On other
-// threads it is None.
-std::thread_local! {
-    static APP: RefCell<Option<App>> = RefCell::new(None);
-}
+use gtk4::{self as gtk, gdk, prelude::*};
 
 /// Set horizontal+vertical expand+fill on a widget.
 fn make_big<W: IsA<gtk::Widget>>(widget: &W) {
@@ -15,11 +6,6 @@ fn make_big<W: IsA<gtk::Widget>>(widget: &W) {
     widget.set_valign(gtk::Align::Fill);
     widget.set_hexpand(true);
     widget.set_vexpand(true);
-}
-
-pub struct App {
-    window: gtk::ApplicationWindow,
-    split_root: gtk::Box,
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -49,15 +35,6 @@ fn build_ui(application: &gtk::Application) {
     layout.append(&split_root);
 
     window.set_child(Some(&layout));
-
-    let mut app = App {
-        window: window.clone(),
-        split_root,
-    };
-
-    APP.with(|cell| {
-        *cell.borrow_mut() = Some(app);
-    });
 
     window.show();
 }
