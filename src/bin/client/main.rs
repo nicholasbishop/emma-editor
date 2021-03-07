@@ -2,7 +2,6 @@ mod buffer;
 mod highlight;
 mod key_map;
 mod key_sequence;
-mod minibuf;
 mod pane;
 mod pane_tree;
 mod shell;
@@ -19,7 +18,6 @@ use {
     key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
     key_sequence::{KeySequence, KeySequenceAtom},
     log::error,
-    minibuf::{Minibuf, MinibufState},
     pane::Pane,
     pane_tree::PaneTree,
     std::{
@@ -85,7 +83,6 @@ fn dump_tree<W: IsA<gtk::Widget>>(widget: &W, title: &str) {
 
 pub struct App {
     window: gtk::ApplicationWindow,
-    minibuf: Minibuf,
     pane_tree: PaneTree,
     split_root: gtk::Box,
     buffers: Vec<Embuf>,
@@ -123,21 +120,6 @@ impl App {
             if embuf.name() == name {
                 self.pane_tree.active().set_buffer(&embuf);
                 break;
-            }
-        }
-    }
-
-    #[throws]
-    fn handle_minibuf_confirm(&mut self) {
-        match self.minibuf.state() {
-            MinibufState::Inactive => {}
-            MinibufState::OpenFile => {
-                let input = self.minibuf.take_input();
-                self.open_file(Path::new(input.as_str()))?;
-            }
-            MinibufState::SelectBuffer => {
-                let input = self.minibuf.take_input();
-                self.switch_to_buffer(&input);
             }
         }
     }
@@ -195,10 +177,7 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     make_big(&split_root);
     split_root.append(&pane_tree.render());
 
-    let minibuf = Minibuf::new();
-
     layout.append(&split_root);
-    layout.append(&minibuf.widget());
 
     window.set_child(Some(&layout));
 
@@ -206,7 +185,6 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
 
     let mut app = App {
         window: window.clone(),
-        minibuf,
         pane_tree,
         split_root,
         buffers: vec![embuf],
