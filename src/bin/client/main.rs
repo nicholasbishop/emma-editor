@@ -1,7 +1,5 @@
 mod buffer;
 mod highlight;
-mod key_map;
-mod key_sequence;
 mod pane;
 mod pane_tree;
 mod shell;
@@ -15,8 +13,6 @@ use {
     fehler::throws,
     gtk4::{self as gtk, gdk, glib, glib::signal::Inhibit, prelude::*},
     highlight::{highlighter_thread, HighlightRequest},
-    key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
-    key_sequence::{KeySequence, KeySequenceAtom},
     log::error,
     pane::Pane,
     pane_tree::PaneTree,
@@ -86,9 +82,6 @@ pub struct App {
     pane_tree: PaneTree,
     split_root: gtk::Box,
     buffers: Vec<Embuf>,
-
-    base_keymap: KeyMap,
-    cur_seq: KeySequence,
 
     highlight_request_sender: Sender<HighlightRequest>,
 }
@@ -188,9 +181,6 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         pane_tree,
         split_root,
         buffers: vec![embuf],
-
-        base_keymap: KeyMap::new(),
-        cur_seq: KeySequence::default(),
 
         highlight_request_sender: hl_req_sender.clone(),
     };
