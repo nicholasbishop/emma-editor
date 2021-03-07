@@ -1,7 +1,6 @@
 mod buffer;
 mod pane;
 mod pane_tree;
-mod theme;
 
 use {
     anyhow::Error,
