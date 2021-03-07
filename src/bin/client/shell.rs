@@ -73,6 +73,7 @@ impl Shell {
                 Some(on_output_ready_wrapper),
                 shell_ptr.cast(),
             );
+            dbg!(event_source_id);
         }
 
         Shell(shell)
