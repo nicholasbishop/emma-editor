@@ -341,67 +341,11 @@ impl Node<Pane> {
             Node::Leaf(view) => view.get_widget(),
         }
     }
-
-    fn serialize(&self, active_pane: &Pane) -> PaneTreeSerdeNode {
-        match &self {
-            Node::Leaf(pane) => PaneTreeSerdeNode::Leaf {
-                active: pane == active_pane,
-                buffer: pane.embuf().buffer_id(),
-            },
-            Node::Internal(internal) => PaneTreeSerdeNode::Internal((
-                OrientationSerde::from_gtk(internal.orientation),
-                internal
-                    .children
-                    .iter()
-                    .map(|n| n.serialize(active_pane))
-                    .collect(),
-            )),
-        }
-    }
-
-    fn deserialize(
-        root: &PaneTreeSerdeNode,
-        embufs: &[Embuf],
-        proto: &Pane,
-    ) -> Node<Pane> {
-        match root {
-            PaneTreeSerdeNode::Leaf { active, buffer } => {
-                let pane = proto.split();
-                if let Some(embuf) =
-                    embufs.iter().find(|embuf| &embuf.buffer_id() == buffer)
-                {
-                    pane.set_buffer(embuf);
-                }
-                if *active {
-                    pane.set_active(true);
-                }
-                Node::new_leaf(pane)
-            }
-            PaneTreeSerdeNode::Internal((orientation, children)) => {
-                let node = Node::new_internal(
-                    children
-                        .iter()
-                        .map(|c| Node::deserialize(c, embufs, proto))
-                        .collect(),
-                    orientation.to_gtk(),
-                );
-                node
-            }
-        }
-    }
 }
 
 impl Tree<Pane> {
     pub fn render(&self) -> gtk::Widget {
         self.root.render()
-    }
-
-    pub fn serialize(&self) -> PaneTreeSerdeNode {
-        self.root.serialize(&self.active())
-    }
-
-    pub fn deserialize(&mut self, root: &PaneTreeSerdeNode, embufs: &[Embuf]) {
-        self.root = Node::deserialize(root, embufs, &self.active());
     }
 }
 

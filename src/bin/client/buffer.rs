@@ -24,41 +24,6 @@ fn make_buffer_id() -> BufferId {
     format!("buffer-{}", r)
 }
 
-pub struct RestoreInfo {
-    pub id: BufferId,
-    pub path: PathBuf,
-    pub name: String,
-    pub kind: BufferKind,
-    pub cursor_position: i32,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum BufferKind {
-    File,
-    Shell,
-}
-
-impl BufferKind {
-    pub const fn to_str(&self) -> &'static str {
-        match self {
-            BufferKind::File => "file",
-            BufferKind::Shell => "shell",
-        }
-    }
-}
-
-impl BufferKind {
-    pub fn from_str(s: &str) -> Option<BufferKind> {
-        if s == BufferKind::File.to_str() {
-            Some(BufferKind::File)
-        } else if s == BufferKind::Shell.to_str() {
-            Some(BufferKind::Shell)
-        } else {
-            None
-        }
-    }
-}
-
 #[derive(Debug)]
 struct EmbufInternal {
     buffer_id: BufferId,
@@ -102,12 +67,6 @@ impl Embuf {
 
         storage.connect_changed(move |_| {
             embuf.increment_generation();
-
-            let storage = embuf.storage();
-
-            let start = storage.get_start_iter();
-            let end = storage.get_end_iter();
-            let text = storage.get_text(&start, &end, true);
         });
         storage.set_text(&contents);
 
@@ -119,55 +78,12 @@ impl Embuf {
         Self::load_file_with_id(path, make_buffer_id())?
     }
 
-    #[throws]
-    pub fn restore(info: RestoreInfo) -> Embuf {
-        match info.kind {
-            BufferKind::File => {
-                // TODO: lazy load file
-                let embuf = Embuf::load_file_with_id(&info.path, info.id)?;
-                let storage = embuf.storage();
-                let iter = storage.get_iter_at_offset(info.cursor_position);
-                storage.place_cursor(&iter);
-                embuf
-            }
-            BufferKind::Shell => {
-                // TODO: set directory
-                todo!();
-            }
-        }
-    }
-
-    pub fn save(&self) {
-        // TODO: report errors in some way
-        if self.kind() == BufferKind::File {
-            let storage = self.storage();
-
-            let start = storage.get_start_iter();
-            let end = storage.get_end_iter();
-            let text = storage.get_text(&start, &end, true);
-
-            fs::write(self.path(), text.as_str()).unwrap();
-        }
-    }
-
     pub fn name(&self) -> String {
         self.borrow().name.clone()
     }
 
-    pub fn kind(&self) -> BufferKind {
-        BufferKind::File
-    }
-
     fn borrow(&self) -> std::cell::Ref<EmbufInternal> {
         self.0.borrow()
-    }
-
-    pub fn buffer_id(&self) -> BufferId {
-        self.borrow().buffer_id.clone()
-    }
-
-    pub fn path(&self) -> PathBuf {
-        self.borrow().path.clone()
     }
 
     pub fn storage(&self) -> Buffer {
