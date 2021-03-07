@@ -14,14 +14,6 @@ fn build_ui(application: &gtk::Application) {
     window.set_title(Some("emma"));
     window.set_default_size(800, 800);
 
-    let css = gtk::CssProvider::new();
-    css.load_from_data(include_bytes!("theme.css"));
-    gtk::StyleContext::add_provider_for_display(
-        &gdk::Display::get_default().unwrap(),
-        &css,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
-
     let layout = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
     // Arbitrary orientation, it only ever holds one widget.
