@@ -1,7 +1,4 @@
-use crate::{
-    buffer::{BufferId, Embuf},
-    pane::Pane,
-};
+use crate::{buffer::BufferId, pane::Pane};
 use gtk4::{self as gtk, prelude::*};
 use serde::{Deserialize, Serialize};
 use std::fmt;

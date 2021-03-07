@@ -90,16 +90,8 @@ impl Embuf {
         self.borrow().storage.clone()
     }
 
-    pub fn generation(&self) -> BufferGeneration {
-        self.borrow().generation
-    }
-
     pub fn increment_generation(&self) {
         self.0.borrow_mut().generation += 1;
-    }
-
-    pub fn has_shell(&self) -> bool {
-        false
     }
 }
 

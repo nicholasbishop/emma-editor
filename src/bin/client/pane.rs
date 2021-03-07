@@ -103,8 +103,4 @@ impl Pane {
     pub fn is_active(&self) -> bool {
         self.borrow().is_active
     }
-
-    pub fn grab_focus(&self) {
-        self.0.borrow().view.grab_focus();
-    }
 }
