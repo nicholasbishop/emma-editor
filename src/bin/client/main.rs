@@ -154,6 +154,9 @@ impl App {
             KeyMapLookup::Action(Action::Exit) => {
                 self.window.close();
             }
+            KeyMapLookup::Action(Action::DeleteBuffer) => {
+                todo!();
+            }
             KeyMapLookup::Action(Action::OpenFile) => {
                 self.minibuf.set_state(MinibufState::OpenFile);
 

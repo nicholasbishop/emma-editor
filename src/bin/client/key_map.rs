@@ -31,6 +31,9 @@ pub enum Action {
     Confirm,
     OpenShell,
 
+    /// Delete the buffer in the active pane.
+    DeleteBuffer,
+
     /// Move the cursor in the active pane (or minibuf).
     Move(MovementStep, Direction),
 
@@ -95,6 +98,10 @@ impl KeyMap {
             Action::Move(MovementStep::BufferEnds, Direction::Inc),
         );
 
+        map.insert(
+            KeySequence::parse("<ctrl>x+k").unwrap(),
+            Action::DeleteBuffer,
+        );
         map.insert(
             KeySequence::parse("<ctrl>x+<ctrl>f").unwrap(),
             Action::OpenFile,
