@@ -8,10 +8,7 @@ Build/test/run:
     
 TODOs:
 
-* Completion for minibuf file operations
-* Save buffer
 * Change active view when clicking to focus a different pane
-* Implement persistence
 * Close view
 * View layout history
 * M-x style commands in minibuf
