@@ -26,4 +26,4 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.8"
 
-gtk4 = { git = "https://github.com/gtk-rs/gtk4.git", rev = "70dbed1242a84f45b11fbc1a67cce4e22de331c6" }
+gtk4 = { git = "https://github.com/gtk-rs/gtk4.git", rev = "3595eff1ddd3c2eb234b4c0181914c1c1d874a87" }
