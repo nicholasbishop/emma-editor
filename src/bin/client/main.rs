@@ -11,8 +11,8 @@ use {
     buffer::Embuf,
     crossbeam_channel::Sender,
     fehler::throws,
-    gtk4::{self as gtk, gdk, glib, glib::signal::Inhibit, prelude::*},
-    highlight::{highlighter_thread, HighlightRequest},
+    gtk4::{self as gtk, gdk, prelude::*},
+    highlight::HighlightRequest,
     log::error,
     pane::Pane,
     pane_tree::PaneTree,
@@ -36,45 +36,6 @@ fn make_big<W: IsA<gtk::Widget>>(widget: &W) {
     widget.set_valign(gtk::Align::Fill);
     widget.set_hexpand(true);
     widget.set_vexpand(true);
-}
-
-fn is_modifier(key: &gdk::keys::Key) -> bool {
-    matches!(
-        *key,
-        gdk::keys::constants::Alt_L
-            | gdk::keys::constants::Alt_R
-            | gdk::keys::constants::Control_L
-            | gdk::keys::constants::Control_R
-            | gdk::keys::constants::Shift_L
-            | gdk::keys::constants::Shift_R
-    )
-}
-
-// For debugging.
-#[allow(dead_code)]
-fn dump_tree<W: IsA<gtk::Widget>>(widget: &W, title: &str) {
-    fn r<W: IsA<gtk::Widget>>(widget: &W, depth: usize) {
-        for _ in 0..depth {
-            print!("  ");
-        }
-        println!("{} ({:?})", widget.get_widget_name(), widget);
-
-        // Don't recurse into Pane widgets.
-        if widget.get_widget_name() == "Pane" {
-            return;
-        }
-
-        // Dump children.
-        let mut iter = widget.get_first_child();
-        while let Some(child) = iter {
-            r(&child, depth + 1);
-            iter = child.get_next_sibling();
-        }
-    }
-
-    println!("{}", title);
-    r(widget, 0);
-    println!();
 }
 
 pub struct App {
