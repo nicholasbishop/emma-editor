@@ -22,7 +22,7 @@ pub struct App {
     split_root: gtk::Box,
 }
 
-fn build_ui(application: &gtk::Application, opt: &Opt) {
+fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
 
     window.set_title(Some("emma"));
@@ -62,26 +62,14 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
     window.show();
 }
 
-/// Emma text editor.
-#[derive(argh::FromArgs)]
-struct Opt {
-    /// files to open on startup.
-    #[argh(positional)]
-    files: Vec<PathBuf>,
-}
-
 fn main() {
     env_logger::init();
-
-    // TODO: glib has its own arg parsing that we could look at using,
-    // but it's more complicated to understand than argh.
-    let opt: Opt = argh::from_env();
 
     let application =
         gtk::Application::new(Some("org.emma.Emma"), Default::default())
             .expect("Initialization failed...");
 
-    application.connect_activate(move |app| build_ui(app, &opt));
+    application.connect_activate(move |app| build_ui(app));
 
     application.run(&[]);
 }
