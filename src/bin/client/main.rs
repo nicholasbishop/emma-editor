@@ -302,6 +302,26 @@ impl App {
     }
 }
 
+/// Hacky: scroll the restored buffers so that the cursor is visible.
+fn restore_scroll_positions(app: &App) {
+    for pane in app.pane_tree.leaf_vec() {
+        let buf = pane.view().get_buffer();
+        let offset = buf.get_property_cursor_position();
+        let mut iter = buf.get_iter_at_offset(offset);
+        let within_margin = 0.0;
+        let use_align = false;
+        let xalign = 0.0;
+        let yalign = 0.0;
+        pane.view().scroll_to_iter(
+            &mut iter,
+            within_margin,
+            use_align,
+            xalign,
+            yalign,
+        );
+    }
+}
+
 fn build_ui(application: &gtk::Application, opt: &Opt) {
     let window = gtk::ApplicationWindow::new(application);
 
@@ -365,6 +385,19 @@ fn build_ui(application: &gtk::Application, opt: &Opt) {
         }
     }
     app.update_pane_tree();
+
+    // Scrolling doesn't work until the window is shown, so post it to
+    // an idle callback.
+    glib::idle_add(|| {
+        APP.with(|app| {
+            let app = app.borrow();
+            // OK to unwrap because APP is always set on the main
+            // thread by the time this callback is run.
+            let app = app.as_ref().expect("APP is not set");
+            restore_scroll_positions(app);
+        });
+        Continue(false)
+    });
 
     for path in &opt.files {
         // TODO: unwrap
