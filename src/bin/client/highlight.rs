@@ -174,14 +174,7 @@ pub fn highlighter_thread(receiver: Receiver<HighlightRequest>) {
 
     let mut queue: Vec<HighlightRequest> = Vec::new();
 
-    loop {
-        // This can fail at program shutdown.
-        let req = if let Ok(req) = receiver.recv() {
-            req
-        } else {
-            break;
-        };
-
+    while let Ok(req) = receiver.recv() {
         // Check if the buffer is already in the queue and drop it if
         // so
         queue.retain(|elem| elem.buffer_id != req.buffer_id);
