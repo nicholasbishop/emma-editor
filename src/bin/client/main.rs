@@ -348,6 +348,7 @@ impl App {
     fn update_pane_tree(&self) {
         pane_tree::recursive_unparent_children(&self.split_root);
         self.split_root.append(&self.pane_tree.render());
+        self.pane_tree.active().grab_focus();
     }
 }
 
