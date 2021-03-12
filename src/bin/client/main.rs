@@ -356,11 +356,17 @@ fn restore_scroll_positions(app: &App) {
     for pane in app.pane_tree.leaf_vec() {
         let buf = pane.view().get_buffer();
         let offset = buf.get_property_cursor_position();
+        // TODO: I couldn't get any of the alignment stuff to do
+        // anything, it kept scrolling the window off to the right
+        // past where any text was. For now, just put the iterator at
+        // the start of the line and scroll there.
         let mut iter = buf.get_iter_at_offset(offset);
+        iter.set_line_offset(0);
+
         let within_margin = 0.0;
-        let use_align = false;
+        let use_align = true;
         let xalign = 0.0;
-        let yalign = 0.0;
+        let yalign = 0.5;
         pane.view().scroll_to_iter(
             &mut iter,
             within_margin,
