@@ -82,6 +82,14 @@ impl KeyMap {
             Action::Move(MovementStep::DisplayLines, Direction::Inc),
         );
         map.insert(
+            KeySequence::parse("<ctrl>a").unwrap(),
+            Action::Move(MovementStep::DisplayLineEnds, Direction::Dec),
+        );
+        map.insert(
+            KeySequence::parse("<ctrl>e").unwrap(),
+            Action::Move(MovementStep::DisplayLineEnds, Direction::Inc),
+        );
+        map.insert(
             KeySequence::parse("<alt>v").unwrap(),
             Action::Move(MovementStep::Pages, Direction::Dec),
         );
