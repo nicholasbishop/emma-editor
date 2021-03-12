@@ -225,7 +225,53 @@ impl App {
                 }
             }
             KeyMapLookup::Action(Action::Move(step, direction)) => {
-                text_view.emit_move_cursor(step, direction.to_i32(), false);
+                // TODO: code cleanup.
+                if step == gtk::MovementStep::DisplayLineEnds
+                    && direction == key_map::Direction::Dec
+                {
+                    let buf = text_view.get_buffer();
+                    let cur_offset = buf.get_property_cursor_position();
+                    let cur_iter = buf.get_iter_at_offset(cur_offset);
+
+                    // Get the current line of text.
+                    let mut line_start_iter = cur_iter.clone();
+                    line_start_iter.set_line_index(0);
+                    let mut line_end_iter = cur_iter.clone();
+                    line_end_iter.forward_to_line_end();
+                    let line_str = line_start_iter
+                        .get_text(&line_end_iter)
+                        .expect("invalid line");
+
+                    // Find the first non-whitespace character.
+                    let new_cur = if let Some(first_non_whitespace_index) =
+                        line_str
+                            .as_str()
+                            .chars()
+                            .position(|c| !c.is_whitespace())
+                    {
+                        let mut first_non_whitespace_iter =
+                            line_start_iter.clone();
+                        first_non_whitespace_iter
+                            .set_line_offset(first_non_whitespace_index as i32);
+
+                        // If the cursor is at that position already,
+                        // move to the beginning of the line.
+                        // Otherwise, move to that position.
+                        if first_non_whitespace_iter == cur_iter {
+                            line_start_iter
+                        } else {
+                            first_non_whitespace_iter
+                        }
+                    } else {
+                        // The whole line is whitespace, just move to
+                        // the beginning of the line.
+                        line_start_iter
+                    };
+
+                    buf.place_cursor(&new_cur);
+                } else {
+                    text_view.emit_move_cursor(step, direction.to_i32(), false);
+                }
             }
             KeyMapLookup::Action(Action::OpenShell) => {
                 // TODO fix unwrap
