@@ -131,7 +131,7 @@ impl Minibuf {
         let tag = if let Some(tag) = tag {
             tag
         } else {
-            let tag = gtk::TextTag::new(Some("prompt"));
+            let tag = gtk::TextTag::new(Some(tag_name));
             tag.set_property_editable(false);
             tag.set_property_foreground(Some("#edd400"));
             buf.get_tag_table().add(&tag);
