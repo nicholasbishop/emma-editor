@@ -9,7 +9,6 @@ Build/test/run:
 TODOs:
 
 * Change active view when clicking to focus a different pane
-* Close view
 * View layout history
 * M-x style commands in minibuf
 * Add line/col to info bar
