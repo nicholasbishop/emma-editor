@@ -8,6 +8,7 @@ mod pane_tree;
 mod persistence;
 mod shell;
 mod shell_unix;
+mod text_editor;
 mod theme;
 
 use {

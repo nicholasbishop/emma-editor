@@ -1,5 +1,5 @@
 use {
-    crate::buffer::Embuf,
+    crate::{buffer::Embuf, text_editor::TextEditor},
     gtk4::{self as gtk, prelude::*},
     std::{cell::RefCell, rc::Rc},
 };
@@ -14,6 +14,8 @@ struct PaneInternal {
 
     scrolled_window: gtk::ScrolledWindow,
     view: View,
+
+    editor: TextEditor,
 
     embuf: Embuf,
 
@@ -39,6 +41,9 @@ impl Pane {
         scrolled_window.set_child(Some(&view));
         scrolled_window.set_vexpand(true);
 
+        let editor = TextEditor::new();
+        crate::make_big(&editor.widget());
+
         let info = gtk::Label::new(None);
         info.set_widget_name("info");
         info.set_xalign(0.0);
@@ -46,6 +51,9 @@ impl Pane {
         let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
         container.set_widget_name("Pane");
         container.append(&scrolled_window);
+        // TODO
+        scrolled_window.hide();
+        container.append(&editor.widget());
         container.append(&info);
 
         let pane = Pane(Rc::new(RefCell::new(PaneInternal {
@@ -54,6 +62,7 @@ impl Pane {
             scrolled_window,
             view,
             embuf: embuf.clone(),
+            editor,
             is_active: false,
         })));
 

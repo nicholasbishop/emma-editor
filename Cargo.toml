@@ -19,6 +19,8 @@ dirs = "3.0"
 nix = "0.19"
 rand = "0.8"
 rusqlite = "0.24"
+
+ropey = "1.2"
 syntect = "4.5"
 
 bincode = "1.3"
