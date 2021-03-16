@@ -272,6 +272,8 @@ impl App {
                     buf.place_cursor(&new_cur);
                 } else {
                     text_view.emit_move_cursor(step, direction.to_i32(), false);
+                    // TODO
+                    self.pane_tree.active().editor().scroll(direction.to_i32());
                 }
             }
             KeyMapLookup::Action(Action::OpenShell) => {

@@ -78,6 +78,10 @@ impl Pane {
         self.borrow().view.clone()
     }
 
+    pub fn editor(&self) -> TextEditor {
+        self.borrow().editor.clone()
+    }
+
     pub fn embuf(&self) -> Embuf {
         self.borrow().embuf.clone()
     }
