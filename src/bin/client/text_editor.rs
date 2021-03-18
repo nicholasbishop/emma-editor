@@ -4,9 +4,11 @@ use {
     fehler::throws,
     fs_err as fs,
     gtk4::{self as gtk, cairo, prelude::*},
+    rand::{distributions::Alphanumeric, thread_rng, Rng},
     ropey::Rope,
     std::{
         cell::RefCell,
+        collections::HashMap,
         io,
         path::{Path, PathBuf},
         rc::Rc,
@@ -20,10 +22,32 @@ use {
     },
 };
 
+type EditorId = String;
+
+// TODO: deduplicate with buffer.rs
+fn make_id(prefix: &str) -> String {
+    let r: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(8)
+        .map(char::from)
+        .collect();
+    format!("{}-{}", prefix, r)
+}
+
+fn make_editor_id() -> EditorId {
+    make_id("editor")
+}
+
 #[derive(Debug)]
 struct StyleSpan {
     len: usize,
     style: Style,
+}
+
+#[derive(Clone, Debug)]
+struct Position {
+    line: usize,
+    line_offset: usize,
 }
 
 #[derive(Debug)]
@@ -36,6 +60,9 @@ pub struct Buffer {
     // whole line.
     // TODO: think about a smarter structure
     style_spans: Vec<Vec<StyleSpan>>,
+
+    /// Per-editor cursors.
+    cursors: HashMap<EditorId, Position>,
 }
 
 impl Buffer {
@@ -47,12 +74,17 @@ impl Buffer {
             text,
             path: path.into(),
             style_spans: Vec::new(),
+            cursors: HashMap::new(),
         };
 
         // TODO: run in background
         buffer.recalc_style_spans();
 
         buffer
+    }
+
+    fn set_cursor(&mut self, editor_id: &EditorId, pos: &Position) {
+        self.cursors.insert(editor_id.clone(), pos.clone());
     }
 
     // TODO: simple for now
@@ -118,6 +150,7 @@ fn set_source_from_syntect_color(
 
 #[derive(Debug)]
 struct TextEditorInternal {
+    id: String,
     widget: gtk::DrawingArea,
     buffer: Arc<RwLock<Buffer>>,
     top_line: usize,
@@ -155,6 +188,8 @@ impl TextEditorInternal {
 
         let guard = self.buffer.read().unwrap();
 
+        let cursor = guard.cursors.get(&self.id).unwrap();
+
         for (line_idx, line) in guard.text.lines_at(self.top_line).enumerate() {
             let line_idx = line_idx + self.top_line;
 
@@ -169,6 +204,7 @@ impl TextEditorInternal {
             let style_spans = &guard.style_spans[line_idx];
 
             let mut char_iter = line.chars();
+            let mut line_offset = 0;
             for span in style_spans {
                 set_source_from_syntect_color(ctx, &span.style.foreground);
 
@@ -179,7 +215,43 @@ impl TextEditorInternal {
                     if c == '\n' {
                         break;
                     }
-                    ctx.show_text(&c.to_string());
+
+                    let cs = c.to_string();
+
+                    // Set style for cursor.
+                    let is_cursor = line_idx == cursor.line
+                        && line_offset == cursor.line_offset;
+                    if is_cursor {
+                        let size = ctx.text_extents(&cs);
+                        let cur_point = ctx.get_current_point();
+                        // TODO: color from theme
+                        let r = 237.0 / 255.0;
+                        let g = 212.0 / 255.0;
+                        let b = 0.0;
+                        ctx.set_source_rgb(r, g, b);
+                        ctx.rectangle(
+                            cur_point.0,
+                            cur_point.1 - font_extents.height
+                                + (font_extents.height - font_extents.ascent),
+                            size.x_advance,
+                            font_extents.height,
+                        );
+                        ctx.fill();
+                        ctx.move_to(cur_point.0, cur_point.1);
+                        ctx.set_source_rgb(0.0, 0.0, 0.0);
+                    }
+
+                    ctx.show_text(&cs);
+
+                    if is_cursor {
+                        // Reset the style to the span style.
+                        set_source_from_syntect_color(
+                            ctx,
+                            &span.style.foreground,
+                        );
+                    }
+
+                    line_offset += 1;
                 }
             }
 
@@ -199,14 +271,24 @@ pub struct TextEditor {
 
 impl TextEditor {
     pub fn new() -> TextEditor {
+        let editor_id = make_editor_id();
+
         // TODO
-        let buffer = Arc::new(RwLock::new(
-            Buffer::from_path(Path::new("src/bin/client/main.rs")).unwrap(),
-        ));
+        let mut buffer =
+            Buffer::from_path(Path::new("src/bin/client/main.rs")).unwrap();
+        buffer.set_cursor(
+            &editor_id,
+            &Position {
+                line: 0,
+                line_offset: 0,
+            },
+        );
+        let buffer = Arc::new(RwLock::new(buffer));
 
         let widget = gtk::DrawingArea::new();
 
         let internal = TextEditorInternal {
+            id: editor_id,
             widget: widget.clone(),
             buffer,
             top_line: 0,
