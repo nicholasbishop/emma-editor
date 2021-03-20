@@ -61,6 +61,9 @@ pub struct Buffer {
     // TODO: think about a smarter structure
     style_spans: Vec<Vec<StyleSpan>>,
 
+    /// Editors currently showing this buffer.
+    editors: Vec<TextEditor>,
+
     /// Per-editor cursors.
     cursors: HashMap<EditorId, Position>,
 }
@@ -75,6 +78,7 @@ impl Buffer {
             path: path.into(),
             style_spans: Vec::new(),
             cursors: HashMap::new(),
+            editors: Vec::new(),
         };
 
         // TODO: run in background
@@ -369,7 +373,7 @@ impl TextEditor {
         let internal = TextEditorInternal {
             id: editor_id,
             widget: widget.clone(),
-            buffer,
+            buffer: buffer.clone(),
             top_line: 0,
             is_active: false,
         };
@@ -377,6 +381,11 @@ impl TextEditor {
         let editor = TextEditor {
             internal: Rc::new(RefCell::new(internal)),
         };
+        buffer
+            .write()
+            .expect("bad lock")
+            .editors
+            .push(editor.clone());
 
         let editor_clone = editor.clone();
         widget.set_draw_func(move |_widget, ctx, width, height| {
