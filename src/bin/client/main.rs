@@ -273,7 +273,11 @@ impl App {
                 } else {
                     text_view.emit_move_cursor(step, direction.to_i32(), false);
                     // TODO
-                    self.pane_tree.active().editor().scroll(direction.to_i32());
+                    // self.pane_tree.active().editor().scroll(direction.to_i32());
+                    self.pane_tree
+                        .active()
+                        .editor()
+                        .move_cursor_relative(step, direction);
                 }
             }
             KeyMapLookup::Action(Action::OpenShell) => {

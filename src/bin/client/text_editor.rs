@@ -1,9 +1,9 @@
 use {
-    crate::theme,
+    crate::{key_map::Direction, theme},
     anyhow::Error,
     fehler::throws,
     fs_err as fs,
-    gtk4::{self as gtk, cairo, prelude::*},
+    gtk4::{self as gtk, cairo, prelude::*, MovementStep},
     rand::{distributions::Alphanumeric, thread_rng, Rng},
     ropey::Rope,
     std::{
@@ -87,6 +87,43 @@ impl Buffer {
         self.cursors.insert(editor_id.clone(), pos.clone());
     }
 
+    fn move_cursor_relative(
+        &mut self,
+        editor_id: &EditorId,
+        step: MovementStep,
+        dir: Direction,
+    ) {
+        if let Some(cursor) = self.cursors.get_mut(editor_id) {
+            match step {
+                MovementStep::VisualPositions => {
+                    if dir == Direction::Dec {
+                        if cursor.line_offset == 0 {
+                            if cursor.line > 0 {
+                                cursor.line -= 1;
+                                cursor.line_offset =
+                                    self.text.line(cursor.line).len_chars() - 1;
+                            }
+                        } else {
+                            cursor.line_offset -= 1;
+                        }
+                    } else {
+                        if cursor.line_offset
+                            == self.text.line(cursor.line).len_chars() - 1
+                        {
+                            if cursor.line + 1 < self.text.len_lines() {
+                                cursor.line += 1;
+                                cursor.line_offset = 0;
+                            }
+                        } else {
+                            cursor.line_offset += 1;
+                        }
+                    }
+                }
+                _ => todo!(),
+            }
+        }
+    }
+
     // TODO: simple for now
     fn recalc_style_spans(&mut self) {
         self.style_spans.clear();
@@ -150,7 +187,7 @@ fn set_source_from_syntect_color(
 
 #[derive(Debug)]
 struct TextEditorInternal {
-    id: String,
+    id: EditorId,
     widget: gtk::DrawingArea,
     buffer: Arc<RwLock<Buffer>>,
     top_line: usize,
@@ -165,6 +202,14 @@ impl TextEditorInternal {
         } else if dir == 1 && self.top_line + 1 < num_lines {
             self.top_line += 1;
         }
+        self.widget.queue_draw();
+    }
+
+    fn move_cursor_relative(&self, step: MovementStep, dir: Direction) {
+        self.buffer
+            .write()
+            .expect("bad lock")
+            .move_cursor_relative(&self.id, step, dir);
         self.widget.queue_draw();
     }
 
@@ -210,12 +255,6 @@ impl TextEditorInternal {
 
                 for _ in 0..span.len {
                     let c = char_iter.next().unwrap();
-                    // Chop off the trailing newline. TODO: implement this
-                    // properly.
-                    if c == '\n' {
-                        break;
-                    }
-
                     let cs = c.to_string();
 
                     // Set style for cursor.
@@ -239,6 +278,12 @@ impl TextEditorInternal {
                         ctx.fill();
                         ctx.move_to(cur_point.0, cur_point.1);
                         ctx.set_source_rgb(0.0, 0.0, 0.0);
+                    }
+
+                    // Chop off the trailing newline. TODO: implement this
+                    // properly.
+                    if c == '\n' {
+                        break;
                     }
 
                     ctx.show_text(&cs);
@@ -313,5 +358,9 @@ impl TextEditor {
     // TODO
     pub fn scroll(&self, dir: i32) {
         self.internal.borrow_mut().scroll(dir);
+    }
+
+    pub fn move_cursor_relative(&self, step: MovementStep, dir: Direction) {
+        self.internal.borrow_mut().move_cursor_relative(step, dir);
     }
 }
