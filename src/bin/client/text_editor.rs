@@ -215,6 +215,7 @@ struct TextEditorInternal {
     widget: gtk::DrawingArea,
     buffer: Arc<RwLock<Buffer>>,
     top_line: usize,
+    is_active: bool,
 }
 
 impl TextEditorInternal {
@@ -299,9 +300,18 @@ impl TextEditorInternal {
                             size.x_advance,
                             font_extents.height,
                         );
-                        ctx.fill();
+                        if self.is_active {
+                            ctx.fill();
+                        } else {
+                            ctx.stroke();
+                        }
                         ctx.move_to(cur_point.0, cur_point.1);
-                        ctx.set_source_rgb(0.0, 0.0, 0.0);
+
+                        if self.is_active {
+                            // Set inverted text color. TODO: set from
+                            // theme?
+                            ctx.set_source_rgb(0.0, 0.0, 0.0);
+                        }
                     }
 
                     // Chop off the trailing newline. TODO: implement this
@@ -361,6 +371,7 @@ impl TextEditor {
             widget: widget.clone(),
             buffer,
             top_line: 0,
+            is_active: false,
         };
 
         let editor = TextEditor {
@@ -386,5 +397,11 @@ impl TextEditor {
 
     pub fn move_cursor_relative(&self, step: MovementStep, dir: Direction) {
         self.internal.borrow_mut().move_cursor_relative(step, dir);
+    }
+
+    pub fn set_active(&self, is_active: bool) {
+        let mut internal = self.internal.borrow_mut();
+        internal.is_active = is_active;
+        internal.widget.queue_draw();
     }
 }

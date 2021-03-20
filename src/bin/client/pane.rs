@@ -107,6 +107,7 @@ impl Pane {
         let mut internal = self.0.borrow_mut();
         internal.info.set_widget_name(info_name);
         internal.is_active = active;
+        internal.editor.set_active(active);
 
         if active {
             internal.view.grab_focus();
