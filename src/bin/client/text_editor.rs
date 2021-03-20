@@ -119,6 +119,30 @@ impl Buffer {
                         }
                     }
                 }
+                MovementStep::DisplayLines => {
+                    if dir == Direction::Dec {
+                        if cursor.line > 0 {
+                            cursor.line -= 1;
+                        }
+                    } else {
+                        if cursor.line + 1 < self.text.len_lines() {
+                            cursor.line += 1;
+                        }
+                    }
+                }
+                MovementStep::BufferEnds => {
+                    if dir == Direction::Dec {
+                        cursor.line = 0;
+                        cursor.line_offset = 0;
+                    } else {
+                        cursor.line = self.text.len_lines() - 1;
+                        cursor.line_offset = self
+                            .text
+                            .line(cursor.line)
+                            .len_chars()
+                            .saturating_sub(1);
+                    }
+                }
                 _ => todo!(),
             }
         }
