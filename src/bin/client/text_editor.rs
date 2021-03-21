@@ -44,7 +44,7 @@ struct StyleSpan {
     style: Style,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Position {
     line: usize,
     line_offset: usize,
@@ -87,7 +87,7 @@ impl Buffer {
         buffer
     }
 
-    fn set_cursor(&mut self, editor_id: &EditorId, pos: &Position) {
+    fn set_cursor(&mut self, editor_id: &EditorId, pos: Position) {
         self.cursors.insert(editor_id.clone(), pos.clone());
     }
 
@@ -361,7 +361,7 @@ impl TextEditor {
             Buffer::from_path(Path::new("src/bin/client/main.rs")).unwrap();
         buffer.set_cursor(
             &editor_id,
-            &Position {
+            Position {
                 line: 0,
                 line_offset: 0,
             },
