@@ -151,17 +151,6 @@ struct TextEditorInternal {
 }
 
 impl TextEditorInternal {
-    fn scroll(&mut self, dir: i32) {
-        let num_lines = self.buffer.read().unwrap().text.lines().count();
-
-        if dir == -1 && self.top_line > 0 {
-            self.top_line -= 1;
-        } else if dir == 1 && self.top_line + 1 < num_lines {
-            self.top_line += 1;
-        }
-        self.widget.queue_draw();
-    }
-
     fn move_cursor_relative(&mut self, step: MovementStep, dir: Direction) {
         let buf = self.buffer.read().expect("bad lock");
         let cursor = &mut self.cursor;
@@ -363,11 +352,6 @@ impl TextEditor {
 
     pub fn widget(&self) -> gtk::Widget {
         self.internal.borrow().widget.clone().upcast()
-    }
-
-    // TODO
-    pub fn scroll(&self, dir: i32) {
-        self.internal.borrow_mut().scroll(dir);
     }
 
     fn update_cursor_after_insert(&self, p: Position, line_added: bool) {
