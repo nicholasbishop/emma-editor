@@ -130,15 +130,26 @@ impl Buffer {
     }
 }
 
+fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
+    let r = (r as f64) / 255.0;
+    let g = (g as f64) / 255.0;
+    let b = (b as f64) / 255.0;
+    let a = (a as f64) / 255.0;
+    ctx.set_source_rgba(r, g, b, a);
+}
+
+fn set_source_rgb_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8) {
+    let r = (r as f64) / 255.0;
+    let g = (g as f64) / 255.0;
+    let b = (b as f64) / 255.0;
+    ctx.set_source_rgba(r, g, b, 1.0);
+}
+
 fn set_source_from_syntect_color(
     ctx: &cairo::Context,
     color: &syntect::highlighting::Color,
 ) {
-    let r = (color.r as f64) / 255.0;
-    let g = (color.g as f64) / 255.0;
-    let b = (color.b as f64) / 255.0;
-    let a = (color.a as f64) / 255.0;
-    ctx.set_source_rgba(r, g, b, a);
+    set_source_rgba_from_u8(ctx, color.r, color.g, color.b, color.a);
 }
 
 #[derive(Debug)]
@@ -151,6 +162,7 @@ struct TextEditorInternal {
 }
 
 impl TextEditorInternal {
+    #[allow(clippy::collapsible_if)]
     fn move_cursor_relative(&mut self, step: MovementStep, dir: Direction) {
         let buf = self.buffer.read().expect("bad lock");
         let cursor = &mut self.cursor;
@@ -211,8 +223,7 @@ impl TextEditorInternal {
     fn draw(&self, ctx: &cairo::Context, width: i32, height: i32) {
         // Fill in the background.
         ctx.rectangle(0.0, 0.0, width as f64, height as f64);
-        let v = 63.0 / 255.0;
-        ctx.set_source_rgb(v, v, v);
+        set_source_rgb_from_u8(ctx, 63, 63, 63);
         ctx.fill();
 
         ctx.select_font_face(
@@ -257,14 +268,10 @@ impl TextEditorInternal {
                         let size = ctx.text_extents(&cs);
                         let cur_point = ctx.get_current_point();
                         // TODO: color from theme
-                        let r = 237.0 / 255.0;
-                        let g = 212.0 / 255.0;
-                        let b = 0.0;
-                        ctx.set_source_rgb(r, g, b);
+                        set_source_rgb_from_u8(ctx, 237, 212, 0);
                         ctx.rectangle(
                             cur_point.0,
-                            cur_point.1 - font_extents.height
-                                + (font_extents.height - font_extents.ascent),
+                            cur_point.1 - font_extents.ascent,
                             size.x_advance,
                             font_extents.height,
                         );
@@ -354,6 +361,7 @@ impl TextEditor {
         self.internal.borrow().widget.clone().upcast()
     }
 
+    #[allow(clippy::collapsible_if)]
     fn update_cursor_after_insert(&self, p: Position, line_added: bool) {
         let mut internal = self.internal.borrow_mut();
         if line_added {
