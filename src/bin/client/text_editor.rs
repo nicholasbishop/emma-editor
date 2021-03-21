@@ -113,6 +113,21 @@ impl Buffer {
             );
         }
     }
+
+    fn char_index_from_position(&self, pos: Position) -> usize {
+        self.text.line_to_char(pos.line) + pos.line_offset
+    }
+
+    fn insert_char(&mut self, c: char, pos: Position) {
+        self.text.insert_char(self.char_index_from_position(pos), c);
+        // TODO, don't recalc everything and don't do it
+        // synchronously.
+        self.recalc_style_spans();
+        for editor in &self.editors {
+            editor.update_cursor_after_insert(pos, /*TODO*/ false);
+            editor.widget().queue_draw();
+        }
+    }
 }
 
 fn set_source_from_syntect_color(
@@ -355,6 +370,21 @@ impl TextEditor {
         self.internal.borrow_mut().scroll(dir);
     }
 
+    fn update_cursor_after_insert(&self, p: Position, line_added: bool) {
+        let mut internal = self.internal.borrow_mut();
+        if line_added {
+            if internal.cursor.line >= p.line {
+                internal.cursor.line += 1;
+            }
+        } else {
+            if internal.cursor.line == p.line
+                && internal.cursor.line_offset >= p.line_offset
+            {
+                internal.cursor.line_offset += 1;
+            }
+        }
+    }
+
     pub fn move_cursor_relative(&self, step: MovementStep, dir: Direction) {
         self.internal.borrow_mut().move_cursor_relative(step, dir);
     }
@@ -363,5 +393,11 @@ impl TextEditor {
         let mut internal = self.internal.borrow_mut();
         internal.is_active = is_active;
         internal.widget.queue_draw();
+    }
+
+    pub fn insert_char(&self, c: char) {
+        let pos = self.internal.borrow().cursor;
+        let buf = self.internal.borrow().buffer.clone();
+        buf.write().expect("bad lock").insert_char(c, pos);
     }
 }

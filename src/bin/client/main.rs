@@ -133,16 +133,17 @@ impl App {
         // shift, but currently that is treated as a valid
         // sequence. Need to figure out how to prevent that.
 
-        let atom = KeySequenceAtom::from_event(key, state);
+        let atom = KeySequenceAtom::from_event(key.clone(), state);
         self.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
-        let mut inhibit = Inhibit(true);
+        let inhibit = Inhibit(true);
         match keymap_stack.lookup(&self.cur_seq) {
             KeyMapLookup::NoEntry => {
-                // Allow default handling to occur, e.g. inserting a
-                // character into the text widget.
-                inhibit = Inhibit(false);
+                // Insert a character into the active pane.
+                if let Some(c) = key.to_unicode() {
+                    self.pane_tree.active().editor().insert_char(c);
+                }
             }
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
