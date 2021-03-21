@@ -4,11 +4,9 @@ use {
     fehler::throws,
     fs_err as fs,
     gtk4::{self as gtk, cairo, prelude::*, MovementStep},
-    rand::{distributions::Alphanumeric, thread_rng, Rng},
     ropey::Rope,
     std::{
         cell::RefCell,
-        collections::HashMap,
         io,
         path::{Path, PathBuf},
         rc::Rc,
@@ -22,29 +20,13 @@ use {
     },
 };
 
-type EditorId = String;
-
-// TODO: deduplicate with buffer.rs
-fn make_id(prefix: &str) -> String {
-    let r: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(8)
-        .map(char::from)
-        .collect();
-    format!("{}-{}", prefix, r)
-}
-
-fn make_editor_id() -> EditorId {
-    make_id("editor")
-}
-
 #[derive(Debug)]
 struct StyleSpan {
     len: usize,
     style: Style,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 struct Position {
     line: usize,
     line_offset: usize,
@@ -63,9 +45,6 @@ pub struct Buffer {
 
     /// Editors currently showing this buffer.
     editors: Vec<TextEditor>,
-
-    /// Per-editor cursors.
-    cursors: HashMap<EditorId, Position>,
 }
 
 impl Buffer {
@@ -77,7 +56,6 @@ impl Buffer {
             text,
             path: path.into(),
             style_spans: Vec::new(),
-            cursors: HashMap::new(),
             editors: Vec::new(),
         };
 
@@ -85,71 +63,6 @@ impl Buffer {
         buffer.recalc_style_spans();
 
         buffer
-    }
-
-    fn set_cursor(&mut self, editor_id: &EditorId, pos: Position) {
-        self.cursors.insert(editor_id.clone(), pos.clone());
-    }
-
-    fn move_cursor_relative(
-        &mut self,
-        editor_id: &EditorId,
-        step: MovementStep,
-        dir: Direction,
-    ) {
-        if let Some(cursor) = self.cursors.get_mut(editor_id) {
-            match step {
-                MovementStep::VisualPositions => {
-                    if dir == Direction::Dec {
-                        if cursor.line_offset == 0 {
-                            if cursor.line > 0 {
-                                cursor.line -= 1;
-                                cursor.line_offset =
-                                    self.text.line(cursor.line).len_chars() - 1;
-                            }
-                        } else {
-                            cursor.line_offset -= 1;
-                        }
-                    } else {
-                        if cursor.line_offset
-                            == self.text.line(cursor.line).len_chars() - 1
-                        {
-                            if cursor.line + 1 < self.text.len_lines() {
-                                cursor.line += 1;
-                                cursor.line_offset = 0;
-                            }
-                        } else {
-                            cursor.line_offset += 1;
-                        }
-                    }
-                }
-                MovementStep::DisplayLines => {
-                    if dir == Direction::Dec {
-                        if cursor.line > 0 {
-                            cursor.line -= 1;
-                        }
-                    } else {
-                        if cursor.line + 1 < self.text.len_lines() {
-                            cursor.line += 1;
-                        }
-                    }
-                }
-                MovementStep::BufferEnds => {
-                    if dir == Direction::Dec {
-                        cursor.line = 0;
-                        cursor.line_offset = 0;
-                    } else {
-                        cursor.line = self.text.len_lines() - 1;
-                        cursor.line_offset = self
-                            .text
-                            .line(cursor.line)
-                            .len_chars()
-                            .saturating_sub(1);
-                    }
-                }
-                _ => todo!(),
-            }
-        }
     }
 
     // TODO: simple for now
@@ -215,11 +128,11 @@ fn set_source_from_syntect_color(
 
 #[derive(Debug)]
 struct TextEditorInternal {
-    id: EditorId,
     widget: gtk::DrawingArea,
     buffer: Arc<RwLock<Buffer>>,
     top_line: usize,
     is_active: bool,
+    cursor: Position,
 }
 
 impl TextEditorInternal {
@@ -234,11 +147,60 @@ impl TextEditorInternal {
         self.widget.queue_draw();
     }
 
-    fn move_cursor_relative(&self, step: MovementStep, dir: Direction) {
-        self.buffer
-            .write()
-            .expect("bad lock")
-            .move_cursor_relative(&self.id, step, dir);
+    fn move_cursor_relative(&mut self, step: MovementStep, dir: Direction) {
+        let buf = self.buffer.read().expect("bad lock");
+        let cursor = &mut self.cursor;
+        match step {
+            MovementStep::VisualPositions => {
+                if dir == Direction::Dec {
+                    if cursor.line_offset == 0 {
+                        if cursor.line > 0 {
+                            cursor.line -= 1;
+                            cursor.line_offset =
+                                buf.text.line(cursor.line).len_chars() - 1;
+                        }
+                    } else {
+                        cursor.line_offset -= 1;
+                    }
+                } else {
+                    if cursor.line_offset
+                        == buf.text.line(cursor.line).len_chars() - 1
+                    {
+                        if cursor.line + 1 < buf.text.len_lines() {
+                            cursor.line += 1;
+                            cursor.line_offset = 0;
+                        }
+                    } else {
+                        cursor.line_offset += 1;
+                    }
+                }
+            }
+            MovementStep::DisplayLines => {
+                if dir == Direction::Dec {
+                    if cursor.line > 0 {
+                        cursor.line -= 1;
+                    }
+                } else {
+                    if cursor.line + 1 < buf.text.len_lines() {
+                        cursor.line += 1;
+                    }
+                }
+            }
+            MovementStep::BufferEnds => {
+                if dir == Direction::Dec {
+                    cursor.line = 0;
+                    cursor.line_offset = 0;
+                } else {
+                    cursor.line = buf.text.len_lines() - 1;
+                    cursor.line_offset = buf
+                        .text
+                        .line(cursor.line)
+                        .len_chars()
+                        .saturating_sub(1);
+                }
+            }
+            _ => todo!(),
+        }
         self.widget.queue_draw();
     }
 
@@ -261,8 +223,6 @@ impl TextEditorInternal {
         let mut y = margin;
 
         let guard = self.buffer.read().unwrap();
-
-        let cursor = guard.cursors.get(&self.id).unwrap();
 
         for (line_idx, line) in guard.text.lines_at(self.top_line).enumerate() {
             let line_idx = line_idx + self.top_line;
@@ -287,8 +247,8 @@ impl TextEditorInternal {
                     let cs = c.to_string();
 
                     // Set style for cursor.
-                    let is_cursor = line_idx == cursor.line
-                        && line_offset == cursor.line_offset;
+                    let is_cursor = line_idx == self.cursor.line
+                        && line_offset == self.cursor.line_offset;
                     if is_cursor {
                         let size = ctx.text_extents(&cs);
                         let cur_point = ctx.get_current_point();
@@ -354,28 +314,19 @@ pub struct TextEditor {
 
 impl TextEditor {
     pub fn new() -> TextEditor {
-        let editor_id = make_editor_id();
-
         // TODO
-        let mut buffer =
+        let buffer =
             Buffer::from_path(Path::new("src/bin/client/main.rs")).unwrap();
-        buffer.set_cursor(
-            &editor_id,
-            Position {
-                line: 0,
-                line_offset: 0,
-            },
-        );
         let buffer = Arc::new(RwLock::new(buffer));
 
         let widget = gtk::DrawingArea::new();
 
         let internal = TextEditorInternal {
-            id: editor_id,
             widget: widget.clone(),
             buffer: buffer.clone(),
             top_line: 0,
             is_active: false,
+            cursor: Position::default(),
         };
 
         let editor = TextEditor {
