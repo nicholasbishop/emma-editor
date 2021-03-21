@@ -1,11 +1,10 @@
 use {
-    crate::{shell::Shell, HighlightRequest},
+    crate::{shell::Shell, util, HighlightRequest},
     anyhow::Error,
     crossbeam_channel::Sender,
     fehler::throws,
     fs_err as fs,
     gtk4::{prelude::*, TextBuffer, TextTagTable},
-    rand::{distributions::Alphanumeric, thread_rng, Rng},
     std::{
         cell::RefCell,
         path::{Path, PathBuf},
@@ -18,12 +17,7 @@ pub type BufferId = String;
 pub type BufferGeneration = u64;
 
 fn make_buffer_id() -> BufferId {
-    let r: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(8)
-        .map(char::from)
-        .collect();
-    format!("buffer-{}", r)
+    util::make_id("buffer")
 }
 
 pub struct RestoreInfo {

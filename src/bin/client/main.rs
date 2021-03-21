@@ -10,6 +10,7 @@ mod shell;
 mod shell_unix;
 mod text_editor;
 mod theme;
+mod util;
 
 use {
     anyhow::Error,
