@@ -4,13 +4,14 @@ use {
     fehler::throws,
     fs_err as fs,
     gtk4::{self as gtk, cairo, prelude::*, MovementStep},
+    parking_lot::RwLock,
     ropey::Rope,
     std::{
         cell::RefCell,
         io,
         path::{Path, PathBuf},
         rc::Rc,
-        sync::{Arc, RwLock},
+        sync::Arc,
     },
     syntect::{
         highlighting::{
@@ -193,7 +194,7 @@ struct TextEditorInternal {
 impl TextEditorInternal {
     #[allow(clippy::collapsible_if)]
     fn move_cursor_relative(&mut self, step: MovementStep, dir: Direction) {
-        let buf = self.buffer.read().expect("bad lock");
+        let buf = self.buffer.read();
         let cursor = &mut self.cursor;
         match step {
             MovementStep::VisualPositions => {
@@ -255,7 +256,7 @@ impl TextEditorInternal {
         set_source_rgb_from_u8(ctx, 63, 63, 63);
         ctx.fill();
 
-        let guard = self.buffer.read().unwrap();
+        let guard = self.buffer.read();
         if guard.text.len_chars() == 0 {
             return;
         }
@@ -372,11 +373,7 @@ impl TextEditor {
         let editor = TextEditor {
             internal: Rc::new(RefCell::new(internal)),
         };
-        buffer
-            .write()
-            .expect("bad lock")
-            .editors
-            .push(editor.clone());
+        buffer.write().editors.push(editor.clone());
 
         let editor_clone = editor.clone();
         widget.set_draw_func(move |_widget, ctx, width, height| {
@@ -419,6 +416,6 @@ impl TextEditor {
     pub fn insert_char(&self, c: char) {
         let pos = self.internal.borrow().cursor;
         let buf = self.internal.borrow().buffer.clone();
-        buf.write().expect("bad lock").insert_char(c, pos);
+        buf.write().insert_char(c, pos);
     }
 }
