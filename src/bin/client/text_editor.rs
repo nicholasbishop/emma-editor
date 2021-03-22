@@ -1,5 +1,5 @@
 use {
-    crate::{key_map::Direction, theme},
+    crate::{key_map::Direction, theme, util},
     anyhow::Error,
     fehler::throws,
     fs_err as fs,
@@ -32,8 +32,18 @@ struct Position {
     line_offset: usize,
 }
 
+pub type BufferId = String;
+pub type BufferGeneration = u64;
+
+fn make_buffer_id() -> BufferId {
+    util::make_id("buffer")
+}
+
 #[derive(Debug)]
 pub struct Buffer {
+    id: BufferId,
+    gen: BufferGeneration,
+
     text: Rope,
     path: PathBuf,
 
@@ -49,10 +59,12 @@ pub struct Buffer {
 
 impl Buffer {
     #[throws]
-    pub fn from_path(path: &Path) -> Buffer {
+    pub fn from_path_with_id(path: &Path, id: BufferId) -> Buffer {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
         let mut buffer = Buffer {
+            id,
+            gen: 0,
             text,
             path: path.into(),
             style_spans: Vec::new(),
@@ -63,6 +75,11 @@ impl Buffer {
         buffer.recalc_style_spans();
 
         buffer
+    }
+
+    #[throws]
+    pub fn from_path(path: &Path) -> Buffer {
+        Buffer::from_path_with_id(path, make_buffer_id())?
     }
 
     // TODO: simple for now
@@ -119,6 +136,7 @@ impl Buffer {
     }
 
     fn insert_char(&mut self, c: char, pos: Position) {
+        self.gen += 1;
         self.text.insert_char(self.char_index_from_position(pos), c);
         // TODO, don't recalc everything and don't do it
         // synchronously.
