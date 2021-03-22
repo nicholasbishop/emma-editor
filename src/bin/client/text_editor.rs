@@ -58,6 +58,17 @@ pub struct Buffer {
 }
 
 impl Buffer {
+    pub fn new() -> Buffer {
+        Buffer {
+            id: make_buffer_id(),
+            gen: 0,
+            text: Rope::new(),
+            path: PathBuf::new(),
+            style_spans: Vec::new(),
+            editors: Vec::new(),
+        }
+    }
+
     #[throws]
     pub fn from_path_with_id(path: &Path, id: BufferId) -> Buffer {
         let text =
@@ -244,6 +255,11 @@ impl TextEditorInternal {
         set_source_rgb_from_u8(ctx, 63, 63, 63);
         ctx.fill();
 
+        let guard = self.buffer.read().unwrap();
+        if guard.text.len_chars() == 0 {
+            return;
+        }
+
         ctx.select_font_face(
             "DejaVu Sans Mono",
             cairo::FontSlant::Normal,
@@ -254,8 +270,6 @@ impl TextEditorInternal {
 
         let margin = 2.0;
         let mut y = margin;
-
-        let guard = self.buffer.read().unwrap();
 
         for (line_idx, line) in guard.text.lines_at(self.top_line).enumerate() {
             let line_idx = line_idx + self.top_line;
@@ -343,10 +357,7 @@ pub struct TextEditor {
 
 impl TextEditor {
     pub fn new() -> TextEditor {
-        // TODO
-        let buffer =
-            Buffer::from_path(Path::new("src/bin/client/main.rs")).unwrap();
-        let buffer = Arc::new(RwLock::new(buffer));
+        let buffer = Arc::new(RwLock::new(Buffer::new()));
 
         let widget = gtk::DrawingArea::new();
 
