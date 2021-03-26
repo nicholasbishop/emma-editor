@@ -1,1 +1,0 @@
-cargo fmt && ./run_tests && cargo build && cargo clippy && cargo run --bin client

@@ -1,2 +1,0 @@
-# Have to keep everything on a single thread for gdk
-cargo test -- --test-threads=1
