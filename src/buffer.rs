@@ -18,7 +18,7 @@ impl Buffer {
     pub fn from_path(path: &Path) -> Buffer {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
-        let mut buffer = Buffer {
+        let buffer = Buffer {
             text,
             path: path.into(),
         };

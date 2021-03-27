@@ -9,15 +9,6 @@ pub enum Direction {
     Inc,
 }
 
-impl Direction {
-    pub fn to_i32(&self) -> i32 {
-        match self {
-            Direction::Dec => -1,
-            Direction::Inc => 1,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {
     Exit,
