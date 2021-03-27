@@ -1,6 +1,8 @@
 mod app;
 mod buffer;
 mod draw;
+mod key_map;
+mod key_sequence;
 
 use gtk4::{self as gtk, prelude::*};
 

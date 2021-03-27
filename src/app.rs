@@ -1,5 +1,10 @@
 use {
-    crate::{buffer::Buffer, draw},
+    crate::{
+        buffer::Buffer,
+        draw,
+        key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
+        key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
+    },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
     parking_lot::RwLock,
     std::{cell::RefCell, sync::Arc},
@@ -14,6 +19,10 @@ std::thread_local! {
 pub struct App {
     window: gtk::ApplicationWindow,
     widget: gtk::DrawingArea,
+
+    base_keymap: KeyMap,
+    cur_seq: KeySequence,
+
     buffers: Vec<Arc<RwLock<Buffer>>>,
 }
 
@@ -23,7 +32,46 @@ impl App {
         key: gdk::keys::Key,
         state: gdk::ModifierType,
     ) -> Inhibit {
-        todo!();
+        let mut keymap_stack = KeyMapStack::default();
+        keymap_stack.push(self.base_keymap.clone());
+
+        // Ignore lone modifier presses.
+        if is_modifier(&key) {
+            return Inhibit(false);
+        }
+
+        // TODO: we want to ignore combo modifier presses too if no
+        // non-modifier key is selected, e.g. pressing alt and then
+        // shift, but currently that is treated as a valid
+        // sequence. Need to figure out how to prevent that.
+
+        let atom = KeySequenceAtom::from_event(key.clone(), state);
+        self.cur_seq.0.push(atom);
+
+        let mut clear_seq = true;
+        let inhibit = Inhibit(true);
+        match keymap_stack.lookup(&self.cur_seq) {
+            KeyMapLookup::BadSequence => {
+                // TODO: display some kind of non-blocking error
+                dbg!("bad seq", &self.cur_seq);
+            }
+            KeyMapLookup::Prefix => {
+                clear_seq = false;
+                // Waiting for the sequence to be completed.
+            }
+            KeyMapLookup::Action(Action::Exit) => {
+                self.window.close();
+            }
+            _ => {
+                todo!();
+            }
+        }
+
+        if clear_seq {
+            self.cur_seq.0.clear();
+        }
+
+        inhibit
     }
 }
 
@@ -62,6 +110,10 @@ pub fn init(application: &gtk::Application) {
     let app = App {
         window,
         widget,
+
+        base_keymap: KeyMap::new(),
+        cur_seq: KeySequence::default(),
+
         buffers: Vec::new(),
     };
 
