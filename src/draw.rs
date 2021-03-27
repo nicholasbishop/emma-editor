@@ -9,10 +9,7 @@ fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
 }
 
 fn set_source_rgb_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8) {
-    let r = (r as f64) / 255.0;
-    let g = (g as f64) / 255.0;
-    let b = (b as f64) / 255.0;
-    ctx.set_source_rgba(r, g, b, 1.0);
+    set_source_rgba_from_u8(ctx, r, g, b, 255);
 }
 
 pub fn draw(app: &App, ctx: &cairo::Context, width: i32, height: i32) {
