@@ -5,3 +5,22 @@ authors = ["Nicholas Bishop <nicholasbishop@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+# Error handling
+anyhow = "1.0"
+fehler = "1.0"
+fs-err = "2.5"
+thiserror = "1.0"
+
+# GUI
+gtk4 = { git = "https://github.com/gtk-rs/gtk4.git" }
+
+# Logging
+log = "0.4"
+env_logger = "0.8"
+
+# Sync
+parking_lot = "0.11"
+
+# Text
+ropey = "1.2"
+syntect = "4.5"
