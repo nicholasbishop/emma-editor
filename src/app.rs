@@ -24,10 +24,14 @@ pub struct App {
     cur_seq: KeySequence,
 
     buffers: HashMap<BufferId, Buffer>,
-    pub pane_tree: PaneTree,
+    pane_tree: PaneTree,
 }
 
 impl App {
+    pub fn pane_tree(&self) -> &PaneTree {
+        &self.pane_tree
+    }
+
     fn handle_key_press(
         &mut self,
         key: gdk::keys::Key,

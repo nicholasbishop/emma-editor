@@ -19,7 +19,7 @@ pub fn draw(app: &App, ctx: &cairo::Context, width: i32, height: i32) {
     ctx.fill();
 
     // TODO
-    for pane in app.pane_tree.panes() {
+    for pane in app.pane_tree().panes() {
         let rect = pane.rect();
         ctx.rectangle(rect.x, rect.y, rect.width, rect.height);
         set_source_rgb_from_u8(ctx, 63, 63, 63);
