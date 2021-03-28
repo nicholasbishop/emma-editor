@@ -4,8 +4,6 @@ use {
     crate::{
         buffer::{Buffer, BufferId},
         draw,
-        key_map::KeyMap,
-        key_sequence::KeySequence,
         pane_tree::PaneTree,
     },
     gtk4::{self as gtk, prelude::*},
@@ -21,8 +19,7 @@ std::thread_local! {
 pub struct App {
     window: gtk::ApplicationWindow,
 
-    base_keymap: KeyMap,
-    cur_seq: KeySequence,
+    key_handler: event::KeyHandler,
 
     buffers: HashMap<BufferId, Buffer>,
     pane_tree: PaneTree,
@@ -70,8 +67,7 @@ pub fn init(application: &gtk::Application) {
     let app = App {
         window,
 
-        base_keymap: KeyMap::new(),
-        cur_seq: KeySequence::default(),
+        key_handler: event::KeyHandler::new(),
 
         buffers,
         pane_tree: PaneTree::new(buffer_id),

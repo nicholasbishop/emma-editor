@@ -1,8 +1,8 @@
 use {
     super::{App, APP},
     crate::{
-        key_map::{Action, KeyMapLookup, KeyMapStack},
-        key_sequence::{is_modifier, KeySequenceAtom},
+        key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
+        key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
 };
@@ -21,6 +21,20 @@ pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
     window.add_controller(&key_controller);
 }
 
+pub(super) struct KeyHandler {
+    base_keymap: KeyMap,
+    cur_seq: KeySequence,
+}
+
+impl KeyHandler {
+    pub(super) fn new() -> KeyHandler {
+        KeyHandler {
+            base_keymap: KeyMap::new(),
+            cur_seq: KeySequence::default(),
+        }
+    }
+}
+
 impl App {
     pub(super) fn handle_key_press(
         &mut self,
@@ -28,7 +42,7 @@ impl App {
         state: gdk::ModifierType,
     ) -> Inhibit {
         let mut keymap_stack = KeyMapStack::default();
-        keymap_stack.push(self.base_keymap.clone());
+        keymap_stack.push(self.key_handler.base_keymap.clone());
 
         // Ignore lone modifier presses.
         if is_modifier(&key) {
@@ -41,14 +55,14 @@ impl App {
         // sequence. Need to figure out how to prevent that.
 
         let atom = KeySequenceAtom::from_event(key, state);
-        self.cur_seq.0.push(atom);
+        self.key_handler.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
         let inhibit = Inhibit(true);
-        match keymap_stack.lookup(&self.cur_seq) {
+        match keymap_stack.lookup(&self.key_handler.cur_seq) {
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
-                dbg!("bad seq", &self.cur_seq);
+                dbg!("bad seq", &self.key_handler.cur_seq);
             }
             KeyMapLookup::Prefix => {
                 clear_seq = false;
@@ -63,7 +77,7 @@ impl App {
         }
 
         if clear_seq {
-            self.cur_seq.0.clear();
+            self.key_handler.cur_seq.0.clear();
         }
 
         inhibit
