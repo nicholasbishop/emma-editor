@@ -38,20 +38,6 @@ impl App {
     }
 }
 
-fn create_keyboard_input_handler(window: &gtk::ApplicationWindow) {
-    let key_controller = gtk::EventControllerKey::new();
-    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
-    key_controller.connect_key_pressed(|_self, keyval, _keycode, state| {
-        APP.with(|app| {
-            app.borrow_mut()
-                .as_mut()
-                .unwrap()
-                .handle_key_press(keyval, state)
-        })
-    });
-    window.add_controller(&key_controller);
-}
-
 pub fn init(application: &gtk::Application) {
     // Create single widget that is used for drawing the whole
     // application.
@@ -73,7 +59,7 @@ pub fn init(application: &gtk::Application) {
     window.set_default_size(800, 800);
     window.set_child(Some(&widget));
     window.show();
-    create_keyboard_input_handler(&window);
+    event::create_gtk_key_handler(&window);
 
     // TODO: load a temporary buffer
     let buffer_id = BufferId::new();

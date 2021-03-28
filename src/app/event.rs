@@ -1,11 +1,25 @@
 use {
-    super::App,
+    super::{App, APP},
     crate::{
         key_map::{Action, KeyMapLookup, KeyMapStack},
         key_sequence::{is_modifier, KeySequenceAtom},
     },
-    gtk4::{gdk, glib::signal::Inhibit, prelude::*},
+    gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
 };
+
+pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
+    let key_controller = gtk::EventControllerKey::new();
+    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
+    key_controller.connect_key_pressed(|_self, keyval, _keycode, state| {
+        APP.with(|app| {
+            app.borrow_mut()
+                .as_mut()
+                .unwrap()
+                .handle_key_press(keyval, state)
+        })
+    });
+    window.add_controller(&key_controller);
+}
 
 impl App {
     pub(super) fn handle_key_press(
