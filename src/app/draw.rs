@@ -1,7 +1,4 @@
-use {
-    crate::{app::App, pane_tree::Pane},
-    gtk4::cairo,
-};
+use {super::App, crate::pane_tree::Pane, gtk4::cairo};
 
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
     let r = (r as f64) / 255.0;
@@ -111,19 +108,21 @@ fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
     }
 }
 
-pub fn draw(app: &App, ctx: &cairo::Context, width: i32, height: i32) {
-    // Fill in the background.
-    ctx.rectangle(0.0, 0.0, width as f64, height as f64);
-    set_source_rgb_from_u8(ctx, 63, 63, 255);
-    ctx.fill();
-
-    // TODO
-    for pane in app.pane_tree().panes() {
-        let rect = pane.rect();
-        ctx.rectangle(rect.x, rect.y, rect.width, rect.height);
-        set_source_rgb_from_u8(ctx, 63, 63, 63);
+impl App {
+    pub(super) fn draw(&self, ctx: &cairo::Context, width: i32, height: i32) {
+        // Fill in the background.
+        ctx.rectangle(0.0, 0.0, width as f64, height as f64);
+        set_source_rgb_from_u8(ctx, 63, 63, 255);
         ctx.fill();
 
-        draw_pane(app, ctx, pane);
+        // TODO
+        for pane in self.pane_tree().panes() {
+            let rect = pane.rect();
+            ctx.rectangle(rect.x, rect.y, rect.width, rect.height);
+            set_source_rgb_from_u8(ctx, 63, 63, 63);
+            ctx.fill();
+
+            draw_pane(self, ctx, pane);
+        }
     }
 }

@@ -1,6 +1,5 @@
 mod app;
 mod buffer;
-mod draw;
 mod key_map;
 mod key_sequence;
 mod pane_tree;

@@ -1,9 +1,9 @@
+mod draw;
 mod event;
 
 use {
     crate::{
         buffer::{Buffer, BufferId},
-        draw,
         pane_tree::PaneTree,
     },
     gtk4::{self as gtk, prelude::*},
@@ -46,7 +46,7 @@ pub fn init(application: &gtk::Application) {
                 .unwrap()
                 .pane_tree
                 .recalc_layout(width as f64, height as f64);
-            draw::draw(app.borrow().as_ref().unwrap(), ctx, width, height);
+            app.borrow().as_ref().unwrap().draw(ctx, width, height);
         })
     });
 

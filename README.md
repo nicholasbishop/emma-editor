@@ -5,7 +5,9 @@ Emma is a text editor.
 ## Code layout
 
 - main.rs: basic gtk4 setup
-- app.rs: top-level application state and event handling
+- app.rs: top-level application state
+- app/draw.rs: draw the app using Cairo
+- app/event.rs: event handling
 - key_sequence.rs: groups individual key presses into sequences
 - key_map.rs: maps key sequences to actions
 - buffer.rs: buffers represent something being edited, e.g. a text file
