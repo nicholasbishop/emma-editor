@@ -34,6 +34,7 @@ pub struct Pane {
 
     top_line: usize,
     cursor: Position,
+    is_active: bool,
 }
 
 impl Pane {
@@ -66,21 +67,19 @@ enum Node {
 
 pub struct PaneTree {
     root: Node,
-    active: PaneId,
 }
 
 impl PaneTree {
     pub fn new(buffer_id: BufferId) -> PaneTree {
-        let pane_id = PaneId::new();
         PaneTree {
             root: Node::Leaf(Pane {
-                id: pane_id.clone(),
+                id: PaneId::new(),
                 buffer_id,
                 rect: Rect::default(),
                 top_line: 0,
                 cursor: Position::default(),
+                is_active: true,
             }),
-            active: pane_id,
         }
     }
 
