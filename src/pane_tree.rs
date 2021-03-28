@@ -105,4 +105,13 @@ impl PaneTree {
         }
         r
     }
+
+    pub fn active_mut(&mut self) -> &mut Pane {
+        // TODO
+        if let Node::Leaf(pane) = &mut self.root {
+            pane
+        } else {
+            panic!();
+        }
+    }
 }
