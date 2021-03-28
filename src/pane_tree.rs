@@ -56,6 +56,10 @@ impl Pane {
         self.cursor
     }
 
+    pub fn set_cursor(&mut self, cursor: Position) {
+        self.cursor = cursor;
+    }
+
     pub fn is_active(&self) -> bool {
         self.is_active
     }
