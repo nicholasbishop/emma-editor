@@ -9,6 +9,7 @@ use {
     },
 };
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BufferId(String);
 
 impl BufferId {
