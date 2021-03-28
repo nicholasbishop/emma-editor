@@ -1,4 +1,7 @@
-use crate::{buffer::BufferId, util};
+use crate::{
+    buffer::{BufferId, Position},
+    util,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct PaneId(String);
@@ -28,6 +31,7 @@ pub struct Pane {
 
     pub buffer_id: BufferId,
     pub rect: Rect,
+    cursor: Position,
 }
 
 struct Internal {
@@ -53,6 +57,7 @@ impl PaneTree {
                 id: pane_id.clone(),
                 buffer_id,
                 rect: Rect::default(),
+                cursor: Position::default(),
             }),
             active: pane_id,
         }
