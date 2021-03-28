@@ -20,12 +20,8 @@ pub fn draw(app: &App, ctx: &cairo::Context, width: i32, height: i32) {
 
     // TODO
     for pane in app.pane_tree.panes() {
-        ctx.rectangle(
-            pane.rect.x,
-            pane.rect.y,
-            pane.rect.width,
-            pane.rect.height,
-        );
+        let rect = pane.rect();
+        ctx.rectangle(rect.x, rect.y, rect.width, rect.height);
         set_source_rgb_from_u8(ctx, 63, 63, 63);
         ctx.fill();
     }

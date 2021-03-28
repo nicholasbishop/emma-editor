@@ -29,9 +29,15 @@ pub struct Rect {
 pub struct Pane {
     id: PaneId,
 
-    pub buffer_id: BufferId,
-    pub rect: Rect,
+    buffer_id: BufferId,
+    rect: Rect,
     cursor: Position,
+}
+
+impl Pane {
+    pub fn rect(&self) -> &Rect {
+        &self.rect
+    }
 }
 
 struct Internal {
