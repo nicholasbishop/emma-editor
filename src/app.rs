@@ -18,7 +18,6 @@ std::thread_local! {
 
 pub struct App {
     window: gtk::ApplicationWindow,
-    widget: gtk::DrawingArea,
 
     base_keymap: KeyMap,
     cur_seq: KeySequence,
@@ -129,7 +128,6 @@ pub fn init(application: &gtk::Application) {
 
     let app = App {
         window,
-        widget,
 
         base_keymap: KeyMap::new(),
         cur_seq: KeySequence::default(),
