@@ -6,8 +6,7 @@ use {
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
-    parking_lot::RwLock,
-    std::{cell::RefCell, path::Path, sync::Arc},
+    std::{cell::RefCell, path::Path},
 };
 
 // This global is needed for callbacks on the main thread. On other
@@ -23,7 +22,7 @@ pub struct App {
     base_keymap: KeyMap,
     cur_seq: KeySequence,
 
-    buffers: Vec<Arc<RwLock<Buffer>>>,
+    buffers: Vec<Buffer>,
 }
 
 impl App {
@@ -107,10 +106,8 @@ pub fn init(application: &gtk::Application) {
     window.show();
     create_keyboard_input_handler(&window);
 
-    // TODO
-    let buffer = Arc::new(RwLock::new(
-        Buffer::from_path(Path::new("src/app.rs")).unwrap(),
-    ));
+    // TODO: load a temporary buffer
+    let buffer = Buffer::from_path(Path::new("src/app.rs")).unwrap();
 
     let app = App {
         window,
@@ -119,7 +116,7 @@ pub fn init(application: &gtk::Application) {
         base_keymap: KeyMap::new(),
         cur_seq: KeySequence::default(),
 
-        buffers: vec![buffer.clone()],
+        buffers: vec![buffer],
     };
 
     // Store app in global.
