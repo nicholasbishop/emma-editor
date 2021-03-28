@@ -3,6 +3,7 @@ mod buffer;
 mod draw;
 mod key_map;
 mod key_sequence;
+mod util;
 
 use gtk4::{self as gtk, prelude::*};
 

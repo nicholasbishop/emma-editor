@@ -1,7 +1,7 @@
 use {
+    crate::util,
     anyhow::Error,
     fehler::throws,
-    rand::{distributions::Alphanumeric, thread_rng, Rng},
     ropey::Rope,
     std::{
         fs, io,
@@ -14,12 +14,7 @@ pub struct BufferId(String);
 
 impl BufferId {
     fn new() -> BufferId {
-        let r: String = thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(8)
-            .map(char::from)
-            .collect();
-        BufferId(format!("buffer-{}", r))
+        BufferId(util::make_id("buffer"))
     }
 }
 
