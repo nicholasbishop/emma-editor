@@ -53,6 +53,10 @@ impl Pane {
     pub fn cursor(&self) -> Position {
         self.cursor
     }
+
+    pub fn is_active(&self) -> bool {
+        self.is_active
+    }
 }
 
 struct Internal {
