@@ -36,4 +36,8 @@ impl Buffer {
             path: path.into(),
         }
     }
+
+    pub fn id(&self) -> &BufferId {
+        &self.id
+    }
 }
