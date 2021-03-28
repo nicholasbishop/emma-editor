@@ -31,12 +31,26 @@ pub struct Pane {
 
     buffer_id: BufferId,
     rect: Rect,
+
+    top_line: usize,
     cursor: Position,
 }
 
 impl Pane {
+    pub fn buffer_id(&self) -> &BufferId {
+        &self.buffer_id
+    }
+
     pub fn rect(&self) -> &Rect {
         &self.rect
+    }
+
+    pub fn top_line(&self) -> usize {
+        self.top_line
+    }
+
+    pub fn cursor(&self) -> Position {
+        self.cursor
     }
 }
 
@@ -63,6 +77,7 @@ impl PaneTree {
                 id: pane_id.clone(),
                 buffer_id,
                 rect: Rect::default(),
+                top_line: 0,
                 cursor: Position::default(),
             }),
             active: pane_id,
