@@ -25,16 +25,6 @@ pub struct App {
     pane_tree: PaneTree,
 }
 
-impl App {
-    pub fn buffers(&self) -> &HashMap<BufferId, Buffer> {
-        &self.buffers
-    }
-
-    pub fn pane_tree(&self) -> &PaneTree {
-        &self.pane_tree
-    }
-}
-
 pub fn init(application: &gtk::Application) {
     // Create single widget that is used for drawing the whole
     // application.

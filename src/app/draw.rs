@@ -20,7 +20,7 @@ fn set_source_from_syntect_color(
 }
 
 fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
-    let buf = app.buffers().get(pane.buffer_id()).unwrap();
+    let buf = app.buffers.get(pane.buffer_id()).unwrap();
 
     ctx.select_font_face(
         "DejaVu Sans Mono",
@@ -116,7 +116,7 @@ impl App {
         ctx.fill();
 
         // TODO
-        for pane in self.pane_tree().panes() {
+        for pane in self.pane_tree.panes() {
             let rect = pane.rect();
             ctx.rectangle(rect.x, rect.y, rect.width, rect.height);
             set_source_rgb_from_u8(ctx, 63, 63, 63);
