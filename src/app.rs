@@ -1,13 +1,13 @@
 use {
     crate::{
-        buffer::Buffer,
+        buffer::{Buffer, BufferId},
         draw,
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
         pane_tree::PaneTree,
     },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
-    std::{cell::RefCell, path::Path},
+    std::{cell::RefCell, collections::HashMap, path::Path},
 };
 
 // This global is needed for callbacks on the main thread. On other
@@ -23,7 +23,7 @@ pub struct App {
     base_keymap: KeyMap,
     cur_seq: KeySequence,
 
-    buffers: Vec<Buffer>,
+    buffers: HashMap<BufferId, Buffer>,
     pub pane_tree: PaneTree,
 }
 
@@ -114,7 +114,10 @@ pub fn init(application: &gtk::Application) {
     create_keyboard_input_handler(&window);
 
     // TODO: load a temporary buffer
+    let buffer_id = BufferId::new();
     let buffer = Buffer::from_path(Path::new("src/app.rs")).unwrap();
+    let mut buffers = HashMap::new();
+    buffers.insert(buffer_id.clone(), buffer);
 
     let app = App {
         window,
@@ -123,8 +126,8 @@ pub fn init(application: &gtk::Application) {
         base_keymap: KeyMap::new(),
         cur_seq: KeySequence::default(),
 
-        pane_tree: PaneTree::new(buffer.id().clone()),
-        buffers: vec![buffer],
+        buffers,
+        pane_tree: PaneTree::new(buffer_id),
     };
 
     // Store app in global.

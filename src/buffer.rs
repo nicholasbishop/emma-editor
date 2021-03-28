@@ -9,18 +9,16 @@ use {
     },
 };
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct BufferId(String);
 
 impl BufferId {
-    fn new() -> BufferId {
+    pub fn new() -> BufferId {
         BufferId(util::make_id("buffer"))
     }
 }
 
 pub struct Buffer {
-    id: BufferId,
-
     text: Rope,
     path: PathBuf,
 }
@@ -31,13 +29,8 @@ impl Buffer {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
         Buffer {
-            id: BufferId::new(),
             text,
             path: path.into(),
         }
-    }
-
-    pub fn id(&self) -> &BufferId {
-        &self.id
     }
 }
