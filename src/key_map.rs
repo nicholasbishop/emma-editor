@@ -9,6 +9,7 @@ pub enum Direction {
     Inc,
 }
 
+#[allow(dead_code)] // TODO
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {
     Exit,
