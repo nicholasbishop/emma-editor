@@ -1,7 +1,7 @@
 use {
     super::{App, APP},
     crate::{
-        key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
+        key_map::{Action, Direction, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
@@ -36,6 +36,43 @@ impl KeyHandler {
 }
 
 impl App {
+    fn move_cursor(&mut self, step: Move, dir: Direction) {
+        let pane = self.pane_tree.active_mut();
+        let buf = self.buffers.get(pane.buffer_id()).unwrap();
+        let text = buf.text();
+        let mut cursor = pane.cursor();
+
+        match step {
+            Move::Char => {
+                if dir == Direction::Dec {
+                    if cursor.line_offset == 0 {
+                        if cursor.line > 0 {
+                            let line = text.line(cursor.line);
+                            cursor.line -= 1;
+                            cursor.line_offset = line.len_chars();
+                        }
+                    } else {
+                        cursor.line_offset -= 1;
+                    }
+                } else {
+                    let line = text.line(cursor.line);
+                    if cursor.line_offset + 1 == line.len_chars() {
+                        if cursor.line + 1 < text.len_lines() {
+                            cursor.line += 1;
+                            cursor.line_offset = 0;
+                        }
+                    } else {
+                        cursor.line_offset += 1;
+                    }
+                }
+            }
+            _ => todo!(),
+        }
+
+        pane.set_cursor(cursor);
+        self.widget.queue_draw();
+    }
+
     pub(super) fn handle_key_press(
         &mut self,
         key: gdk::keys::Key,
@@ -70,6 +107,9 @@ impl App {
             }
             KeyMapLookup::Action(Action::Exit) => {
                 self.window.close();
+            }
+            KeyMapLookup::Action(Action::Move(step, dir)) => {
+                self.move_cursor(step, dir);
             }
             _ => {
                 todo!();

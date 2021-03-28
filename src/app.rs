@@ -18,6 +18,7 @@ std::thread_local! {
 
 pub struct App {
     window: gtk::ApplicationWindow,
+    widget: gtk::DrawingArea,
 
     key_handler: event::KeyHandler,
 
@@ -56,6 +57,7 @@ pub fn init(application: &gtk::Application) {
 
     let app = App {
         window,
+        widget,
 
         key_handler: event::KeyHandler::new(),
 
