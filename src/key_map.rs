@@ -1,12 +1,21 @@
 use {
     crate::key_sequence::KeySequence, gtk4::gdk::ModifierType,
-    gtk4::MovementStep, std::collections::BTreeMap,
+    std::collections::BTreeMap,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Direction {
     Dec,
     Inc,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Move {
+    Char,
+    Line,
+    LineEnd,
+    Page,
+    BufferEnd,
 }
 
 #[allow(dead_code)] // TODO
@@ -27,7 +36,7 @@ pub enum Action {
     DeleteBuffer,
 
     /// Move the cursor in the active pane (or minibuf).
-    Move(MovementStep, Direction),
+    Move(Move, Direction),
 
     /// Interactively switch to a different buffer.
     SwitchToBuffer,
@@ -59,43 +68,43 @@ impl KeyMap {
 
         map.insert(
             KeySequence::parse("<ctrl>b").unwrap(),
-            Action::Move(MovementStep::VisualPositions, Direction::Dec),
+            Action::Move(Move::Char, Direction::Dec),
         );
         map.insert(
             KeySequence::parse("<ctrl>f").unwrap(),
-            Action::Move(MovementStep::VisualPositions, Direction::Inc),
+            Action::Move(Move::Char, Direction::Inc),
         );
         map.insert(
             KeySequence::parse("<ctrl>p").unwrap(),
-            Action::Move(MovementStep::DisplayLines, Direction::Dec),
+            Action::Move(Move::Line, Direction::Dec),
         );
         map.insert(
             KeySequence::parse("<ctrl>n").unwrap(),
-            Action::Move(MovementStep::DisplayLines, Direction::Inc),
+            Action::Move(Move::Line, Direction::Inc),
         );
         map.insert(
             KeySequence::parse("<ctrl>a").unwrap(),
-            Action::Move(MovementStep::DisplayLineEnds, Direction::Dec),
+            Action::Move(Move::LineEnd, Direction::Dec),
         );
         map.insert(
             KeySequence::parse("<ctrl>e").unwrap(),
-            Action::Move(MovementStep::DisplayLineEnds, Direction::Inc),
+            Action::Move(Move::LineEnd, Direction::Inc),
         );
         map.insert(
             KeySequence::parse("<alt>v").unwrap(),
-            Action::Move(MovementStep::Pages, Direction::Dec),
+            Action::Move(Move::Page, Direction::Dec),
         );
         map.insert(
             KeySequence::parse("<ctrl>v").unwrap(),
-            Action::Move(MovementStep::Pages, Direction::Inc),
+            Action::Move(Move::Page, Direction::Inc),
         );
         map.insert(
             KeySequence::parse("<alt><shift><less>").unwrap(),
-            Action::Move(MovementStep::BufferEnds, Direction::Dec),
+            Action::Move(Move::BufferEnd, Direction::Dec),
         );
         map.insert(
             KeySequence::parse("<alt><shift><greater>").unwrap(),
-            Action::Move(MovementStep::BufferEnds, Direction::Inc),
+            Action::Move(Move::BufferEnd, Direction::Inc),
         );
 
         map.insert(
