@@ -53,7 +53,7 @@ impl App {
         // shift, but currently that is treated as a valid
         // sequence. Need to figure out how to prevent that.
 
-        let atom = KeySequenceAtom::from_event(key.clone(), state);
+        let atom = KeySequenceAtom::from_event(key, state);
         self.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
