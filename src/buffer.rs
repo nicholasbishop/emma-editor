@@ -24,6 +24,12 @@ impl BufferId {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Position {
+    pub line: usize,
+    pub line_offset: usize,
+}
+
 #[derive(Debug)]
 struct StyleSpan {
     len: usize,
