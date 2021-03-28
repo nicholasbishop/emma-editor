@@ -28,6 +28,10 @@ pub struct App {
 }
 
 impl App {
+    pub fn buffers(&self) -> &HashMap<BufferId, Buffer> {
+        &self.buffers
+    }
+
     pub fn pane_tree(&self) -> &PaneTree {
         &self.pane_tree
     }
