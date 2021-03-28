@@ -4,6 +4,7 @@ use {
         draw,
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
+        pane_tree::PaneTree,
     },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
     std::{cell::RefCell, path::Path},
@@ -23,6 +24,7 @@ pub struct App {
     cur_seq: KeySequence,
 
     buffers: Vec<Buffer>,
+    pub pane_tree: PaneTree,
 }
 
 impl App {
@@ -94,6 +96,11 @@ pub fn init(application: &gtk::Application) {
     let widget = gtk::DrawingArea::new();
     widget.set_draw_func(|_widget, ctx, width, height| {
         APP.with(|app| {
+            app.borrow_mut()
+                .as_mut()
+                .unwrap()
+                .pane_tree
+                .recalc_layout(width as f64, height as f64);
             draw::draw(app.borrow().as_ref().unwrap(), ctx, width, height);
         })
     });
@@ -116,6 +123,7 @@ pub fn init(application: &gtk::Application) {
         base_keymap: KeyMap::new(),
         cur_seq: KeySequence::default(),
 
+        pane_tree: PaneTree::new(buffer.id().clone()),
         buffers: vec![buffer],
     };
 
