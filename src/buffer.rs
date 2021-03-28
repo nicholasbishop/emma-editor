@@ -31,9 +31,9 @@ pub struct Position {
 }
 
 #[derive(Debug)]
-struct StyleSpan {
-    len: usize,
-    style: Style,
+pub struct StyleSpan {
+    pub len: usize,
+    pub style: Style,
 }
 
 pub struct Buffer {
@@ -63,6 +63,14 @@ impl Buffer {
         buf.recalc_style_spans();
 
         buf
+    }
+
+    pub fn text(&self) -> &Rope {
+        &self.text
+    }
+
+    pub fn style_spans(&self) -> &Vec<Vec<StyleSpan>> {
+        &self.style_spans
     }
 
     // TODO: simple for now
