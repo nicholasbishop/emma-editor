@@ -24,10 +24,30 @@ impl BufferId {
     }
 }
 
+/// Char index within the buffer.
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Position {
+pub struct Position(pub usize);
+
+impl Position {
+    /// Convert the Position to a LinePosition.
+    pub fn line_position(&self, buf: &Buffer) -> LinePosition {
+        let text = &buf.text;
+
+        let line_idx = text.char_to_line(self.0);
+        let line_offset = self.0 - text.line_to_char(line_idx);
+
+        LinePosition {
+            line: line_idx,
+            offset: line_offset,
+        }
+    }
+}
+
+pub struct LinePosition {
+    /// Line index (zero-indexed).
     pub line: usize,
-    pub line_offset: usize,
+    /// Character offset from the start of the line.
+    pub offset: usize,
 }
 
 #[derive(Debug)]

@@ -45,24 +45,12 @@ impl App {
         match step {
             Move::Char => {
                 if dir == Direction::Dec {
-                    if cursor.line_offset == 0 {
-                        if cursor.line > 0 {
-                            let line = text.line(cursor.line);
-                            cursor.line -= 1;
-                            cursor.line_offset = line.len_chars();
-                        }
-                    } else {
-                        cursor.line_offset -= 1;
+                    if cursor.0 > 0 {
+                        cursor.0 -= 1;
                     }
                 } else {
-                    let line = text.line(cursor.line);
-                    if cursor.line_offset + 1 == line.len_chars() {
-                        if cursor.line + 1 < text.len_lines() {
-                            cursor.line += 1;
-                            cursor.line_offset = 0;
-                        }
-                    } else {
-                        cursor.line_offset += 1;
+                    if cursor.0 + 1 < text.len_chars() {
+                        cursor.0 += 1;
                     }
                 }
             }

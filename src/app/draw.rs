@@ -21,6 +21,7 @@ fn set_source_from_syntect_color(
 
 fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
     let buf = app.buffers.get(pane.buffer_id()).unwrap();
+    let cursor_line_pos = pane.cursor().line_position(buf);
 
     ctx.select_font_face(
         "DejaVu Sans Mono",
@@ -56,8 +57,8 @@ fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
                 let cs = c.to_string();
 
                 // Set style for cursor.
-                let is_cursor = line_idx == pane.cursor().line
-                    && line_offset == pane.cursor().line_offset;
+                let is_cursor = line_idx == cursor_line_pos.line
+                    && line_offset == cursor_line_pos.offset;
                 if is_cursor {
                     let size = ctx.text_extents(&cs);
                     let cur_point = ctx.get_current_point();
