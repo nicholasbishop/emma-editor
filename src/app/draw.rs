@@ -41,9 +41,7 @@ fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
 
         ctx.move_to(margin, y);
 
-        let v1 = 220.0 / 255.0;
-        let v2 = 204.0 / 255.0;
-        ctx.set_source_rgb(v1, v1, v2);
+        set_source_rgb_from_u8(ctx, 220, 220, 204);
 
         let style_spans = &buf.style_spans()[line_idx];
 
