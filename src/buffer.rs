@@ -133,9 +133,14 @@ impl Buffer {
             );
 
             self.style_spans.push(
-                iter.map(|(style, _text, range)| StyleSpan {
-                    len: range.len(),
-                    style,
+                iter.map(|(style, _text, range)| {
+                    // Convert from byte range to char range.
+                    let start = line.byte_to_char(range.start);
+                    let end = line.byte_to_char(range.end);
+                    StyleSpan {
+                        len: end - start,
+                        style,
+                    }
                 })
                 .collect(),
             );
