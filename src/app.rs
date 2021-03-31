@@ -37,7 +37,7 @@ pub fn init(application: &gtk::Application) {
                 .unwrap()
                 .pane_tree
                 .recalc_layout(width as f64, height as f64);
-            app.borrow().as_ref().unwrap().draw(ctx, width, height);
+            app.borrow().as_ref().unwrap().draw(ctx);
         })
     });
 
