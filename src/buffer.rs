@@ -43,6 +43,7 @@ impl Position {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default)]
 pub struct LinePosition {
     /// Line index (zero-indexed).
     pub line: usize,
