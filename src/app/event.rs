@@ -1,6 +1,7 @@
 use {
     super::{App, APP},
     crate::{
+        grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
         key_map::{Action, Direction, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
@@ -45,12 +46,19 @@ impl App {
         match step {
             Move::Char => {
                 if dir == Direction::Dec {
-                    if cursor.0 > 0 {
-                        cursor.0 -= 1;
-                    }
+                    cursor.0 = prev_grapheme_boundary(
+                        &text.slice(0..text.len_chars()),
+                        cursor.0,
+                    );
                 } else {
+                    // TODO: figure out why this if is needed but Dec
+                    // doesn't need it. (Cursor isn't drawn at end of
+                    // buffer?)
                     if cursor.0 + 1 < text.len_chars() {
-                        cursor.0 += 1;
+                        cursor.0 = next_grapheme_boundary(
+                            &text.slice(0..text.len_chars()),
+                            cursor.0,
+                        );
                     }
                 }
             }
