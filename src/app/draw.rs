@@ -7,10 +7,11 @@ use {
     },
     gtk4::{
         cairo,
-        pango::{self, FontDescription},
+        pango::{self, FontDescription, Layout},
     },
     ropey::RopeSlice,
     std::ops::Range,
+    syntect::highlighting::Style,
 };
 
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
@@ -32,11 +33,17 @@ fn set_source_from_syntect_color(
     set_source_rgba_from_u8(ctx, color.r, color.g, color.b, color.a);
 }
 
-fn layout_scaled_size(layout: &pango::Layout) -> (f64, f64) {
+fn layout_scaled_size(layout: &Layout) -> (f64, f64) {
     (
         layout.get_size().0 as f64 / pango::SCALE as f64,
         layout.get_size().1 as f64 / pango::SCALE as f64,
     )
+}
+
+struct StyledLayout<'a> {
+    layout: Layout,
+    style: &'a Style,
+    is_cursor: bool,
 }
 
 struct DrawPane {
@@ -77,7 +84,7 @@ impl DrawPane {
         ctx: &cairo::Context,
         line: &RopeSlice,
         range: Range<usize>,
-    ) -> pango::Layout {
+    ) -> Layout {
         self.span_buf.clear();
         for chunk in line.slice(range.clone()).chunks() {
             self.span_buf.push_str(chunk);
@@ -89,47 +96,28 @@ impl DrawPane {
         layout
     }
 
-    fn draw_layout(&mut self, ctx: &cairo::Context, layout: &pango::Layout) {
+    fn draw_layout(&mut self, ctx: &cairo::Context, layout: &Layout) {
         ctx.move_to(self.x, self.y);
         pangocairo::show_layout(ctx, layout);
         self.x += layout_scaled_size(layout).0;
     }
 
-    fn draw_line_range(
-        &mut self,
-        ctx: &cairo::Context,
-        line: &RopeSlice,
-        range: Range<usize>,
-    ) {
-        let layout = self.layout_line_range(ctx, line, range);
-        self.draw_layout(ctx, &layout);
-    }
-
-    fn draw_line(
+    fn styled_layouts_from_line<'a>(
         &mut self,
         ctx: &cairo::Context,
         pane: &Pane,
-        buf: &Buffer,
+        buf: &'a Buffer,
         line: &RopeSlice,
         line_idx: usize,
-        // TODO:
-        line_height: f64,
-    ) {
+    ) -> Vec<StyledLayout<'a>> {
+        let mut output = Vec::new();
+
         let line_idx = line_idx + pane.top_line();
-
-        self.x = 0.0;
-        self.y += line_height;
-
-        ctx.move_to(self.margin, self.y);
-
-        set_source_rgb_from_u8(ctx, 220, 220, 204);
 
         let style_spans = &buf.style_spans()[line_idx];
 
         let mut span_offset = 0;
         for span in style_spans {
-            set_source_from_syntect_color(ctx, &span.style.foreground);
-
             let span_range = span_offset..span_offset + span.len;
             span_offset += span.len;
 
@@ -152,15 +140,57 @@ impl DrawPane {
                 cursor_ranges = None;
             }
 
-            self.draw_line_range(ctx, &line, first_range);
+            output.push(StyledLayout {
+                layout: self.layout_line_range(ctx, &line, first_range),
+                style: &span.style,
+                is_cursor: false,
+            });
 
             if let Some((second_range, third_range)) = cursor_ranges {
-                let layout = self.layout_line_range(ctx, &line, second_range);
+                output.push(StyledLayout {
+                    layout: self.layout_line_range(ctx, &line, second_range),
+                    style: &span.style,
+                    is_cursor: true,
+                });
 
-                // Draw cursor
+                output.push(StyledLayout {
+                    layout: self.layout_line_range(ctx, &line, third_range),
+                    style: &span.style,
+                    is_cursor: false,
+                });
+            }
+        }
+
+        output
+    }
+
+    fn draw_line(
+        &mut self,
+        ctx: &cairo::Context,
+        pane: &Pane,
+        buf: &Buffer,
+        line: &RopeSlice,
+        line_idx: usize,
+        // TODO:
+        line_height: f64,
+    ) {
+        let line_idx = line_idx + pane.top_line();
+
+        self.x = 0.0;
+        self.y += line_height;
+
+        ctx.move_to(self.margin, self.y);
+
+        set_source_rgb_from_u8(ctx, 220, 220, 204);
+
+        let styled_layouts =
+            self.styled_layouts_from_line(ctx, pane, buf, line, line_idx);
+
+        for styled_layout in styled_layouts {
+            if styled_layout.is_cursor {
                 // TODO: color from theme
                 set_source_rgb_from_u8(ctx, 237, 212, 0);
-                let mut layout_size = layout_scaled_size(&layout);
+                let mut layout_size = layout_scaled_size(&styled_layout.layout);
                 if layout_size.0 == 0.0 {
                     // TODO: this is needed for at least newlines,
                     // which give (0, double-line-height), but
@@ -180,12 +210,13 @@ impl DrawPane {
                     // theme?
                     ctx.set_source_rgb(0.0, 0.0, 0.0);
                 }
-                self.draw_layout(ctx, &layout);
-
-                // Restore text color and draw the rest of the span.
-                set_source_from_syntect_color(ctx, &span.style.foreground);
-                self.draw_line_range(ctx, &line, third_range);
+            } else {
+                set_source_from_syntect_color(
+                    ctx,
+                    &styled_layout.style.foreground,
+                );
             }
+            self.draw_layout(ctx, &styled_layout.layout);
         }
     }
 
