@@ -51,7 +51,7 @@ pub fn init(application: &gtk::Application) {
 
     // TODO: load a temporary buffer
     let buffer_id = BufferId::new();
-    let buffer = Buffer::from_path(Path::new("src/app.rs")).unwrap();
+    let buffer = Buffer::from_path(Path::new("graphemes.txt")).unwrap();
     let mut buffers = HashMap::new();
     buffers.insert(buffer_id.clone(), buffer);
 

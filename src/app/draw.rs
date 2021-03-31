@@ -60,8 +60,16 @@ fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
     let buf = app.buffers.get(pane.buffer_id()).unwrap();
     let cursor_line_pos = pane.cursor().line_position(buf);
 
+    // TODO: prints out the list of font families
+    // let font_map = pangocairo::FontMap::get_default().unwrap();
+    // use gtk4::prelude::*;
+    // let families = font_map.list_families();
+    // for fam in families {
+    //     println!("{}", fam.get_name().unwrap());
+    // }
+
     let mut font_desc = FontDescription::new();
-    font_desc.set_family("sans");
+    font_desc.set_family("Monospace");
     font_desc.set_absolute_size(18.0 * pango::SCALE as f64);
 
     let font_extents = ctx.font_extents();
