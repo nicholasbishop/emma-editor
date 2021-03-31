@@ -147,6 +147,8 @@ fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
                 text_span.range = second_range;
                 text_span.draw();
 
+                // Restore text color and draw the rest of the span.
+                set_source_from_syntect_color(ctx, &span.style.foreground);
                 text_span.range = third_range;
                 text_span.draw();
             }
