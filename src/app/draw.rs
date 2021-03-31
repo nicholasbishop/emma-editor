@@ -1,7 +1,9 @@
 use {
     super::App,
     crate::{
-        buffer::Buffer, grapheme::next_grapheme_boundary, pane_tree::Pane,
+        buffer::{Buffer, LinePosition},
+        grapheme::next_grapheme_boundary,
+        pane_tree::Pane,
     },
     gtk4::{
         cairo,
@@ -40,6 +42,8 @@ fn layout_scaled_size(layout: &pango::Layout) -> (f64, f64) {
 struct DrawPane {
     font_desc: FontDescription,
     span_buf: String,
+    margin: f64,
+    cursor: LinePosition,
     x: f64,
     y: f64,
 }
@@ -61,6 +65,8 @@ impl DrawPane {
         DrawPane {
             font_desc,
             span_buf: String::new(),
+            margin: 2.0,
+            cursor: LinePosition::default(),
             x: 0.0,
             y: 0.0,
         }
@@ -99,6 +105,90 @@ impl DrawPane {
         self.draw_layout(ctx, &layout);
     }
 
+    fn draw_line(
+        &mut self,
+        ctx: &cairo::Context,
+        pane: &Pane,
+        buf: &Buffer,
+        line: &RopeSlice,
+        line_idx: usize,
+        // TODO:
+        line_height: f64,
+    ) {
+        let line_idx = line_idx + pane.top_line();
+
+        self.x = 0.0;
+        self.y += line_height;
+
+        ctx.move_to(self.margin, self.y);
+
+        set_source_rgb_from_u8(ctx, 220, 220, 204);
+
+        let style_spans = &buf.style_spans()[line_idx];
+
+        let mut span_offset = 0;
+        for span in style_spans {
+            set_source_from_syntect_color(ctx, &span.style.foreground);
+
+            let span_range = span_offset..span_offset + span.len;
+            span_offset += span.len;
+
+            let first_range;
+            let cursor_ranges;
+            if line_idx == self.cursor.line
+                && span_range.contains(&self.cursor.offset)
+            {
+                first_range = span_range.start..self.cursor.offset;
+
+                let cursor_end_char =
+                    next_grapheme_boundary(&line, self.cursor.offset);
+
+                cursor_ranges = Some((
+                    self.cursor.offset..cursor_end_char,
+                    cursor_end_char..span_range.end,
+                ));
+            } else {
+                first_range = span_range;
+                cursor_ranges = None;
+            }
+
+            self.draw_line_range(ctx, &line, first_range);
+
+            if let Some((second_range, third_range)) = cursor_ranges {
+                let layout = self.layout_line_range(ctx, &line, second_range);
+
+                // Draw cursor
+                // TODO: color from theme
+                set_source_rgb_from_u8(ctx, 237, 212, 0);
+                let mut layout_size = layout_scaled_size(&layout);
+                if layout_size.0 == 0.0 {
+                    // TODO: this is needed for at least newlines,
+                    // which give (0, double-line-height), but
+                    // might need to think about other kinds of
+                    // not-really-rendered characters as well.
+                    layout_size.0 = line_height / 2.0;
+                }
+                ctx.rectangle(self.x, self.y, layout_size.0, layout_size.1);
+                if pane.is_active() {
+                    ctx.fill();
+                } else {
+                    ctx.stroke();
+                }
+
+                if pane.is_active() {
+                    // Set inverted text color. TODO: set from
+                    // theme?
+                    ctx.set_source_rgb(0.0, 0.0, 0.0);
+                }
+                self.draw_layout(ctx, &layout);
+
+                // Restore text color and draw the rest of the span.
+                set_source_from_syntect_color(ctx, &span.style.foreground);
+                self.draw_line_range(ctx, &line, third_range);
+            }
+        }
+    }
+
     fn draw(&mut self, ctx: &cairo::Context, pane: &Pane, buf: &Buffer) {
         // Fill in the background.
         let rect = pane.rect();
@@ -106,88 +196,22 @@ impl DrawPane {
         set_source_rgb_from_u8(ctx, 63, 63, 63);
         ctx.fill();
 
-        let cursor_line_pos = pane.cursor().line_position(buf);
+        self.cursor = pane.cursor().line_position(buf);
 
         let font_extents = ctx.font_extents();
 
-        let margin = 2.0;
-        self.y = margin;
+        self.y = self.margin;
 
         for (line_idx, line) in buf.text().lines_at(pane.top_line()).enumerate()
         {
-            let line_idx = line_idx + pane.top_line();
-
-            self.x = 0.0;
-            self.y += font_extents.height;
-
-            ctx.move_to(margin, self.y);
-
-            set_source_rgb_from_u8(ctx, 220, 220, 204);
-
-            let style_spans = &buf.style_spans()[line_idx];
-
-            let mut span_offset = 0;
-            for span in style_spans {
-                set_source_from_syntect_color(ctx, &span.style.foreground);
-
-                let span_range = span_offset..span_offset + span.len;
-                span_offset += span.len;
-
-                let first_range;
-                let cursor_ranges;
-                if line_idx == cursor_line_pos.line
-                    && span_range.contains(&cursor_line_pos.offset)
-                {
-                    first_range = span_range.start..cursor_line_pos.offset;
-
-                    let cursor_end_char =
-                        next_grapheme_boundary(&line, cursor_line_pos.offset);
-
-                    cursor_ranges = Some((
-                        cursor_line_pos.offset..cursor_end_char,
-                        cursor_end_char..span_range.end,
-                    ));
-                } else {
-                    first_range = span_range;
-                    cursor_ranges = None;
-                }
-
-                self.draw_line_range(ctx, &line, first_range);
-
-                if let Some((second_range, third_range)) = cursor_ranges {
-                    let layout =
-                        self.layout_line_range(ctx, &line, second_range);
-
-                    // Draw cursor
-                    // TODO: color from theme
-                    set_source_rgb_from_u8(ctx, 237, 212, 0);
-                    let mut layout_size = layout_scaled_size(&layout);
-                    if layout_size.0 == 0.0 {
-                        // TODO: this is needed for at least newlines,
-                        // which give (0, double-line-height), but
-                        // might need to think about other kinds of
-                        // not-really-rendered characters as well.
-                        layout_size.0 = font_extents.height / 2.0;
-                    }
-                    ctx.rectangle(self.x, self.y, layout_size.0, layout_size.1);
-                    if pane.is_active() {
-                        ctx.fill();
-                    } else {
-                        ctx.stroke();
-                    }
-
-                    if pane.is_active() {
-                        // Set inverted text color. TODO: set from
-                        // theme?
-                        ctx.set_source_rgb(0.0, 0.0, 0.0);
-                    }
-                    self.draw_layout(ctx, &layout);
-
-                    // Restore text color and draw the rest of the span.
-                    set_source_from_syntect_color(ctx, &span.style.foreground);
-                    self.draw_line_range(ctx, &line, third_range);
-                }
-            }
+            self.draw_line(
+                ctx,
+                pane,
+                buf,
+                &line,
+                line_idx,
+                font_extents.height,
+            );
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
