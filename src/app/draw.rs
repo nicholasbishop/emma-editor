@@ -118,46 +118,32 @@ impl DrawPane {
 
         let mut span_offset = 0;
         for span in style_spans {
+            let mut push =
+                |me: &mut DrawPane, range: Range<usize>, is_cursor| {
+                    if !range.is_empty() {
+                        output.push(StyledLayout {
+                            layout: me.layout_line_range(ctx, &line, range),
+                            style: &span.style,
+                            is_cursor,
+                        });
+                    }
+                };
+
             let span_range = span_offset..span_offset + span.len;
             span_offset += span.len;
 
-            let first_range;
-            let cursor_ranges;
             if line_idx == self.cursor.line
                 && span_range.contains(&self.cursor.offset)
             {
-                first_range = span_range.start..self.cursor.offset;
+                push(self, span_range.start..self.cursor.offset, false);
 
                 let cursor_end_char =
                     next_grapheme_boundary(&line, self.cursor.offset);
 
-                cursor_ranges = Some((
-                    self.cursor.offset..cursor_end_char,
-                    cursor_end_char..span_range.end,
-                ));
+                push(self, self.cursor.offset..cursor_end_char, true);
+                push(self, cursor_end_char..span_range.end, false);
             } else {
-                first_range = span_range;
-                cursor_ranges = None;
-            }
-
-            output.push(StyledLayout {
-                layout: self.layout_line_range(ctx, &line, first_range),
-                style: &span.style,
-                is_cursor: false,
-            });
-
-            if let Some((second_range, third_range)) = cursor_ranges {
-                output.push(StyledLayout {
-                    layout: self.layout_line_range(ctx, &line, second_range),
-                    style: &span.style,
-                    is_cursor: true,
-                });
-
-                output.push(StyledLayout {
-                    layout: self.layout_line_range(ctx, &line, third_range),
-                    style: &span.style,
-                    is_cursor: false,
-                });
+                push(self, span_range, false);
             }
         }
 
