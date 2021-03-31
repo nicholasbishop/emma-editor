@@ -1,4 +1,13 @@
-use {super::App, crate::pane_tree::Pane, gtk4::cairo};
+use {
+    super::App,
+    crate::pane_tree::Pane,
+    gtk4::{
+        cairo,
+        pango::{self, FontDescription},
+    },
+    ropey::RopeSlice,
+    std::ops::Range,
+};
 
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
     let r = (r as f64) / 255.0;
@@ -19,24 +28,53 @@ fn set_source_from_syntect_color(
     set_source_rgba_from_u8(ctx, color.r, color.g, color.b, color.a);
 }
 
+struct TextSpan<'a> {
+    ctx: &'a cairo::Context,
+    line: RopeSlice<'a>,
+    font_desc: &'a FontDescription,
+    span_buf: &'a mut String,
+
+    x: &'a mut f64,
+    y: f64,
+
+    range: Range<usize>,
+}
+
+impl<'a> TextSpan<'a> {
+    fn draw(&mut self) {
+        self.span_buf.clear();
+        for chunk in self.line.slice(self.range.clone()).chunks() {
+            self.span_buf.push_str(chunk);
+        }
+
+        let layout = pangocairo::create_layout(self.ctx).unwrap();
+        layout.set_font_description(Some(self.font_desc));
+        layout.set_text(&self.span_buf);
+        self.ctx.move_to(*self.x, self.y);
+        pangocairo::show_layout(self.ctx, &layout);
+        *self.x += layout.get_size().0 as f64 / pango::SCALE as f64;
+    }
+}
+
 fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
     let buf = app.buffers.get(pane.buffer_id()).unwrap();
     let cursor_line_pos = pane.cursor().line_position(buf);
 
-    ctx.select_font_face(
-        "DejaVu Sans Mono",
-        cairo::FontSlant::Normal,
-        cairo::FontWeight::Normal,
-    );
-    ctx.set_font_size(18.0);
+    let mut font_desc = FontDescription::new();
+    font_desc.set_family("sans");
+    font_desc.set_absolute_size(18.0 * pango::SCALE as f64);
+
     let font_extents = ctx.font_extents();
 
     let margin = 2.0;
     let mut y = margin;
 
+    let mut span_buf = String::new();
+
     for (line_idx, line) in buf.text().lines_at(pane.top_line()).enumerate() {
         let line_idx = line_idx + pane.top_line();
 
+        let mut x = 0.0;
         y += font_extents.height;
 
         ctx.move_to(margin, y);
@@ -45,57 +83,63 @@ fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
 
         let style_spans = &buf.style_spans()[line_idx];
 
-        let mut char_iter = line.chars();
-        let mut line_offset = 0;
+        let mut span_offset = 0;
         for span in style_spans {
             set_source_from_syntect_color(ctx, &span.style.foreground);
 
-            for _ in 0..span.len {
-                let c = char_iter.next().unwrap();
-                let cs = c.to_string();
+            let span_range = span_offset..span_offset + span.len;
+            span_offset += span.len;
 
-                // Set style for cursor.
-                let is_cursor = line_idx == cursor_line_pos.line
-                    && line_offset == cursor_line_pos.offset;
-                if is_cursor {
-                    let size = ctx.text_extents(&cs);
-                    let cur_point = ctx.get_current_point();
-                    // TODO: color from theme
-                    set_source_rgb_from_u8(ctx, 237, 212, 0);
-                    ctx.rectangle(
-                        cur_point.0,
-                        cur_point.1 - font_extents.ascent,
-                        size.x_advance,
-                        font_extents.height,
-                    );
-                    if pane.is_active() {
-                        ctx.fill();
-                    } else {
-                        ctx.stroke();
-                    }
-                    ctx.move_to(cur_point.0, cur_point.1);
+            let first_range;
+            let cursor_ranges;
+            if line_idx == cursor_line_pos.line
+                && span_range.contains(&cursor_line_pos.offset)
+            {
+                first_range = span_range.start..cursor_line_pos.offset;
+                // TODO: fix len, should use grapheme?
+                let cursor_char_len = 1;
+                let second_range_end = cursor_line_pos.offset + cursor_char_len;
+                cursor_ranges = Some((
+                    cursor_line_pos.offset..second_range_end,
+                    second_range_end..span_range.end,
+                ));
+            } else {
+                first_range = span_range;
+                cursor_ranges = None;
+            }
 
-                    if pane.is_active() {
-                        // Set inverted text color. TODO: set from
-                        // theme?
-                        ctx.set_source_rgb(0.0, 0.0, 0.0);
-                    }
+            let mut text_span = TextSpan {
+                ctx,
+                line,
+                font_desc: &font_desc,
+                span_buf: &mut span_buf,
+                x: &mut x,
+                y,
+                range: first_range,
+            };
+            text_span.draw();
+
+            if let Some((second_range, third_range)) = cursor_ranges {
+                // Draw cursor
+                // TODO: color from theme
+                set_source_rgb_from_u8(ctx, 237, 212, 0);
+                ctx.rectangle(*text_span.x, y, 20.0, 20.0);
+                if pane.is_active() {
+                    ctx.fill();
+                } else {
+                    ctx.stroke();
                 }
 
-                // Chop off the trailing newline. TODO: implement this
-                // properly.
-                if c == '\n' {
-                    break;
+                if pane.is_active() {
+                    // Set inverted text color. TODO: set from
+                    // theme?
+                    ctx.set_source_rgb(0.0, 0.0, 0.0);
                 }
+                text_span.range = second_range;
+                text_span.draw();
 
-                ctx.show_text(&cs);
-
-                if is_cursor {
-                    // Reset the style to the span style.
-                    set_source_from_syntect_color(ctx, &span.style.foreground);
-                }
-
-                line_offset += 1;
+                text_span.range = third_range;
+                text_span.draw();
             }
         }
 
