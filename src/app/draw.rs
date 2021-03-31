@@ -1,6 +1,6 @@
 use {
     super::App,
-    crate::pane_tree::Pane,
+    crate::{grapheme::next_grapheme_boundary, pane_tree::Pane},
     gtk4::{
         cairo,
         pango::{self, FontDescription},
@@ -96,12 +96,13 @@ fn draw_pane(app: &App, ctx: &cairo::Context, pane: &Pane) {
                 && span_range.contains(&cursor_line_pos.offset)
             {
                 first_range = span_range.start..cursor_line_pos.offset;
-                // TODO: fix len, should use grapheme?
-                let cursor_char_len = 1;
-                let second_range_end = cursor_line_pos.offset + cursor_char_len;
+
+                let cursor_end_char =
+                    next_grapheme_boundary(&line, cursor_line_pos.offset);
+
                 cursor_ranges = Some((
-                    cursor_line_pos.offset..second_range_end,
-                    second_range_end..span_range.end,
+                    cursor_line_pos.offset..cursor_end_char,
+                    cursor_end_char..span_range.end,
                 ));
             } else {
                 first_range = span_range;
