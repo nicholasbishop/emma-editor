@@ -157,7 +157,6 @@ impl DrawPane {
         buf: &Buffer,
         line: &RopeSlice,
         line_idx: usize,
-        // TODO:
         line_height: f64,
     ) {
         let line_idx = line_idx + pane.top_line();
@@ -176,6 +175,7 @@ impl DrawPane {
             if styled_layout.is_cursor {
                 // TODO: color from theme
                 set_source_rgb_from_u8(ctx, 237, 212, 0);
+                // TODO: rework this, don't need scaled height any more
                 let mut layout_size = layout_scaled_size(&styled_layout.layout);
                 if layout_size.0 == 0.0 {
                     // TODO: this is needed for at least newlines,
@@ -184,7 +184,7 @@ impl DrawPane {
                     // not-really-rendered characters as well.
                     layout_size.0 = line_height / 2.0;
                 }
-                ctx.rectangle(self.x, self.y, layout_size.0, layout_size.1);
+                ctx.rectangle(self.x, self.y, layout_size.0, line_height);
                 if pane.is_active() {
                     ctx.fill();
                 } else {
@@ -215,20 +215,17 @@ impl DrawPane {
 
         self.cursor = pane.cursor().line_position(buf);
 
-        let font_extents = ctx.font_extents();
+        let pctx = pangocairo::create_context(ctx).unwrap();
+        let language = None;
+        let metrics =
+            pctx.get_metrics(Some(&self.font_desc), language).unwrap();
+        let line_height = metrics.get_height() as f64 / pango::SCALE as f64;
 
         self.y = self.margin;
 
         for (line_idx, line) in buf.text().lines_at(pane.top_line()).enumerate()
         {
-            self.draw_line(
-                ctx,
-                pane,
-                buf,
-                &line,
-                line_idx,
-                font_extents.height,
-            );
+            self.draw_line(ctx, pane, buf, &line, line_idx, line_height);
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
