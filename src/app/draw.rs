@@ -33,11 +33,8 @@ fn set_source_from_syntect_color(
     set_source_rgba_from_u8(ctx, color.r, color.g, color.b, color.a);
 }
 
-fn layout_scaled_size(layout: &Layout) -> (f64, f64) {
-    (
-        layout.get_size().0 as f64 / pango::SCALE as f64,
-        layout.get_size().1 as f64 / pango::SCALE as f64,
-    )
+fn pango_unscale(i: i32) -> f64 {
+    i as f64 / pango::SCALE as f64
 }
 
 struct StyledLayout<'a> {
@@ -67,6 +64,7 @@ impl DrawPane {
 
         let mut font_desc = FontDescription::new();
         font_desc.set_family("Monospace");
+        // TODO
         font_desc.set_absolute_size(18.0 * pango::SCALE as f64);
 
         DrawPane {
@@ -99,7 +97,7 @@ impl DrawPane {
     fn draw_layout(&mut self, ctx: &cairo::Context, layout: &Layout) {
         ctx.move_to(self.x, self.y);
         pangocairo::show_layout(ctx, layout);
-        self.x += layout_scaled_size(layout).0;
+        self.x += pango_unscale(layout.get_size().0);
     }
 
     fn styled_layouts_from_line<'a>(
@@ -175,16 +173,16 @@ impl DrawPane {
             if styled_layout.is_cursor {
                 // TODO: color from theme
                 set_source_rgb_from_u8(ctx, 237, 212, 0);
-                // TODO: rework this, don't need scaled height any more
-                let mut layout_size = layout_scaled_size(&styled_layout.layout);
-                if layout_size.0 == 0.0 {
+                let mut cursor_width =
+                    pango_unscale(styled_layout.layout.get_size().0);
+                if cursor_width == 0.0 {
                     // TODO: this is needed for at least newlines,
                     // which give (0, double-line-height), but
                     // might need to think about other kinds of
                     // not-really-rendered characters as well.
-                    layout_size.0 = line_height / 2.0;
+                    cursor_width = line_height / 2.0;
                 }
-                ctx.rectangle(self.x, self.y, layout_size.0, line_height);
+                ctx.rectangle(self.x, self.y, cursor_width, line_height);
                 if pane.is_active() {
                     ctx.fill();
                 } else {
@@ -219,7 +217,7 @@ impl DrawPane {
         let language = None;
         let metrics =
             pctx.get_metrics(Some(&self.font_desc), language).unwrap();
-        let line_height = metrics.get_height() as f64 / pango::SCALE as f64;
+        let line_height = pango_unscale(metrics.get_height());
 
         self.y = self.margin;
 
