@@ -1,5 +1,5 @@
 use {
-    crate::{theme, util},
+    crate::{grapheme::next_grapheme_boundary, theme, util},
     anyhow::Error,
     fehler::throws,
     ropey::Rope,
@@ -29,6 +29,10 @@ impl BufferId {
 pub struct Position(pub usize);
 
 impl Position {
+    pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> Position {
+        Position(buf.text.line_to_char(pos.line) + pos.offset)
+    }
+
     /// Convert the Position to a LinePosition.
     pub fn line_position(&self, buf: &Buffer) -> LinePosition {
         let text = &buf.text;
@@ -49,6 +53,47 @@ pub struct LinePosition {
     pub line: usize,
     /// Character offset from the start of the line.
     pub offset: usize,
+}
+
+impl LinePosition {
+    /// Count the number of graphemes between the start of the line
+    /// and the line offset.
+    pub fn grapheme_offset(&self, buf: &Buffer) -> usize {
+        let line = buf.text.line(self.line);
+        let mut num_graphemes = 0;
+        let mut cur_offset = 0;
+        while cur_offset < self.offset {
+            let new_offset = next_grapheme_boundary(&line, cur_offset);
+            if cur_offset == new_offset {
+                break;
+            } else {
+                num_graphemes += 1;
+                cur_offset = new_offset;
+            }
+        }
+        num_graphemes
+    }
+
+    /// Set the offset to point after the specified number of
+    /// graphemes. This is truncated to the end of the line in case
+    /// there are fewer graphemes in the line than requested.
+    pub fn set_offset_in_graphemes(
+        &mut self,
+        buf: &Buffer,
+        mut num_graphemes: usize,
+    ) {
+        let line = buf.text.line(self.line);
+        let num_chars = line.len_chars();
+        self.offset = 0;
+        while num_graphemes > 0 {
+            self.offset = next_grapheme_boundary(&line, self.offset);
+            num_graphemes -= 1;
+            if self.offset >= num_chars {
+                self.offset = num_chars;
+                break;
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
