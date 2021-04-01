@@ -48,6 +48,7 @@ struct DrawPane {
     span_buf: String,
     margin: f64,
     cursor: LinePosition,
+    line_height: f64,
     x: f64,
     y: f64,
 }
@@ -72,6 +73,7 @@ impl DrawPane {
             span_buf: String::new(),
             margin: 2.0,
             cursor: LinePosition::default(),
+            line_height: 0.0,
             x: 0.0,
             y: 0.0,
         }
@@ -153,7 +155,6 @@ impl DrawPane {
         ctx: &cairo::Context,
         pane: &Pane,
         styled_layout: &StyledLayout,
-        line_height: f64,
     ) {
         // TODO: color from theme
         set_source_rgb_from_u8(ctx, 237, 212, 0);
@@ -163,9 +164,9 @@ impl DrawPane {
             // which give (0, double-line-height), but
             // might need to think about other kinds of
             // not-really-rendered characters as well.
-            cursor_width = line_height / 2.0;
+            cursor_width = self.line_height / 2.0;
         }
-        ctx.rectangle(self.x, self.y, cursor_width, line_height);
+        ctx.rectangle(self.x, self.y, cursor_width, self.line_height);
         if pane.is_active() {
             ctx.fill();
         } else {
@@ -180,12 +181,11 @@ impl DrawPane {
         buf: &Buffer,
         line: &RopeSlice,
         line_idx: usize,
-        line_height: f64,
     ) {
         let line_idx = line_idx + pane.top_line();
 
         self.x = 0.0;
-        self.y += line_height;
+        self.y += self.line_height;
 
         ctx.move_to(self.margin, self.y);
 
@@ -196,7 +196,7 @@ impl DrawPane {
 
         for styled_layout in styled_layouts {
             if styled_layout.is_cursor {
-                self.draw_cursor(ctx, pane, &styled_layout, line_height);
+                self.draw_cursor(ctx, pane, &styled_layout);
 
                 if pane.is_active() {
                     // Set inverted text color. TODO: set from
@@ -226,13 +226,13 @@ impl DrawPane {
         let language = None;
         let metrics =
             pctx.get_metrics(Some(&self.font_desc), language).unwrap();
-        let line_height = pango_unscale(metrics.get_height());
+        self.line_height = pango_unscale(metrics.get_height());
 
         self.y = self.margin;
 
         for (line_idx, line) in buf.text().lines_at(pane.top_line()).enumerate()
         {
-            self.draw_line(ctx, pane, buf, &line, line_idx, line_height);
+            self.draw_line(ctx, pane, buf, &line, line_idx);
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
