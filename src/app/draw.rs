@@ -185,7 +185,6 @@ impl DrawPane {
         let line_idx = line_idx + pane.top_line();
 
         self.x = 0.0;
-        self.y += self.line_height;
 
         ctx.move_to(self.margin, self.y);
 
@@ -211,6 +210,8 @@ impl DrawPane {
             }
             self.draw_layout(ctx, &styled_layout.layout);
         }
+
+        self.y += self.line_height;
     }
 
     fn draw(&mut self, ctx: &cairo::Context, pane: &Pane, buf: &Buffer) {
