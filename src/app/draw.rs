@@ -148,6 +148,31 @@ impl DrawPane {
         output
     }
 
+    fn draw_cursor(
+        &mut self,
+        ctx: &cairo::Context,
+        pane: &Pane,
+        styled_layout: &StyledLayout,
+        line_height: f64,
+    ) {
+        // TODO: color from theme
+        set_source_rgb_from_u8(ctx, 237, 212, 0);
+        let mut cursor_width = pango_unscale(styled_layout.layout.get_size().0);
+        if cursor_width == 0.0 {
+            // TODO: this is needed for at least newlines,
+            // which give (0, double-line-height), but
+            // might need to think about other kinds of
+            // not-really-rendered characters as well.
+            cursor_width = line_height / 2.0;
+        }
+        ctx.rectangle(self.x, self.y, cursor_width, line_height);
+        if pane.is_active() {
+            ctx.fill();
+        } else {
+            ctx.stroke();
+        }
+    }
+
     fn draw_line(
         &mut self,
         ctx: &cairo::Context,
@@ -171,23 +196,7 @@ impl DrawPane {
 
         for styled_layout in styled_layouts {
             if styled_layout.is_cursor {
-                // TODO: color from theme
-                set_source_rgb_from_u8(ctx, 237, 212, 0);
-                let mut cursor_width =
-                    pango_unscale(styled_layout.layout.get_size().0);
-                if cursor_width == 0.0 {
-                    // TODO: this is needed for at least newlines,
-                    // which give (0, double-line-height), but
-                    // might need to think about other kinds of
-                    // not-really-rendered characters as well.
-                    cursor_width = line_height / 2.0;
-                }
-                ctx.rectangle(self.x, self.y, cursor_width, line_height);
-                if pane.is_active() {
-                    ctx.fill();
-                } else {
-                    ctx.stroke();
-                }
+                self.draw_cursor(ctx, pane, &styled_layout, line_height);
 
                 if pane.is_active() {
                     // Set inverted text color. TODO: set from
