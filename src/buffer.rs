@@ -11,7 +11,7 @@ use {
         highlighting::{
             HighlightState, Highlighter, RangedHighlightIterator, Style,
         },
-        parsing::{ParseState, ScopeStack, SyntaxSet},
+        parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet},
     },
 };
 
@@ -104,7 +104,7 @@ pub struct StyleSpan {
 
 pub struct Buffer {
     text: Rope,
-    path: PathBuf,
+    path: Option<PathBuf>,
 
     // Outer vec: per line
     // Inner vec: style for a contiguous group of chars, covers the
@@ -121,7 +121,7 @@ impl Buffer {
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
         let mut buf = Buffer {
             text,
-            path: path.into(),
+            path: Some(path.into()),
             style_spans: Vec::new(),
         };
 
@@ -158,6 +158,19 @@ impl Buffer {
         // TODO: queue up a style recalc
     }
 
+    fn get_syntax<'a>(&self, syntax_set: &'a SyntaxSet) -> &'a SyntaxReference {
+        if let Some(path) = &self.path {
+            if let Ok(Some(syntax)) = syntax_set.find_syntax_for_file(path) {
+                return syntax;
+            }
+        }
+
+        // Fall back to plain text.
+        syntax_set
+            .find_syntax_by_name("Plain Text")
+            .expect("missing plain text syntax")
+    }
+
     // TODO: simple for now
     fn recalc_style_spans(&mut self) {
         self.style_spans.clear();
@@ -166,13 +179,7 @@ impl Buffer {
         let syntax_set = SyntaxSet::load_defaults_newlines();
         let theme = theme::load_default_theme().unwrap();
 
-        let syntax = if let Ok(Some(syntax)) =
-            syntax_set.find_syntax_for_file(&self.path)
-        {
-            syntax
-        } else {
-            return;
-        };
+        let syntax = self.get_syntax(&syntax_set);
 
         let mut parse_state = ParseState::new(syntax);
         let highlighter = Highlighter::new(&theme);
