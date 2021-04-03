@@ -80,6 +80,7 @@ struct StyledLayout<'a> {
 }
 
 struct DrawPane<'a> {
+    ctx: &'a cairo::Context,
     font: &'a Font,
     span_buf: String,
     margin: f64,
@@ -89,8 +90,9 @@ struct DrawPane<'a> {
 }
 
 impl<'a> DrawPane<'a> {
-    fn new(font: &Font) -> DrawPane {
+    fn new(ctx: &'a cairo::Context, font: &'a Font) -> DrawPane<'a> {
         DrawPane {
+            ctx,
             font,
             span_buf: String::new(),
             margin: 2.0,
@@ -102,7 +104,6 @@ impl<'a> DrawPane<'a> {
 
     fn layout_line_range(
         &mut self,
-        ctx: &cairo::Context,
         line: &RopeSlice,
         range: Range<usize>,
     ) -> Layout {
@@ -111,21 +112,20 @@ impl<'a> DrawPane<'a> {
             self.span_buf.push_str(chunk);
         }
 
-        let layout = pangocairo::create_layout(ctx).unwrap();
+        let layout = pangocairo::create_layout(self.ctx).unwrap();
         layout.set_font_description(Some(&self.font.description));
         layout.set_text(&self.span_buf);
         layout
     }
 
-    fn draw_layout(&mut self, ctx: &cairo::Context, layout: &Layout) {
-        ctx.move_to(self.x, self.y);
-        pangocairo::show_layout(ctx, layout);
+    fn draw_layout(&mut self, layout: &Layout) {
+        self.ctx.move_to(self.x, self.y);
+        pangocairo::show_layout(self.ctx, layout);
         self.x += pango_unscale(layout.get_size().0);
     }
 
     fn styled_layouts_from_line<'b>(
         &mut self,
-        ctx: &cairo::Context,
         pane: &Pane,
         buf: &'b Buffer,
         line: &RopeSlice,
@@ -143,7 +143,7 @@ impl<'a> DrawPane<'a> {
                 |me: &mut DrawPane, range: Range<usize>, is_cursor| {
                     if !range.is_empty() {
                         output.push(StyledLayout {
-                            layout: me.layout_line_range(ctx, &line, range),
+                            layout: me.layout_line_range(&line, range),
                             style: &span.style,
                             is_cursor,
                         });
@@ -171,14 +171,9 @@ impl<'a> DrawPane<'a> {
         output
     }
 
-    fn draw_cursor(
-        &mut self,
-        ctx: &cairo::Context,
-        pane: &Pane,
-        styled_layout: &StyledLayout,
-    ) {
+    fn draw_cursor(&mut self, pane: &Pane, styled_layout: &StyledLayout) {
         // TODO: color from theme
-        set_source_rgb_from_u8(ctx, 237, 212, 0);
+        set_source_rgb_from_u8(self.ctx, 237, 212, 0);
         let mut cursor_width = pango_unscale(styled_layout.layout.get_size().0);
         if cursor_width == 0.0 {
             // TODO: this is needed for at least newlines,
@@ -187,17 +182,17 @@ impl<'a> DrawPane<'a> {
             // not-really-rendered characters as well.
             cursor_width = self.font.line_height / 2.0;
         }
-        ctx.rectangle(self.x, self.y, cursor_width, self.font.line_height);
+        self.ctx
+            .rectangle(self.x, self.y, cursor_width, self.font.line_height);
         if pane.is_active() {
-            ctx.fill();
+            self.ctx.fill();
         } else {
-            ctx.stroke();
+            self.ctx.stroke();
         }
     }
 
     fn draw_line(
         &mut self,
-        ctx: &cairo::Context,
         pane: &Pane,
         buf: &Buffer,
         line: &RopeSlice,
@@ -207,47 +202,47 @@ impl<'a> DrawPane<'a> {
 
         self.x = pane.rect().x;
 
-        ctx.move_to(self.margin, self.y);
+        self.ctx.move_to(self.margin, self.y);
 
-        set_source_rgb_from_u8(ctx, 220, 220, 204);
+        set_source_rgb_from_u8(self.ctx, 220, 220, 204);
 
         let styled_layouts =
-            self.styled_layouts_from_line(ctx, pane, buf, line, line_idx);
+            self.styled_layouts_from_line(pane, buf, line, line_idx);
 
         for styled_layout in styled_layouts {
             if styled_layout.is_cursor {
-                self.draw_cursor(ctx, pane, &styled_layout);
+                self.draw_cursor(pane, &styled_layout);
 
                 if pane.is_active() {
                     // Set inverted text color. TODO: set from
                     // theme?
-                    ctx.set_source_rgb(0.0, 0.0, 0.0);
+                    self.ctx.set_source_rgb(0.0, 0.0, 0.0);
                 }
             } else {
                 set_source_from_syntect_color(
-                    ctx,
+                    self.ctx,
                     &styled_layout.style.foreground,
                 );
             }
-            self.draw_layout(ctx, &styled_layout.layout);
+            self.draw_layout(&styled_layout.layout);
         }
 
         self.y += self.font.line_height;
     }
 
-    fn draw(&mut self, ctx: &cairo::Context, pane: &Pane, buf: &Buffer) {
+    fn draw(&mut self, pane: &Pane, buf: &Buffer) {
         // Fill in the background. Subtract small amount from bottom
         // and right edges to give a border.
         let rect = pane.rect();
         let border = 0.5;
-        ctx.rectangle(
+        self.ctx.rectangle(
             rect.x,
             rect.y,
             rect.width - border,
             rect.height - border,
         );
-        set_source_rgb_from_u8(ctx, 63, 63, 63);
-        ctx.fill();
+        set_source_rgb_from_u8(self.ctx, 63, 63, 63);
+        self.ctx.fill();
 
         self.cursor = pane.cursor().line_position(buf);
 
@@ -255,7 +250,7 @@ impl<'a> DrawPane<'a> {
 
         for (line_idx, line) in buf.text().lines_at(pane.top_line()).enumerate()
         {
-            self.draw_line(ctx, pane, buf, &line, line_idx);
+            self.draw_line(pane, buf, &line, line_idx);
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
@@ -288,8 +283,8 @@ impl App {
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
-            let mut dp = DrawPane::new(font);
-            dp.draw(ctx, pane, buf);
+            let mut dp = DrawPane::new(ctx, font);
+            dp.draw(pane, buf);
         }
     }
 }
