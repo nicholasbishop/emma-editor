@@ -74,7 +74,6 @@ impl Font {
     }
 }
 
-#[derive(Debug)]
 struct StyledLayout<'a> {
     layout: Layout,
     style: &'a Style,
@@ -230,7 +229,6 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_line(&mut self, line: &RopeSlice, line_idx: usize) {
-        dbg!(line, line_idx, line.len_chars());
         let line_idx = line_idx + self.pane.top_line();
 
         self.x = self.pane.rect().x;
@@ -240,7 +238,6 @@ impl<'a> DrawPane<'a> {
         set_source_rgb_from_u8(self.ctx, 220, 220, 204);
 
         let styled_layouts = self.styled_layouts_from_line(line, line_idx);
-        dbg!(&styled_layouts);
 
         for styled_layout in styled_layouts {
             if styled_layout.is_cursor {
