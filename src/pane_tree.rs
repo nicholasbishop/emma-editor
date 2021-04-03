@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-struct PaneId(String);
+pub struct PaneId(String);
 
 impl PaneId {
     fn new() -> PaneId {
@@ -41,6 +41,10 @@ pub struct Pane {
 }
 
 impl Pane {
+    pub fn id(&self) -> &PaneId {
+        &self.id
+    }
+
     pub fn buffer_id(&self) -> &BufferId {
         &self.buffer_id
     }
@@ -322,6 +326,12 @@ impl PaneTree {
                 orientation,
                 children: vec![child1, child2],
             }),
+        }
+    }
+
+    pub fn set_active(&mut self, id: &PaneId) {
+        for pane in self.panes_mut() {
+            pane.is_active = &pane.id == id;
         }
     }
 }

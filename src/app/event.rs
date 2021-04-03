@@ -171,6 +171,42 @@ impl App {
                 self.pane_tree.split(orientation);
                 self.queue_draw();
             }
+            KeyMapLookup::Action(Action::PreviousPane) => {
+                let pane_id;
+                {
+                    let panes = self.pane_tree.panes();
+                    let index = panes
+                        .iter()
+                        .position(|pane| pane.is_active())
+                        .expect("no active pane");
+                    let prev = if index == 0 {
+                        panes.len() - 1
+                    } else {
+                        index - 1
+                    };
+                    pane_id = panes[prev].id().clone();
+                }
+                self.pane_tree.set_active(&pane_id);
+                self.queue_draw();
+            }
+            KeyMapLookup::Action(Action::NextPane) => {
+                let pane_id;
+                {
+                    let panes = self.pane_tree.panes();
+                    let index = panes
+                        .iter()
+                        .position(|pane| pane.is_active())
+                        .expect("no active pane");
+                    let next = if index + 1 == panes.len() {
+                        0
+                    } else {
+                        index + 1
+                    };
+                    pane_id = panes[next].id().clone();
+                }
+                self.pane_tree.set_active(&pane_id);
+                self.queue_draw();
+            }
             _ => {
                 todo!();
             }
