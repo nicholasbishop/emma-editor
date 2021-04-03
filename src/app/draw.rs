@@ -4,6 +4,7 @@ use {
         buffer::{Buffer, LinePosition},
         grapheme::next_grapheme_boundary,
         pane_tree::Pane,
+        theme::Theme,
     },
     gtk4::{
         cairo,
@@ -11,7 +12,7 @@ use {
     },
     ropey::RopeSlice,
     std::ops::Range,
-    syntect::highlighting::{Style, Theme},
+    syntect::highlighting::Style,
 };
 
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
@@ -185,6 +186,7 @@ impl<'a> DrawPane<'a> {
         set_source_from_syntect_color(
             self.ctx,
             self.theme
+                .syntect
                 .settings
                 .caret
                 .as_ref()

@@ -9,7 +9,8 @@ use {
     serde::Deserialize,
     std::collections::HashMap,
     syntect::highlighting::{
-        Color, ParseThemeError, ScopeSelectors, StyleModifier, Theme, ThemeItem,
+        Color, ParseThemeError, ScopeSelectors, StyleModifier,
+        Theme as SyntectTheme, ThemeItem,
     },
     syntect::LoadingError,
 };
@@ -98,35 +99,42 @@ fn parse_color(s: &Option<String>) -> Option<Color> {
     }
 }
 
-#[throws]
-fn load_theme(theme: &str) -> Theme {
-    let mut yaml: YamlTheme = serde_yaml::from_str(&theme)?;
-    yaml.expand_vars()?;
-
-    let mut theme = Theme {
-        name: Some(yaml.name),
-        ..Theme::default()
-    };
-
-    theme.settings.caret = parse_color(&yaml.settings.caret)?;
-    theme.settings.foreground = parse_color(&yaml.settings.foreground)?;
-    for scope in yaml.scopes.values() {
-        theme.scopes.push(ThemeItem {
-            scope: scope.scope_selectors().map_err(LoadingError::from)?,
-            style: StyleModifier {
-                foreground: parse_color(&scope.foreground)?,
-                background: parse_color(&scope.background)?,
-                // TODO
-                font_style: None,
-            },
-        });
-    }
-
-    theme
+#[derive(Clone)]
+pub struct Theme {
+    pub syntect: SyntectTheme,
 }
 
-#[throws]
-pub fn load_default_theme() -> Theme {
-    let theme = include_str!("emma.theme.yml");
-    load_theme(theme)?
+impl Theme {
+    #[throws]
+    fn load(theme: &str) -> Theme {
+        let mut yaml: YamlTheme = serde_yaml::from_str(&theme)?;
+        yaml.expand_vars()?;
+
+        let mut theme = SyntectTheme {
+            name: Some(yaml.name),
+            ..SyntectTheme::default()
+        };
+
+        theme.settings.caret = parse_color(&yaml.settings.caret)?;
+        theme.settings.foreground = parse_color(&yaml.settings.foreground)?;
+        for scope in yaml.scopes.values() {
+            theme.scopes.push(ThemeItem {
+                scope: scope.scope_selectors().map_err(LoadingError::from)?,
+                style: StyleModifier {
+                    foreground: parse_color(&scope.foreground)?,
+                    background: parse_color(&scope.background)?,
+                    // TODO
+                    font_style: None,
+                },
+            });
+        }
+
+        Theme { syntect: theme }
+    }
+
+    #[throws]
+    pub fn load_default() -> Theme {
+        let theme = include_str!("emma.theme.yml");
+        Theme::load(theme)?
+    }
 }

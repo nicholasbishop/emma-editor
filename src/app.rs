@@ -6,11 +6,10 @@ use {
     crate::{
         buffer::{Buffer, BufferId},
         pane_tree::PaneTree,
-        theme,
+        theme::Theme,
     },
     gtk4::{self as gtk, prelude::*},
     std::{cell::RefCell, collections::HashMap, path::Path},
-    syntect::highlighting::Theme,
 };
 
 // This global is needed for callbacks on the main thread. On other
@@ -58,8 +57,7 @@ pub fn init(application: &gtk::Application) {
     window.show();
     event::create_gtk_key_handler(&window);
 
-    let theme =
-        theme::load_default_theme().expect("failed to load built-in theme");
+    let theme = Theme::load_default().expect("failed to load built-in theme");
 
     let mut buffers = HashMap::new();
 

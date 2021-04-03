@@ -1,5 +1,5 @@
 use {
-    crate::{grapheme::next_grapheme_boundary, util},
+    crate::{grapheme::next_grapheme_boundary, theme::Theme, util},
     anyhow::Error,
     fehler::throws,
     ropey::Rope,
@@ -9,7 +9,7 @@ use {
     },
     syntect::{
         highlighting::{
-            HighlightState, Highlighter, RangedHighlightIterator, Style, Theme,
+            HighlightState, Highlighter, RangedHighlightIterator, Style,
         },
         parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet},
     },
@@ -204,7 +204,7 @@ impl Buffer {
         let syntax = self.get_syntax(&syntax_set);
 
         let mut parse_state = ParseState::new(syntax);
-        let highlighter = Highlighter::new(&self.theme);
+        let highlighter = Highlighter::new(&self.theme.syntect);
         let mut highlight_state =
             HighlightState::new(&highlighter, ScopeStack::new());
 
