@@ -11,6 +11,7 @@ vars:
   yellow: "#edd400"
 
 settings:
+  caret: "#ffff00"
   foreground: "$plain"
 
 scopes:
