@@ -38,6 +38,30 @@ impl KeyHandler {
 }
 
 impl App {
+    fn insert_char(&mut self, key: gdk::keys::Key) {
+        // Insert a character into the active pane.
+        if let Some(c) = key.to_unicode() {
+            let pane = self.pane_tree.active();
+            let buf = self
+                .buffers
+                .get_mut(pane.buffer_id())
+                .expect("invalid buffer");
+            let pos = pane.cursor();
+            buf.insert_char(c, pos);
+
+            // Update all cursors
+            for pane in self.pane_tree.panes_mut() {
+                let mut cursor = pane.cursor();
+                if cursor.0 >= pos.0 {
+                    cursor.0 += 1;
+                    pane.set_cursor(cursor);
+                }
+            }
+
+            self.queue_draw();
+        }
+    }
+
     fn move_cursor(&mut self, step: Move, dir: Direction) {
         let pane = self.pane_tree.active_mut();
         let buf = self.buffers.get(pane.buffer_id()).unwrap();
@@ -95,6 +119,10 @@ impl App {
         }
 
         pane.set_cursor(cursor);
+        self.queue_draw();
+    }
+
+    fn queue_draw(&self) {
         self.widget.queue_draw();
     }
 
@@ -116,12 +144,15 @@ impl App {
         // shift, but currently that is treated as a valid
         // sequence. Need to figure out how to prevent that.
 
-        let atom = KeySequenceAtom::from_event(key, state);
+        let atom = KeySequenceAtom::from_event(key.clone(), state);
         self.key_handler.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
         let inhibit = Inhibit(true);
         match keymap_stack.lookup(&self.key_handler.cur_seq) {
+            KeyMapLookup::NoEntry => {
+                self.insert_char(key);
+            }
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
                 dbg!("bad seq", &self.key_handler.cur_seq);
@@ -138,7 +169,7 @@ impl App {
             }
             KeyMapLookup::Action(Action::SplitPane(orientation)) => {
                 self.pane_tree.split(orientation);
-                self.widget.queue_draw();
+                self.queue_draw();
             }
             _ => {
                 todo!();

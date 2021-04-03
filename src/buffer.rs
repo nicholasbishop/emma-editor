@@ -139,6 +139,12 @@ impl Buffer {
         &self.style_spans
     }
 
+    pub fn insert_char(&mut self, c: char, pos: Position) {
+        self.text.insert(pos.0, &c.to_string());
+        // TODO: be smarter
+        self.recalc_style_spans();
+    }
+
     // TODO: simple for now
     fn recalc_style_spans(&mut self) {
         self.style_spans.clear();

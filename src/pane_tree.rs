@@ -139,6 +139,17 @@ impl Node {
         }
     }
 
+    fn panes_mut(&mut self) -> Vec<&mut Pane> {
+        match self {
+            Node::Leaf(pane) => vec![pane],
+            Node::Internal(internal) => internal
+                .children
+                .iter_mut()
+                .flat_map(|n| n.panes_mut())
+                .collect(),
+        }
+    }
+
     fn recalc_layout(&mut self, rect: Rect) {
         match self {
             Node::Leaf(leaf) => {
@@ -255,6 +266,10 @@ impl PaneTree {
 
     pub fn panes(&self) -> Vec<&Pane> {
         self.root.panes()
+    }
+
+    pub fn panes_mut(&mut self) -> Vec<&mut Pane> {
+        self.root.panes_mut()
     }
 
     pub fn active(&self) -> &Pane {
