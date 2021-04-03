@@ -119,7 +119,7 @@ impl App {
                 cursor = Position::from_line_position(lp, buf);
             }
             Move::Page => {
-                todo!();
+                dbg!("TODO");
             }
             Move::BufferEnd => {
                 if dir == Direction::Dec {
@@ -219,8 +219,8 @@ impl App {
                 self.pane_tree.set_active(&pane_id);
                 self.queue_draw();
             }
-            _ => {
-                todo!();
+            KeyMapLookup::Action(todo) => {
+                dbg!(todo);
             }
         }
 
