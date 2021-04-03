@@ -243,33 +243,56 @@ impl Node {
 
 pub struct PaneTree {
     root: Node,
+    minibuf: Pane,
 }
 
 impl PaneTree {
-    pub fn new(buffer_id: BufferId) -> PaneTree {
+    pub fn new(
+        initial_buffer_id: BufferId,
+        minibuf_buffer_id: BufferId,
+    ) -> PaneTree {
         PaneTree {
             root: Node::Leaf(Pane {
                 id: PaneId::new(),
-                buffer_id,
+                buffer_id: initial_buffer_id,
                 rect: Rect::default(),
                 top_line: 0,
                 cursor: Position::default(),
                 is_active: true,
             }),
+            minibuf: Pane {
+                id: PaneId::new(),
+                buffer_id: minibuf_buffer_id,
+                rect: Rect::default(),
+                top_line: 0,
+                cursor: Position::default(),
+                is_active: false,
+            },
         }
     }
 
     pub fn recalc_layout(&mut self, width: f64, height: f64) {
+        let minibuf_height = 26.0; // TODO
+        self.minibuf.rect = Rect {
+            x: 0.0,
+            y: height - minibuf_height,
+            width,
+            height: minibuf_height,
+        };
         self.root.recalc_layout(Rect {
             x: 0.0,
             y: 0.0,
             width,
-            height,
+            height: height - minibuf_height,
         });
     }
 
     pub fn panes(&self) -> Vec<&Pane> {
         self.root.panes()
+    }
+
+    pub fn minibuf(&self) -> &Pane {
+        &self.minibuf
     }
 
     pub fn panes_mut(&mut self) -> Vec<&mut Pane> {

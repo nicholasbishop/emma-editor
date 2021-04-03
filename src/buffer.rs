@@ -115,6 +115,19 @@ pub struct Buffer {
 }
 
 impl Buffer {
+    pub fn create_minibuf() -> Buffer {
+        let mut buf = Buffer {
+            text: Rope::new(),
+            path: None,
+            style_spans: Vec::new(),
+        };
+
+        // TODO, async
+        buf.recalc_style_spans();
+
+        buf
+    }
+
     #[throws]
     pub fn from_path(path: &Path) -> Buffer {
         let text =

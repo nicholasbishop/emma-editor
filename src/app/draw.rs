@@ -261,7 +261,10 @@ impl App {
         set_source_rgb_from_u8(ctx, 220, 220, 204);
         ctx.fill();
 
-        for pane in self.pane_tree.panes() {
+        let mut panes = self.pane_tree.panes();
+        panes.push(self.pane_tree.minibuf());
+
+        for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
             let mut dp = DrawPane::new();
