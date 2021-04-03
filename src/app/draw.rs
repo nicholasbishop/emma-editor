@@ -248,16 +248,12 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw(&mut self) {
-        // Fill in the background. Subtract small amount from bottom
-        // and right edges to give a border.
+        // Fill in the background. Subtract small amount from the
+        // right edge to give a border.
         let rect = self.pane.rect();
         let border = 0.5;
-        self.ctx.rectangle(
-            rect.x,
-            rect.y,
-            rect.width - border,
-            rect.height - border,
-        );
+        self.ctx
+            .rectangle(rect.x, rect.y, rect.width - border, rect.height);
         set_source_rgb_from_u8(self.ctx, 63, 63, 63);
         self.ctx.fill();
 
@@ -292,10 +288,10 @@ impl App {
         font: &Font,
     ) {
         // Fill in the background. This acts as the border color
-        // between panes. Don't go all the way to the right/bottom
-        // edges to avoid unwanted borders there.
+        // between panes. Don't go all the way to the right
+        // edge to avoid an unwanted border there.
         let border = 1.0;
-        ctx.rectangle(0.0, 0.0, width - border, height - border);
+        ctx.rectangle(0.0, 0.0, width - border, height);
         set_source_rgb_from_u8(ctx, 220, 220, 204);
         ctx.fill();
 
