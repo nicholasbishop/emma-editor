@@ -1,6 +1,7 @@
 mod draw;
 mod event;
 
+pub use draw::Font;
 use {
     crate::{
         buffer::{Buffer, BufferId},
@@ -34,12 +35,19 @@ pub fn init(application: &gtk::Application) {
         APP.with(|app| {
             let width = width as f64;
             let height = height as f64;
+
+            let font = Font::new(ctx);
+
+            // TODO: just one borrow
             app.borrow_mut()
                 .as_mut()
                 .unwrap()
                 .pane_tree
-                .recalc_layout(width, height);
-            app.borrow().as_ref().unwrap().draw(ctx, width, height);
+                .recalc_layout(width, height, &font);
+            app.borrow()
+                .as_ref()
+                .unwrap()
+                .draw(ctx, width, height, &font);
         })
     });
 

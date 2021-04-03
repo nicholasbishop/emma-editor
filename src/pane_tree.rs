@@ -1,4 +1,5 @@
 use crate::{
+    app::Font,
     buffer::{BufferId, Position},
     util,
 };
@@ -269,8 +270,8 @@ impl PaneTree {
         }
     }
 
-    pub fn recalc_layout(&mut self, width: f64, height: f64) {
-        let minibuf_height = 26.0; // TODO
+    pub fn recalc_layout(&mut self, width: f64, height: f64, font: &Font) {
+        let minibuf_height = font.line_height();
         self.minibuf.rect = Rect {
             x: 0.0,
             y: height - minibuf_height,

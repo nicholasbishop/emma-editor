@@ -37,24 +37,13 @@ fn pango_unscale(i: i32) -> f64 {
     i as f64 / pango::SCALE as f64
 }
 
-struct StyledLayout<'a> {
-    layout: Layout,
-    style: &'a Style,
-    is_cursor: bool,
-}
-
-struct DrawPane {
-    font_desc: FontDescription,
-    span_buf: String,
-    margin: f64,
-    cursor: LinePosition,
+pub struct Font {
+    description: FontDescription,
     line_height: f64,
-    x: f64,
-    y: f64,
 }
 
-impl DrawPane {
-    fn new() -> DrawPane {
+impl Font {
+    pub fn new(ctx: &cairo::Context) -> Font {
         // TODO: prints out the list of font families
         // let font_map = pangocairo::FontMap::get_default().unwrap();
         // use gtk4::prelude::*;
@@ -68,12 +57,44 @@ impl DrawPane {
         // TODO
         font_desc.set_absolute_size(18.0 * pango::SCALE as f64);
 
+        let pctx = pangocairo::create_context(ctx).unwrap();
+        let language = None;
+        let metrics = pctx.get_metrics(Some(&font_desc), language).unwrap();
+        let line_height = pango_unscale(metrics.get_height());
+
+        Font {
+            description: font_desc,
+            line_height,
+        }
+    }
+
+    pub fn line_height(&self) -> f64 {
+        self.line_height
+    }
+}
+
+struct StyledLayout<'a> {
+    layout: Layout,
+    style: &'a Style,
+    is_cursor: bool,
+}
+
+struct DrawPane<'a> {
+    font: &'a Font,
+    span_buf: String,
+    margin: f64,
+    cursor: LinePosition,
+    x: f64,
+    y: f64,
+}
+
+impl<'a> DrawPane<'a> {
+    fn new(font: &Font) -> DrawPane {
         DrawPane {
-            font_desc,
+            font,
             span_buf: String::new(),
             margin: 2.0,
             cursor: LinePosition::default(),
-            line_height: 0.0,
             x: 0.0,
             y: 0.0,
         }
@@ -91,7 +112,7 @@ impl DrawPane {
         }
 
         let layout = pangocairo::create_layout(ctx).unwrap();
-        layout.set_font_description(Some(&self.font_desc));
+        layout.set_font_description(Some(&self.font.description));
         layout.set_text(&self.span_buf);
         layout
     }
@@ -102,14 +123,14 @@ impl DrawPane {
         self.x += pango_unscale(layout.get_size().0);
     }
 
-    fn styled_layouts_from_line<'a>(
+    fn styled_layouts_from_line<'b>(
         &mut self,
         ctx: &cairo::Context,
         pane: &Pane,
-        buf: &'a Buffer,
+        buf: &'b Buffer,
         line: &RopeSlice,
         line_idx: usize,
-    ) -> Vec<StyledLayout<'a>> {
+    ) -> Vec<StyledLayout<'b>> {
         let mut output = Vec::new();
 
         let line_idx = line_idx + pane.top_line();
@@ -164,9 +185,9 @@ impl DrawPane {
             // which give (0, double-line-height), but
             // might need to think about other kinds of
             // not-really-rendered characters as well.
-            cursor_width = self.line_height / 2.0;
+            cursor_width = self.font.line_height / 2.0;
         }
-        ctx.rectangle(self.x, self.y, cursor_width, self.line_height);
+        ctx.rectangle(self.x, self.y, cursor_width, self.font.line_height);
         if pane.is_active() {
             ctx.fill();
         } else {
@@ -211,7 +232,7 @@ impl DrawPane {
             self.draw_layout(ctx, &styled_layout.layout);
         }
 
-        self.y += self.line_height;
+        self.y += self.font.line_height;
     }
 
     fn draw(&mut self, ctx: &cairo::Context, pane: &Pane, buf: &Buffer) {
@@ -230,12 +251,6 @@ impl DrawPane {
 
         self.cursor = pane.cursor().line_position(buf);
 
-        let pctx = pangocairo::create_context(ctx).unwrap();
-        let language = None;
-        let metrics =
-            pctx.get_metrics(Some(&self.font_desc), language).unwrap();
-        self.line_height = pango_unscale(metrics.get_height());
-
         self.y = pane.rect().y + self.margin;
 
         for (line_idx, line) in buf.text().lines_at(pane.top_line()).enumerate()
@@ -252,7 +267,13 @@ impl DrawPane {
 }
 
 impl App {
-    pub(super) fn draw(&self, ctx: &cairo::Context, width: f64, height: f64) {
+    pub(super) fn draw(
+        &self,
+        ctx: &cairo::Context,
+        width: f64,
+        height: f64,
+        font: &Font,
+    ) {
         // Fill in the background. This acts as the border color
         // between panes. Don't go all the way to the right/bottom
         // edges to avoid unwanted borders there.
@@ -267,7 +288,7 @@ impl App {
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
-            let mut dp = DrawPane::new();
+            let mut dp = DrawPane::new(font);
             dp.draw(ctx, pane, buf);
         }
     }
