@@ -230,6 +230,23 @@ impl<'a> DrawPane<'a> {
         self.y += self.font.line_height;
     }
 
+    fn draw_info_bar(&self) {
+        // TODO: color from theme
+        if self.pane.is_active() {
+            set_source_rgb_from_u8(self.ctx, 30, 35, 32);
+        } else {
+            set_source_rgb_from_u8(self.ctx, 46, 51, 48);
+        }
+        let rect = self.pane.rect();
+        self.ctx.rectangle(
+            rect.x,
+            rect.y + rect.height - self.font.line_height,
+            rect.width,
+            self.font.line_height,
+        );
+        self.ctx.fill();
+    }
+
     fn draw(&mut self) {
         // Fill in the background. Subtract small amount from bottom
         // and right edges to give a border.
@@ -258,6 +275,10 @@ impl<'a> DrawPane<'a> {
             if self.y > (rect.y + rect.height as f64) {
                 break;
             }
+        }
+
+        if self.pane.show_info_bar() {
+            self.draw_info_bar();
         }
     }
 }

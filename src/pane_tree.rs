@@ -37,6 +37,7 @@ pub struct Pane {
     top_line: usize,
     cursor: Position,
     is_active: bool,
+    show_info_bar: bool,
 }
 
 impl Pane {
@@ -66,6 +67,10 @@ impl Pane {
 
     pub fn is_active(&self) -> bool {
         self.is_active
+    }
+
+    pub fn show_info_bar(&self) -> bool {
+        self.show_info_bar
     }
 }
 
@@ -258,6 +263,7 @@ impl PaneTree {
                 top_line: 0,
                 cursor: Position::default(),
                 is_active: true,
+                show_info_bar: true,
             }),
             minibuf: Pane {
                 id: PaneId::new(),
@@ -266,6 +272,7 @@ impl PaneTree {
                 top_line: 0,
                 cursor: Position::default(),
                 is_active: false,
+                show_info_bar: false,
             },
         }
     }
