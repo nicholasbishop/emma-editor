@@ -107,7 +107,7 @@ impl<'a> DrawPane<'a> {
         range: Range<usize>,
     ) -> Layout {
         self.span_buf.clear();
-        for chunk in line.slice(range.clone()).chunks() {
+        for chunk in line.slice(range).chunks() {
             self.span_buf.push_str(chunk);
         }
 
