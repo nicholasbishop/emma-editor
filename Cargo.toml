@@ -31,3 +31,6 @@ unicode-segmentation = "1.7"
 rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
+
+[profile.dev.package."*"]
+opt-level = 3
