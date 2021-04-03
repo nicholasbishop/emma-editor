@@ -148,6 +148,10 @@ impl Buffer {
         &self.text
     }
 
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_deref()
+    }
+
     pub fn style_spans(&self) -> &Vec<Vec<StyleSpan>> {
         &self.style_spans
     }

@@ -230,7 +230,7 @@ impl<'a> DrawPane<'a> {
         self.y += self.font.line_height;
     }
 
-    fn draw_info_bar(&self) {
+    fn draw_info_bar(&mut self) {
         // TODO: color from theme
         if self.pane.is_active() {
             set_source_rgb_from_u8(self.ctx, 30, 35, 32);
@@ -245,6 +245,23 @@ impl<'a> DrawPane<'a> {
             self.font.line_height,
         );
         self.ctx.fill();
+
+        if let Some(path) = self.buf.path() {
+            let name = path.file_name().expect("path has no file name");
+
+            // TODO: color from theme
+            set_source_rgb_from_u8(self.ctx, 237, 212, 0);
+            // TODO: other color for inactive pane
+
+            // TODO: dedup
+            let layout = pangocairo::create_layout(self.ctx).unwrap();
+            layout.set_font_description(Some(&self.font.description));
+            layout.set_text(&name.to_string_lossy());
+
+            self.x = rect.x;
+            self.y = rect.y + rect.height - self.font.line_height;
+            self.draw_layout(&layout);
+        }
     }
 
     fn draw(&mut self) {
