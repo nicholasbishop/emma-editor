@@ -21,3 +21,24 @@ recent useful branches:
 
 - bishop-custom-textview-2
 - bishop-main-backup-20210328
+
+Some todos:
+- Close pane
+- Open file via minibuf
+- Switch buffer via minibuf
+- Close buffer
+- Async highlighting
+- SSH support
+- Persistence
+- Winner undo/redo
+- Text undo/redo
+- Search
+- dabrev
+- Pane info bar
+- Compilation buffer
+- Multi-window support
+- Workspace switcher
+- Shell
+- Interactive search
+- git-root-[rip]grep
+- git-root-{fd|find}
