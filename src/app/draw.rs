@@ -11,7 +11,7 @@ use {
     },
     ropey::RopeSlice,
     std::ops::Range,
-    syntect::highlighting::Style,
+    syntect::highlighting::{Style, Theme},
 };
 
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
@@ -84,6 +84,7 @@ struct DrawPane<'a> {
     pane: &'a Pane,
     buf: &'a Buffer,
     font: &'a Font,
+    theme: &'a Theme,
     span_buf: String,
     margin: f64,
     cursor: LinePosition,
@@ -97,12 +98,14 @@ impl<'a> DrawPane<'a> {
         pane: &'a Pane,
         buf: &'a Buffer,
         font: &'a Font,
+        theme: &'a Theme,
     ) -> DrawPane<'a> {
         DrawPane {
             ctx,
             pane,
             buf,
             font,
+            theme,
             span_buf: String::new(),
             margin: 2.0,
             cursor: LinePosition::default(),
@@ -179,8 +182,11 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_cursor(&mut self, styled_layout: &StyledLayout) {
-        // TODO: color from theme
-        set_source_rgb_from_u8(self.ctx, 237, 212, 0);
+        if let Some(color) = &self.theme.settings.caret {
+            set_source_from_syntect_color(self.ctx, color);
+        } else {
+            set_source_rgb_from_u8(self.ctx, 255, 255, 0);
+        }
         let mut cursor_width = pango_unscale(styled_layout.layout.get_size().0);
         if cursor_width == 0.0 {
             // TODO: this is needed for at least newlines,
@@ -303,6 +309,7 @@ impl App {
         width: f64,
         height: f64,
         font: &Font,
+        theme: &Theme,
     ) {
         // Fill in the background. This acts as the border color
         // between panes. Don't go all the way to the right
@@ -318,7 +325,7 @@ impl App {
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
-            let mut dp = DrawPane::new(ctx, pane, buf, font);
+            let mut dp = DrawPane::new(ctx, pane, buf, font, theme);
             dp.draw();
         }
     }

@@ -46,7 +46,7 @@ pub fn init(application: &gtk::Application) {
             let app = app.as_mut().unwrap();
 
             app.pane_tree.recalc_layout(width, height, &font);
-            app.draw(ctx, width, height, &font);
+            app.draw(ctx, width, height, &font, &app.theme);
         })
     });
 
