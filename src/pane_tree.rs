@@ -1,5 +1,3 @@
-#![allow(dead_code)] // TODO
-
 use crate::{
     buffer::{BufferId, Position},
     util,
