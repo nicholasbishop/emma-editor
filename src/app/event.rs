@@ -136,6 +136,9 @@ impl App {
             KeyMapLookup::Action(Action::Move(step, dir)) => {
                 self.move_cursor(step, dir);
             }
+            KeyMapLookup::Action(Action::SplitPane(orientation)) => {
+                self.pane_tree.split(orientation)
+            }
             _ => {
                 todo!();
             }

@@ -1,5 +1,6 @@
 use {
-    crate::key_sequence::KeySequence, gtk4::gdk::ModifierType,
+    crate::{key_sequence::KeySequence, pane_tree},
+    gtk4::gdk::ModifierType,
     std::collections::BTreeMap,
 };
 
@@ -26,8 +27,7 @@ pub enum Action {
     SaveFile,
     PreviousPane,
     NextPane,
-    SplitHorizontal,
-    SplitVertical,
+    SplitPane(pane_tree::Orientation),
     ClosePane,
     Confirm,
     OpenShell,
@@ -129,11 +129,11 @@ impl KeyMap {
         );
         map.insert(
             KeySequence::parse("<ctrl>x+2").unwrap(),
-            Action::SplitVertical,
+            Action::SplitPane(pane_tree::Orientation::Vertical),
         );
         map.insert(
             KeySequence::parse("<ctrl>x+3").unwrap(),
-            Action::SplitHorizontal,
+            Action::SplitPane(pane_tree::Orientation::Horizontal),
         );
         map.insert(KeySequence::parse("<ctrl>x+0").unwrap(), Action::ClosePane);
         map.insert(

@@ -14,8 +14,8 @@ impl PaneId {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-enum Orientation {
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum Orientation {
     Horizontal,
     Vertical,
 }
@@ -117,5 +117,9 @@ impl PaneTree {
         } else {
             panic!();
         }
+    }
+
+    pub fn split(&mut self, orientation: Orientation) {
+        todo!();
     }
 }
