@@ -182,11 +182,14 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_cursor(&mut self, styled_layout: &StyledLayout) {
-        if let Some(color) = &self.theme.settings.caret {
-            set_source_from_syntect_color(self.ctx, color);
-        } else {
-            set_source_rgb_from_u8(self.ctx, 255, 255, 0);
-        }
+        set_source_from_syntect_color(
+            self.ctx,
+            self.theme
+                .settings
+                .caret
+                .as_ref()
+                .expect("caret color not set in theme"),
+        );
         let mut cursor_width = pango_unscale(styled_layout.layout.get_size().0);
         if cursor_width == 0.0 {
             // TODO: this is needed for at least newlines,

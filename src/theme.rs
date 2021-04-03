@@ -16,6 +16,7 @@ use {
 
 #[derive(Debug, Deserialize)]
 struct YamlThemeSettings {
+    caret: Option<String>,
     foreground: Option<String>,
     background: Option<String>,
 }
@@ -65,6 +66,7 @@ impl YamlTheme {
             Ok(())
         };
 
+        expand(&mut self.settings.caret)?;
         expand(&mut self.settings.foreground)?;
         for scope in self.scopes.values_mut() {
             expand(&mut scope.foreground)?;
@@ -106,6 +108,7 @@ fn load_theme(theme: &str) -> Theme {
         ..Theme::default()
     };
 
+    theme.settings.caret = parse_color(&yaml.settings.caret)?;
     theme.settings.foreground = parse_color(&yaml.settings.foreground)?;
     for scope in yaml.scopes.values() {
         theme.scopes.push(ThemeItem {
