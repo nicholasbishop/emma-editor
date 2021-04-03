@@ -74,6 +74,7 @@ impl Font {
     }
 }
 
+#[derive(Debug)]
 struct StyledLayout<'a> {
     layout: Layout,
     style: &'a Style,
@@ -91,6 +92,7 @@ struct DrawPane<'a> {
     cursor: LinePosition,
     x: f64,
     y: f64,
+    empty_style: &'a Style,
 }
 
 impl<'a> DrawPane<'a> {
@@ -100,6 +102,7 @@ impl<'a> DrawPane<'a> {
         buf: &'a Buffer,
         font: &'a Font,
         theme: &'a Theme,
+        empty_style: &'a Style,
     ) -> DrawPane<'a> {
         DrawPane {
             ctx,
@@ -112,6 +115,7 @@ impl<'a> DrawPane<'a> {
             cursor: LinePosition::default(),
             x: 0.0,
             y: 0.0,
+            empty_style,
         }
     }
 
@@ -149,6 +153,18 @@ impl<'a> DrawPane<'a> {
         let mut output = Vec::new();
 
         let line_idx = line_idx + self.pane.top_line();
+
+        // Special case: the last "line" of the file is always empty
+        // (no chars at all). In that case no text is drawn, but we
+        // still need to draw the cursor.
+        if line_idx == self.cursor.line && line.len_chars() == 0 {
+            output.push(StyledLayout {
+                layout: self.layout_line_range(&line, 0..0),
+                style: self.empty_style,
+                is_cursor: true,
+            });
+            return output;
+        }
 
         let style_spans = &self.buf.style_spans()[line_idx];
 
@@ -214,6 +230,7 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_line(&mut self, line: &RopeSlice, line_idx: usize) {
+        dbg!(line, line_idx, line.len_chars());
         let line_idx = line_idx + self.pane.top_line();
 
         self.x = self.pane.rect().x;
@@ -223,6 +240,7 @@ impl<'a> DrawPane<'a> {
         set_source_rgb_from_u8(self.ctx, 220, 220, 204);
 
         let styled_layouts = self.styled_layouts_from_line(line, line_idx);
+        dbg!(&styled_layouts);
 
         for styled_layout in styled_layouts {
             if styled_layout.is_cursor {
@@ -341,10 +359,13 @@ impl App {
         let mut panes = self.pane_tree.panes();
         panes.push(self.pane_tree.minibuf());
 
+        let empty_style = Style::default();
+
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
-            let mut dp = DrawPane::new(ctx, pane, buf, font, theme);
+            let mut dp =
+                DrawPane::new(ctx, pane, buf, font, theme, &empty_style);
             dp.draw();
         }
     }
