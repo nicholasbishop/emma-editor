@@ -1,5 +1,5 @@
 use {
-    crate::{grapheme::next_grapheme_boundary, theme, util},
+    crate::{grapheme::next_grapheme_boundary, util},
     anyhow::Error,
     fehler::throws,
     ropey::Rope,
@@ -9,7 +9,7 @@ use {
     },
     syntect::{
         highlighting::{
-            HighlightState, Highlighter, RangedHighlightIterator, Style,
+            HighlightState, Highlighter, RangedHighlightIterator, Style, Theme,
         },
         parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet},
     },
@@ -106,6 +106,10 @@ pub struct Buffer {
     text: Rope,
     path: Option<PathBuf>,
 
+    // TODO: consider using a reference instead of always cloning
+    // theme.
+    theme: Theme,
+
     // Outer vec: per line
     // Inner vec: style for a contiguous group of chars, covers the
     // whole line.
@@ -115,10 +119,11 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub fn create_minibuf() -> Buffer {
+    pub fn create_minibuf(theme: &Theme) -> Buffer {
         let mut buf = Buffer {
             text: Rope::new(),
             path: None,
+            theme: theme.clone(),
             style_spans: Vec::new(),
         };
 
@@ -129,12 +134,13 @@ impl Buffer {
     }
 
     #[throws]
-    pub fn from_path(path: &Path) -> Buffer {
+    pub fn from_path(path: &Path, theme: &Theme) -> Buffer {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
         let mut buf = Buffer {
             text,
             path: Some(path.into()),
+            theme: theme.clone(),
             style_spans: Vec::new(),
         };
 
@@ -194,12 +200,11 @@ impl Buffer {
 
         // TODO: cache
         let syntax_set = SyntaxSet::load_defaults_newlines();
-        let theme = theme::load_default_theme().unwrap();
 
         let syntax = self.get_syntax(&syntax_set);
 
         let mut parse_state = ParseState::new(syntax);
-        let highlighter = Highlighter::new(&theme);
+        let highlighter = Highlighter::new(&self.theme);
         let mut highlight_state =
             HighlightState::new(&highlighter, ScopeStack::new());
 

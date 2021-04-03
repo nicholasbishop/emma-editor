@@ -6,9 +6,11 @@ use {
     crate::{
         buffer::{Buffer, BufferId},
         pane_tree::PaneTree,
+        theme,
     },
     gtk4::{self as gtk, prelude::*},
     std::{cell::RefCell, collections::HashMap, path::Path},
+    syntect::highlighting::Theme,
 };
 
 // This global is needed for callbacks on the main thread. On other
@@ -25,6 +27,8 @@ pub struct App {
 
     buffers: HashMap<BufferId, Buffer>,
     pane_tree: PaneTree,
+
+    theme: Theme,
 }
 
 pub fn init(application: &gtk::Application) {
@@ -59,16 +63,19 @@ pub fn init(application: &gtk::Application) {
     window.show();
     event::create_gtk_key_handler(&window);
 
+    let theme =
+        theme::load_default_theme().expect("failed to load built-in theme");
+
     let mut buffers = HashMap::new();
 
     // TODO: load a temporary buffer
     let buffer_id = BufferId::new();
-    let buffer = Buffer::from_path(Path::new("graphemes.txt")).unwrap();
+    let buffer = Buffer::from_path(Path::new("graphemes.txt"), &theme).unwrap();
     buffers.insert(buffer_id.clone(), buffer);
 
     // Create the minibuf buffer
     let minibuf_buffer_id = BufferId::new();
-    buffers.insert(minibuf_buffer_id.clone(), Buffer::create_minibuf());
+    buffers.insert(minibuf_buffer_id.clone(), Buffer::create_minibuf(&theme));
 
     let app = App {
         window,
@@ -78,6 +85,8 @@ pub fn init(application: &gtk::Application) {
 
         buffers,
         pane_tree: PaneTree::new(buffer_id, minibuf_buffer_id),
+
+        theme,
     };
 
     // Store app in global.
