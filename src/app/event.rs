@@ -111,7 +111,15 @@ impl App {
                 }
             }
             Move::LineEnd => {
-                todo!();
+                let mut lp = cursor.line_position(buf);
+                if dir == Direction::Dec {
+                    // TODO: add logic to initially move to
+                    // first-non-whitespace char.
+                    lp.offset = 0;
+                } else {
+                    lp.offset = text.line(lp.line).len_chars() - 1;
+                }
+                cursor = Position::from_line_position(lp, buf);
             }
             Move::Page => {
                 todo!();
