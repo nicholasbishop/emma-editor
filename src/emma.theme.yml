@@ -13,6 +13,12 @@ vars:
 settings:
   caret: "#ffff00"
   foreground: "$plain"
+  info_bar_active:
+    foreground: "$yellow"
+    background: "#1e2320"
+  info_bar_inactive:
+    foreground: "#88b090"
+    background: "#2e3330"
 
 scopes:
   comment:

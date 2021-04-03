@@ -242,11 +242,16 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_info_bar(&mut self) {
-        // TODO: color from theme
         if self.pane.is_active() {
-            set_source_rgb_from_u8(self.ctx, 30, 35, 32);
+            set_source_from_syntect_color(
+                self.ctx,
+                &self.theme.info_bar_active.background,
+            );
         } else {
-            set_source_rgb_from_u8(self.ctx, 46, 51, 48);
+            set_source_from_syntect_color(
+                self.ctx,
+                &self.theme.info_bar_inactive.background,
+            );
         }
         let rect = self.pane.rect();
         self.ctx.rectangle(
@@ -260,9 +265,17 @@ impl<'a> DrawPane<'a> {
         if let Some(path) = self.buf.path() {
             let name = path.file_name().expect("path has no file name");
 
-            // TODO: color from theme
-            set_source_rgb_from_u8(self.ctx, 237, 212, 0);
-            // TODO: other color for inactive pane
+            if self.pane.is_active() {
+                set_source_from_syntect_color(
+                    self.ctx,
+                    &self.theme.info_bar_active.foreground,
+                );
+            } else {
+                set_source_from_syntect_color(
+                    self.ctx,
+                    &self.theme.info_bar_inactive.foreground,
+                );
+            }
 
             // TODO: dedup
             let layout = pangocairo::create_layout(self.ctx).unwrap();

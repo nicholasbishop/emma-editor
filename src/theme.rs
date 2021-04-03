@@ -15,11 +15,24 @@ use {
     syntect::LoadingError,
 };
 
+fn rgb(r: u8, g: u8, b: u8) -> Color {
+    Color { r, g, b, a: 255 }
+}
+
+#[derive(Debug, Deserialize)]
+struct YamlThemeItem {
+    foreground: Option<String>,
+    background: Option<String>,
+    // TODO: may add font settings here
+}
+
 #[derive(Debug, Deserialize)]
 struct YamlThemeSettings {
     caret: Option<String>,
     foreground: Option<String>,
     background: Option<String>,
+    info_bar_active: Option<YamlThemeItem>,
+    info_bar_inactive: Option<YamlThemeItem>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -67,8 +80,21 @@ impl YamlTheme {
             Ok(())
         };
 
+        let expand_item =
+            |item: &mut Option<YamlThemeItem>| -> Result<_, Error> {
+                if let Some(item) = item {
+                    expand(&mut item.foreground)?;
+                    expand(&mut item.background)?;
+                }
+                Ok(())
+            };
+
         expand(&mut self.settings.caret)?;
         expand(&mut self.settings.foreground)?;
+
+        expand_item(&mut self.settings.info_bar_active)?;
+        expand_item(&mut self.settings.info_bar_inactive)?;
+
         for scope in self.scopes.values_mut() {
             expand(&mut scope.foreground)?;
         }
@@ -100,8 +126,40 @@ fn parse_color(s: &Option<String>) -> Option<Color> {
 }
 
 #[derive(Clone)]
+pub struct ForeAndBack {
+    pub foreground: Color,
+    pub background: Color,
+    // TODO: maybe add font options
+}
+
+impl ForeAndBack {
+    #[throws]
+    fn parse_with_default(
+        item: &Option<YamlThemeItem>,
+        foreground: Color,
+        background: Color,
+    ) -> ForeAndBack {
+        if let Some(item) = item {
+            ForeAndBack {
+                foreground: parse_color(&item.foreground)?
+                    .unwrap_or(foreground),
+                background: parse_color(&item.background)?
+                    .unwrap_or(background),
+            }
+        } else {
+            ForeAndBack {
+                foreground,
+                background,
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct Theme {
     pub syntect: SyntectTheme,
+    pub info_bar_active: ForeAndBack,
+    pub info_bar_inactive: ForeAndBack,
 }
 
 impl Theme {
@@ -129,7 +187,19 @@ impl Theme {
             });
         }
 
-        Theme { syntect: theme }
+        Theme {
+            syntect: theme,
+            info_bar_active: ForeAndBack::parse_with_default(
+                &yaml.settings.info_bar_active,
+                rgb(255, 255, 255),
+                rgb(255, 0, 0),
+            )?,
+            info_bar_inactive: ForeAndBack::parse_with_default(
+                &yaml.settings.info_bar_inactive,
+                rgb(0, 0, 0),
+                rgb(255, 128, 128),
+            )?,
+        }
     }
 
     #[throws]
