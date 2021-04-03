@@ -75,6 +75,28 @@ enum Node {
     Leaf(Pane),
 }
 
+impl Node {
+    fn active_mut(&mut self) -> Option<&mut Node> {
+        match self {
+            Node::Leaf(leaf) => {
+                if leaf.is_active() {
+                    Some(self)
+                } else {
+                    None
+                }
+            }
+            Node::Internal(internal) => {
+                for child in &mut internal.children {
+                    if let Some(active) = Self::active_mut(child) {
+                        return Some(active);
+                    }
+                }
+                None
+            }
+        }
+    }
+}
+
 pub struct PaneTree {
     root: Node,
 }
@@ -111,11 +133,10 @@ impl PaneTree {
     }
 
     pub fn active_mut(&mut self) -> &mut Pane {
-        // TODO
-        if let Node::Leaf(pane) = &mut self.root {
+        if let Some(Node::Leaf(pane)) = self.root.active_mut() {
             pane
         } else {
-            panic!();
+            panic!("no active pane");
         }
     }
 
