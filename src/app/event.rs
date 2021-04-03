@@ -83,32 +83,29 @@ impl App {
                 }
             }
             Move::Line => {
+                let mut lp = cursor.line_position(buf);
+
                 // When moving between lines, use grapheme offset
                 // rather than char offset to keep the cursor more or
                 // less visually horizontally aligned. Probably would
                 // need to be more sophisticated for non-monospace
                 // fonts though.
                 if dir == Direction::Dec {
-                    let mut lp = cursor.line_position(buf);
                     if lp.line > 0 {
                         let num_graphemes = lp.grapheme_offset(buf);
 
                         lp.line -= 1;
                         lp.set_offset_in_graphemes(buf, num_graphemes);
-
-                        cursor = Position::from_line_position(lp, buf);
                     }
                 } else {
-                    let mut lp = cursor.line_position(buf);
                     if lp.line + 1 < text.len_lines() {
                         let num_graphemes = lp.grapheme_offset(buf);
 
                         lp.line += 1;
                         lp.set_offset_in_graphemes(buf, num_graphemes);
-
-                        cursor = Position::from_line_position(lp, buf);
                     }
                 }
+                cursor = Position::from_line_position(lp, buf);
             }
             Move::LineEnd => {
                 let mut lp = cursor.line_position(buf);
