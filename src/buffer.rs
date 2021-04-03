@@ -141,8 +141,21 @@ impl Buffer {
 
     pub fn insert_char(&mut self, c: char, pos: Position) {
         self.text.insert(pos.0, &c.to_string());
-        // TODO: be smarter
-        self.recalc_style_spans();
+
+        // Update the associated style span to account for the new
+        // character.
+        let lp = pos.line_position(self);
+        if let Some(spans) = self.style_spans.get_mut(lp.line) {
+            let offset = 0;
+            for span in spans {
+                if lp.offset >= offset && lp.offset < offset + span.len {
+                    span.len += 1;
+                    break;
+                }
+            }
+        }
+
+        // TODO: queue up a style recalc
     }
 
     // TODO: simple for now
