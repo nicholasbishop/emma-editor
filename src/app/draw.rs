@@ -115,6 +115,13 @@ impl<'a> DrawPane<'a> {
         }
     }
 
+    fn create_layout(&self, text: &str) -> Layout {
+        let layout = pangocairo::create_layout(self.ctx).unwrap();
+        layout.set_font_description(Some(&self.font.description));
+        layout.set_text(text);
+        layout
+    }
+
     fn layout_line_range(
         &mut self,
         line: &RopeSlice,
@@ -125,10 +132,7 @@ impl<'a> DrawPane<'a> {
             self.span_buf.push_str(chunk);
         }
 
-        let layout = pangocairo::create_layout(self.ctx).unwrap();
-        layout.set_font_description(Some(&self.font.description));
-        layout.set_text(&self.span_buf);
-        layout
+        self.create_layout(&self.span_buf)
     }
 
     fn draw_layout(&mut self, layout: &Layout) {
@@ -277,10 +281,7 @@ impl<'a> DrawPane<'a> {
                 );
             }
 
-            // TODO: dedup
-            let layout = pangocairo::create_layout(self.ctx).unwrap();
-            layout.set_font_description(Some(&self.font.description));
-            layout.set_text(&name.to_string_lossy());
+            let layout = self.create_layout(&name.to_string_lossy());
 
             self.x = rect.x;
             self.y = rect.y + rect.height - self.font.line_height;
