@@ -215,9 +215,16 @@ impl DrawPane {
     }
 
     fn draw(&mut self, ctx: &cairo::Context, pane: &Pane, buf: &Buffer) {
-        // Fill in the background.
+        // Fill in the background. Subtract small amount from bottom
+        // and right edges to give a border.
         let rect = pane.rect();
-        ctx.rectangle(rect.x, rect.y, rect.width, rect.height);
+        let border = 0.5;
+        ctx.rectangle(
+            rect.x,
+            rect.y,
+            rect.width - border,
+            rect.height - border,
+        );
         set_source_rgb_from_u8(ctx, 63, 63, 63);
         ctx.fill();
 
@@ -245,7 +252,15 @@ impl DrawPane {
 }
 
 impl App {
-    pub(super) fn draw(&self, ctx: &cairo::Context) {
+    pub(super) fn draw(&self, ctx: &cairo::Context, width: f64, height: f64) {
+        // Fill in the background. This acts as the border color
+        // between panes. Don't go all the way to the right/bottom
+        // edges to avoid unwanted borders there.
+        let border = 1.0;
+        ctx.rectangle(0.0, 0.0, width - border, height - border);
+        set_source_rgb_from_u8(ctx, 220, 220, 204);
+        ctx.fill();
+
         for pane in self.pane_tree.panes() {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 

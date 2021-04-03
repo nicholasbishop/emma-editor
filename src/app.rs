@@ -32,12 +32,14 @@ pub fn init(application: &gtk::Application) {
     let widget = gtk::DrawingArea::new();
     widget.set_draw_func(|_widget, ctx, width, height| {
         APP.with(|app| {
+            let width = width as f64;
+            let height = height as f64;
             app.borrow_mut()
                 .as_mut()
                 .unwrap()
                 .pane_tree
-                .recalc_layout(width as f64, height as f64);
-            app.borrow().as_ref().unwrap().draw(ctx);
+                .recalc_layout(width, height);
+            app.borrow().as_ref().unwrap().draw(ctx, width, height);
         })
     });
 
