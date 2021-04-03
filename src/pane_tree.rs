@@ -144,25 +144,34 @@ impl Node {
             Node::Leaf(leaf) => {
                 leaf.rect = rect;
             }
-            Node::Internal(internal) => {
-                // TODO
-                match internal.orientation {
-                    Orientation::Horizontal => {
-                        let mut x = rect.x;
-                        let width = rect.width / internal.children.len() as f64;
-                        for child in &mut internal.children {
-                            child.recalc_layout(Rect {
-                                x,
-                                y: rect.y,
-                                width,
-                                height: rect.height,
-                            });
-                            x += width;
-                        }
+            Node::Internal(internal) => match internal.orientation {
+                Orientation::Horizontal => {
+                    let mut x = rect.x;
+                    let width = rect.width / internal.children.len() as f64;
+                    for child in &mut internal.children {
+                        child.recalc_layout(Rect {
+                            x,
+                            y: rect.y,
+                            width,
+                            height: rect.height,
+                        });
+                        x += width;
                     }
-                    _ => todo!(),
                 }
-            }
+                Orientation::Vertical => {
+                    let mut y = rect.y;
+                    let height = rect.height / internal.children.len() as f64;
+                    for child in &mut internal.children {
+                        child.recalc_layout(Rect {
+                            x: rect.x,
+                            y,
+                            width: rect.width,
+                            height,
+                        });
+                        y += height;
+                    }
+                }
+            },
         }
     }
 

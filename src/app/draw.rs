@@ -237,7 +237,7 @@ impl DrawPane {
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
-            if self.y > (pane.rect().height as f64) {
+            if self.y > (rect.y + rect.height as f64) {
                 break;
             }
         }
