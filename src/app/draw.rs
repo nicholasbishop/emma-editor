@@ -184,7 +184,7 @@ impl DrawPane {
     ) {
         let line_idx = line_idx + pane.top_line();
 
-        self.x = 0.0;
+        self.x = pane.rect().x;
 
         ctx.move_to(self.margin, self.y);
 
@@ -229,7 +229,7 @@ impl DrawPane {
             pctx.get_metrics(Some(&self.font_desc), language).unwrap();
         self.line_height = pango_unscale(metrics.get_height());
 
-        self.y = self.margin;
+        self.y = pane.rect().y + self.margin;
 
         for (line_idx, line) in buf.text().lines_at(pane.top_line()).enumerate()
         {
