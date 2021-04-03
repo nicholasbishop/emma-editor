@@ -42,16 +42,11 @@ pub fn init(application: &gtk::Application) {
 
             let font = Font::new(ctx);
 
-            // TODO: just one borrow
-            app.borrow_mut()
-                .as_mut()
-                .unwrap()
-                .pane_tree
-                .recalc_layout(width, height, &font);
-            app.borrow()
-                .as_ref()
-                .unwrap()
-                .draw(ctx, width, height, &font);
+            let mut app = app.borrow_mut();
+            let app = app.as_mut().unwrap();
+
+            app.pane_tree.recalc_layout(width, height, &font);
+            app.draw(ctx, width, height, &font);
         })
     });
 
