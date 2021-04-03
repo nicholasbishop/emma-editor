@@ -202,6 +202,10 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_cursor(&mut self, styled_layout: &StyledLayout) {
+        if self.pane.is_cursor_hidden() {
+            return;
+        }
+
         set_source_from_syntect_color(
             self.ctx,
             self.theme
