@@ -76,15 +76,10 @@ impl App {
                         cursor.0,
                     );
                 } else {
-                    // TODO: figure out why this if is needed but Dec
-                    // doesn't need it. (Cursor isn't drawn at end of
-                    // buffer?)
-                    if cursor.0 + 1 < text.len_chars() {
-                        cursor.0 = next_grapheme_boundary(
-                            &text.slice(0..text.len_chars()),
-                            cursor.0,
-                        );
-                    }
+                    cursor.0 = next_grapheme_boundary(
+                        &text.slice(0..text.len_chars()),
+                        cursor.0,
+                    );
                 }
             }
             Move::Line => {
