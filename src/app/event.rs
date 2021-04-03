@@ -110,7 +110,19 @@ impl App {
                     }
                 }
             }
-            _ => todo!(),
+            Move::LineEnd => {
+                todo!();
+            }
+            Move::Page => {
+                todo!();
+            }
+            Move::BufferEnd => {
+                if dir == Direction::Dec {
+                    cursor.0 = 0;
+                } else {
+                    cursor.0 = text.len_chars();
+                }
+            }
         }
 
         pane.set_cursor(cursor);
