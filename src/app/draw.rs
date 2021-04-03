@@ -81,6 +81,8 @@ struct StyledLayout<'a> {
 
 struct DrawPane<'a> {
     ctx: &'a cairo::Context,
+    pane: &'a Pane,
+    buf: &'a Buffer,
     font: &'a Font,
     span_buf: String,
     margin: f64,
@@ -90,9 +92,16 @@ struct DrawPane<'a> {
 }
 
 impl<'a> DrawPane<'a> {
-    fn new(ctx: &'a cairo::Context, font: &'a Font) -> DrawPane<'a> {
+    fn new(
+        ctx: &'a cairo::Context,
+        pane: &'a Pane,
+        buf: &'a Buffer,
+        font: &'a Font,
+    ) -> DrawPane<'a> {
         DrawPane {
             ctx,
+            pane,
+            buf,
             font,
             span_buf: String::new(),
             margin: 2.0,
@@ -124,18 +133,16 @@ impl<'a> DrawPane<'a> {
         self.x += pango_unscale(layout.get_size().0);
     }
 
-    fn styled_layouts_from_line<'b>(
+    fn styled_layouts_from_line(
         &mut self,
-        pane: &Pane,
-        buf: &'b Buffer,
         line: &RopeSlice,
         line_idx: usize,
-    ) -> Vec<StyledLayout<'b>> {
+    ) -> Vec<StyledLayout<'a>> {
         let mut output = Vec::new();
 
-        let line_idx = line_idx + pane.top_line();
+        let line_idx = line_idx + self.pane.top_line();
 
-        let style_spans = &buf.style_spans()[line_idx];
+        let style_spans = &self.buf.style_spans()[line_idx];
 
         let mut span_offset = 0;
         for span in style_spans {
@@ -171,7 +178,7 @@ impl<'a> DrawPane<'a> {
         output
     }
 
-    fn draw_cursor(&mut self, pane: &Pane, styled_layout: &StyledLayout) {
+    fn draw_cursor(&mut self, styled_layout: &StyledLayout) {
         // TODO: color from theme
         set_source_rgb_from_u8(self.ctx, 237, 212, 0);
         let mut cursor_width = pango_unscale(styled_layout.layout.get_size().0);
@@ -184,36 +191,29 @@ impl<'a> DrawPane<'a> {
         }
         self.ctx
             .rectangle(self.x, self.y, cursor_width, self.font.line_height);
-        if pane.is_active() {
+        if self.pane.is_active() {
             self.ctx.fill();
         } else {
             self.ctx.stroke();
         }
     }
 
-    fn draw_line(
-        &mut self,
-        pane: &Pane,
-        buf: &Buffer,
-        line: &RopeSlice,
-        line_idx: usize,
-    ) {
-        let line_idx = line_idx + pane.top_line();
+    fn draw_line(&mut self, line: &RopeSlice, line_idx: usize) {
+        let line_idx = line_idx + self.pane.top_line();
 
-        self.x = pane.rect().x;
+        self.x = self.pane.rect().x;
 
         self.ctx.move_to(self.margin, self.y);
 
         set_source_rgb_from_u8(self.ctx, 220, 220, 204);
 
-        let styled_layouts =
-            self.styled_layouts_from_line(pane, buf, line, line_idx);
+        let styled_layouts = self.styled_layouts_from_line(line, line_idx);
 
         for styled_layout in styled_layouts {
             if styled_layout.is_cursor {
-                self.draw_cursor(pane, &styled_layout);
+                self.draw_cursor(&styled_layout);
 
-                if pane.is_active() {
+                if self.pane.is_active() {
                     // Set inverted text color. TODO: set from
                     // theme?
                     self.ctx.set_source_rgb(0.0, 0.0, 0.0);
@@ -230,10 +230,10 @@ impl<'a> DrawPane<'a> {
         self.y += self.font.line_height;
     }
 
-    fn draw(&mut self, pane: &Pane, buf: &Buffer) {
+    fn draw(&mut self) {
         // Fill in the background. Subtract small amount from bottom
         // and right edges to give a border.
-        let rect = pane.rect();
+        let rect = self.pane.rect();
         let border = 0.5;
         self.ctx.rectangle(
             rect.x,
@@ -244,13 +244,14 @@ impl<'a> DrawPane<'a> {
         set_source_rgb_from_u8(self.ctx, 63, 63, 63);
         self.ctx.fill();
 
-        self.cursor = pane.cursor().line_position(buf);
+        self.cursor = self.pane.cursor().line_position(self.buf);
 
-        self.y = pane.rect().y + self.margin;
+        self.y = rect.y + self.margin;
 
-        for (line_idx, line) in buf.text().lines_at(pane.top_line()).enumerate()
+        for (line_idx, line) in
+            self.buf.text().lines_at(self.pane.top_line()).enumerate()
         {
-            self.draw_line(pane, buf, &line, line_idx);
+            self.draw_line(&line, line_idx);
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
@@ -283,8 +284,8 @@ impl App {
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
-            let mut dp = DrawPane::new(ctx, font);
-            dp.draw(pane, buf);
+            let mut dp = DrawPane::new(ctx, pane, buf, font);
+            dp.draw();
         }
     }
 }
