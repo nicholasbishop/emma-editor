@@ -31,7 +31,7 @@ pub struct Rect {
     pub height: f64,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Pane {
     id: PaneId,
 

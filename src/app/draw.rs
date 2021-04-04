@@ -38,6 +38,7 @@ fn pango_unscale(i: i32) -> f64 {
     i as f64 / pango::SCALE as f64
 }
 
+#[derive(Debug)]
 pub struct Font {
     description: FontDescription,
     line_height: f64,
@@ -80,6 +81,7 @@ struct StyledLayout<'a> {
     is_cursor: bool,
 }
 
+#[derive(Debug)]
 struct DrawPane<'a> {
     ctx: &'a cairo::Context,
     pane: &'a Pane,

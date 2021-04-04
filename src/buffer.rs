@@ -112,6 +112,7 @@ pub struct StyleSpan {
     pub style: Style,
 }
 
+#[derive(Debug)]
 pub struct Buffer {
     id: BufferId,
 

@@ -125,7 +125,7 @@ fn parse_color(s: &Option<String>) -> Option<Color> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ForeAndBack {
     pub foreground: Color,
     pub background: Color,
@@ -155,7 +155,7 @@ impl ForeAndBack {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Theme {
     pub syntect: SyntectTheme,
     pub info_bar_active: ForeAndBack,
