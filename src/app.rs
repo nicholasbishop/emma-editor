@@ -18,6 +18,7 @@ std::thread_local! {
     static APP: RefCell<Option<App>> = RefCell::new(None);
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum InteractiveState {
     Initial,
     OpenFile,
