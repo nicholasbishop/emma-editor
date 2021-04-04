@@ -18,7 +18,7 @@ std::thread_local! {
     static APP: RefCell<Option<App>> = RefCell::new(None);
 }
 
-pub struct App {
+struct App {
     window: gtk::ApplicationWindow,
     widget: gtk::DrawingArea,
 
