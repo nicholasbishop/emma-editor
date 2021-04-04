@@ -319,6 +319,10 @@ impl PaneTree {
     }
 
     pub fn active(&self) -> &Pane {
+        if self.is_minibuf_interactive && self.minibuf.is_active() {
+            return &self.minibuf;
+        }
+
         if let Some(Node::Leaf(pane)) = self.root.active() {
             pane
         } else {
@@ -327,6 +331,10 @@ impl PaneTree {
     }
 
     pub fn active_mut(&mut self) -> &mut Pane {
+        if self.is_minibuf_interactive && self.minibuf.is_active() {
+            return &mut self.minibuf;
+        }
+
         if let Some(Node::Leaf(pane)) = self.root.active_mut() {
             pane
         } else {
@@ -375,10 +383,13 @@ impl PaneTree {
         for pane in self.panes_mut() {
             pane.is_active = &pane.id == id;
         }
+        self.minibuf.is_active = &self.minibuf.id == id;
     }
 
     pub fn set_minibuf_interactive(&mut self, interactive: bool) {
         self.is_minibuf_interactive = interactive;
         self.minibuf.is_cursor_visible = interactive;
+        let minibuf_id = self.minibuf.id.clone();
+        self.set_active(&minibuf_id);
     }
 }
