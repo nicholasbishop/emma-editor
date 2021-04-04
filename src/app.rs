@@ -18,6 +18,11 @@ std::thread_local! {
     static APP: RefCell<Option<App>> = RefCell::new(None);
 }
 
+enum InteractiveState {
+    Initial,
+    OpenFile,
+}
+
 struct App {
     window: gtk::ApplicationWindow,
     widget: gtk::DrawingArea,
@@ -28,6 +33,7 @@ struct App {
     pane_tree: PaneTree,
 
     theme: Theme,
+    interactive_state: InteractiveState,
 }
 
 pub fn init(application: &gtk::Application) {
@@ -80,6 +86,7 @@ pub fn init(application: &gtk::Application) {
         pane_tree: PaneTree::new(buffer_id, minibuf_buffer_id),
 
         theme,
+        interactive_state: InteractiveState::Initial,
     };
 
     // Store app in global.

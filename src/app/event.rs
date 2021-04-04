@@ -1,5 +1,5 @@
 use {
-    super::{App, APP},
+    super::{App, InteractiveState, APP},
     crate::{
         buffer::Position,
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
@@ -217,6 +217,14 @@ impl App {
                     pane_id = panes[next].id().clone();
                 }
                 self.pane_tree.set_active(&pane_id);
+                self.queue_draw();
+            }
+            KeyMapLookup::Action(Action::OpenFile) => {
+                self.interactive_state = InteractiveState::OpenFile;
+                // TODO: prompt
+                self.pane_tree.make_minibuf_interactive();
+                // activate the minibuf and give it "focus"
+                // wait for confirm, then load file
                 self.queue_draw();
             }
             KeyMapLookup::Action(todo) => {

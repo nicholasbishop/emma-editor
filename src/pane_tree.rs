@@ -253,6 +253,7 @@ impl Node {
 pub struct PaneTree {
     root: Node,
     minibuf: Pane,
+    is_minibuf_interactive: bool,
 }
 
 impl PaneTree {
@@ -281,6 +282,7 @@ impl PaneTree {
                 show_info_bar: false,
                 is_cursor_visible: false,
             },
+            is_minibuf_interactive: true,
         }
     }
 
@@ -369,5 +371,10 @@ impl PaneTree {
         for pane in self.panes_mut() {
             pane.is_active = &pane.id == id;
         }
+    }
+
+    pub fn make_minibuf_interactive(&mut self) {
+        self.is_minibuf_interactive = true;
+        self.minibuf.is_cursor_visible = true;
     }
 }
