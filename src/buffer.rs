@@ -211,7 +211,11 @@ impl Buffer {
     /// Remove all text from the buffer.
     pub fn clear(&mut self) {
         self.text = Rope::new();
-        self.style_spans.clear();
+
+        // TODO: async style recalc
+        self.recalc_style_spans();
+
+        // Update all cursors.
         for cursor in self.cursors.values_mut() {
             cursor.0 = 0;
         }
