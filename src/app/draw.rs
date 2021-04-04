@@ -202,7 +202,7 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_cursor(&mut self, styled_layout: &StyledLayout) {
-        if self.pane.is_cursor_hidden() {
+        if !self.pane.is_cursor_visible() {
             return;
         }
 
