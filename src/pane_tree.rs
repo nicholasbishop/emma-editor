@@ -11,6 +11,10 @@ impl PaneId {
     fn new() -> PaneId {
         PaneId(util::make_id("pane"))
     }
+
+    fn minibuf() -> PaneId {
+        PaneId("pane-minibuf".into())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -273,7 +277,7 @@ impl PaneTree {
                 is_cursor_visible: true,
             }),
             minibuf: Pane {
-                id: PaneId::new(),
+                id: PaneId::minibuf(),
                 buffer_id: minibuf_buffer_id,
                 rect: Rect::default(),
                 top_line: 0,
