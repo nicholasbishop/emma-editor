@@ -193,6 +193,15 @@ impl Buffer {
         self.cursors.insert(pane.id().clone(), cursor);
     }
 
+    /// Remove all text from the buffer.
+    pub fn clear(&mut self) {
+        self.text = Rope::new();
+        self.style_spans.clear();
+        for cursor in self.cursors.values_mut() {
+            cursor.0 = 0;
+        }
+    }
+
     pub fn insert_char(&mut self, c: char, pos: Position) {
         self.text.insert(pos.0, &c.to_string());
 

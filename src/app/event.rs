@@ -1,7 +1,7 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::Position,
+        buffer::{Buffer, Position},
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
         key_map::{Action, Direction, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
@@ -122,6 +122,12 @@ impl App {
         buf.set_cursor(pane, cursor);
     }
 
+    fn minibuf_mut(&mut self) -> &mut Buffer {
+        let id = self.pane_tree.minibuf().buffer_id();
+
+        self.buffers.get_mut(id).expect("missing minibuf buffer")
+    }
+
     fn handle_action(&mut self, action: Action) {
         match action {
             Action::Exit => {
@@ -180,6 +186,7 @@ impl App {
             Action::Cancel => {
                 self.interactive_state = InteractiveState::Initial;
                 self.pane_tree.set_minibuf_interactive(false);
+                self.minibuf_mut().clear();
             }
             todo => {
                 dbg!(todo);
