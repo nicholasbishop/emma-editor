@@ -138,6 +138,68 @@ impl App {
         self.widget.queue_draw();
     }
 
+    fn handle_action(&mut self, action: Action) {
+        match action {
+            Action::Exit => {
+                self.window.close();
+            }
+            Action::Move(step, dir) => {
+                self.move_cursor(step, dir);
+            }
+            Action::SplitPane(orientation) => {
+                self.pane_tree.split(orientation);
+                self.queue_draw();
+            }
+            Action::PreviousPane => {
+                let pane_id;
+                {
+                    let panes = self.pane_tree.panes();
+                    let index = panes
+                        .iter()
+                        .position(|pane| pane.is_active())
+                        .expect("no active pane");
+                    let prev = if index == 0 {
+                        panes.len() - 1
+                    } else {
+                        index - 1
+                    };
+                    pane_id = panes[prev].id().clone();
+                }
+                self.pane_tree.set_active(&pane_id);
+                self.queue_draw();
+            }
+            Action::NextPane => {
+                let pane_id;
+                {
+                    let panes = self.pane_tree.panes();
+                    let index = panes
+                        .iter()
+                        .position(|pane| pane.is_active())
+                        .expect("no active pane");
+                    let next = if index + 1 == panes.len() {
+                        0
+                    } else {
+                        index + 1
+                    };
+                    pane_id = panes[next].id().clone();
+                }
+                self.pane_tree.set_active(&pane_id);
+                self.queue_draw();
+            }
+            Action::OpenFile => {
+                self.interactive_state = InteractiveState::OpenFile;
+                // TODO: prompt
+                self.pane_tree.make_minibuf_interactive();
+                // activate the minibuf and give it "focus"
+                // wait for confirm, then load file
+                self.queue_draw();
+            }
+            todo => {
+                dbg!(todo);
+            }
+        }
+    }
+
     pub(super) fn handle_key_press(
         &mut self,
         key: gdk::keys::Key,
@@ -173,62 +235,8 @@ impl App {
                 clear_seq = false;
                 // Waiting for the sequence to be completed.
             }
-            KeyMapLookup::Action(Action::Exit) => {
-                self.window.close();
-            }
-            KeyMapLookup::Action(Action::Move(step, dir)) => {
-                self.move_cursor(step, dir);
-            }
-            KeyMapLookup::Action(Action::SplitPane(orientation)) => {
-                self.pane_tree.split(orientation);
-                self.queue_draw();
-            }
-            KeyMapLookup::Action(Action::PreviousPane) => {
-                let pane_id;
-                {
-                    let panes = self.pane_tree.panes();
-                    let index = panes
-                        .iter()
-                        .position(|pane| pane.is_active())
-                        .expect("no active pane");
-                    let prev = if index == 0 {
-                        panes.len() - 1
-                    } else {
-                        index - 1
-                    };
-                    pane_id = panes[prev].id().clone();
-                }
-                self.pane_tree.set_active(&pane_id);
-                self.queue_draw();
-            }
-            KeyMapLookup::Action(Action::NextPane) => {
-                let pane_id;
-                {
-                    let panes = self.pane_tree.panes();
-                    let index = panes
-                        .iter()
-                        .position(|pane| pane.is_active())
-                        .expect("no active pane");
-                    let next = if index + 1 == panes.len() {
-                        0
-                    } else {
-                        index + 1
-                    };
-                    pane_id = panes[next].id().clone();
-                }
-                self.pane_tree.set_active(&pane_id);
-                self.queue_draw();
-            }
-            KeyMapLookup::Action(Action::OpenFile) => {
-                self.interactive_state = InteractiveState::OpenFile;
-                // TODO: prompt
-                self.pane_tree.make_minibuf_interactive();
-                // activate the minibuf and give it "focus"
-                // wait for confirm, then load file
-                self.queue_draw();
-            }
-            KeyMapLookup::Action(todo) => {
-                dbg!(todo);
+            KeyMapLookup::Action(action) => {
+                self.handle_action(action);
             }
         }
 
