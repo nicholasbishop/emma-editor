@@ -34,6 +34,12 @@ impl BufferId {
     }
 }
 
+impl fmt::Display for BufferId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// Char index within the buffer.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Position(pub usize);

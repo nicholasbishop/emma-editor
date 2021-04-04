@@ -1,7 +1,10 @@
-use crate::{
-    app::Font,
-    buffer::{Buffer, BufferId, Position},
-    util,
+use {
+    crate::{
+        app::Font,
+        buffer::{Buffer, BufferId, Position},
+        util,
+    },
+    std::fmt,
 };
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
@@ -14,6 +17,12 @@ impl PaneId {
 
     fn minibuf() -> PaneId {
         PaneId("pane-minibuf".into())
+    }
+}
+
+impl fmt::Display for PaneId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.0)
     }
 }
 
