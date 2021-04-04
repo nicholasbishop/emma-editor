@@ -190,7 +190,8 @@ impl Buffer {
             }
         }
 
-        // TODO: queue up a style recalc
+        // TODO: async style recalc
+        self.recalc_style_spans();
     }
 
     fn get_syntax<'a>(&self, syntax_set: &'a SyntaxSet) -> &'a SyntaxReference {
