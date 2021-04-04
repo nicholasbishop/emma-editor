@@ -249,6 +249,7 @@ pub struct PaneTree {
     root: Node,
     minibuf: Pane,
     is_minibuf_interactive: bool,
+    active_id_before_minibuf: Option<PaneId>,
 }
 
 impl PaneTree {
@@ -280,6 +281,7 @@ impl PaneTree {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,
             is_minibuf_interactive: true,
+            active_id_before_minibuf: None,
         }
     }
 
@@ -385,6 +387,15 @@ impl PaneTree {
         self.is_minibuf_interactive = interactive;
         self.minibuf.is_cursor_visible = interactive;
         let minibuf_id = self.minibuf.id.clone();
-        self.set_active(&minibuf_id);
+        if interactive {
+            self.active_id_before_minibuf = Some(self.active().id().clone());
+            self.set_active(&minibuf_id);
+        } else {
+            let id = self
+                .active_id_before_minibuf
+                .take()
+                .expect("active_id_before_minibuf not set");
+            self.set_active(&id);
+        }
     }
 }
