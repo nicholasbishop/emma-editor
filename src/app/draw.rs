@@ -11,7 +11,7 @@ use {
         pango::{self, FontDescription, Layout},
     },
     ropey::RopeSlice,
-    std::ops::Range,
+    std::{fmt, ops::Range},
     syntect::highlighting::Style,
 };
 
@@ -81,7 +81,6 @@ struct StyledLayout<'a> {
     is_cursor: bool,
 }
 
-#[derive(Debug)]
 struct DrawPane<'a> {
     ctx: &'a cairo::Context,
     pane: &'a Pane,
@@ -94,6 +93,19 @@ struct DrawPane<'a> {
     x: f64,
     y: f64,
     empty_style: &'a Style,
+}
+
+impl<'a> fmt::Debug for DrawPane<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(
+            f,
+            "DrawPane({}, {}, pos={},{})",
+            self.pane.id(),
+            self.buf.id(),
+            self.x,
+            self.y
+        )
+    }
 }
 
 impl<'a> DrawPane<'a> {
