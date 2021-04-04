@@ -373,8 +373,8 @@ impl PaneTree {
         }
     }
 
-    pub fn make_minibuf_interactive(&mut self) {
-        self.is_minibuf_interactive = true;
-        self.minibuf.is_cursor_visible = true;
+    pub fn set_minibuf_interactive(&mut self, interactive: bool) {
+        self.is_minibuf_interactive = interactive;
+        self.minibuf.is_cursor_visible = interactive;
     }
 }

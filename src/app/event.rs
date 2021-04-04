@@ -189,9 +189,14 @@ impl App {
             Action::OpenFile => {
                 self.interactive_state = InteractiveState::OpenFile;
                 // TODO: prompt
-                self.pane_tree.make_minibuf_interactive();
+                self.pane_tree.set_minibuf_interactive(true);
                 // activate the minibuf and give it "focus"
                 // wait for confirm, then load file
+                self.queue_draw();
+            }
+            Action::Cancel => {
+                self.interactive_state = InteractiveState::Initial;
+                self.pane_tree.set_minibuf_interactive(false);
                 self.queue_draw();
             }
             todo => {
