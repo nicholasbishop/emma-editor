@@ -13,6 +13,7 @@ use {
     ropey::RopeSlice,
     std::{fmt, ops::Range},
     syntect::highlighting::Style,
+    tracing::{debug, instrument},
 };
 
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
@@ -171,6 +172,7 @@ impl<'a> DrawPane<'a> {
         // (no chars at all). In that case no text is drawn, but we
         // still need to draw the cursor.
         if line_idx == self.cursor.line && line.len_chars() == 0 {
+            debug!("last-line cursor");
             output.push(StyledLayout {
                 layout: self.layout_line_range(&line, 0..0),
                 style: self.empty_style,
@@ -217,6 +219,7 @@ impl<'a> DrawPane<'a> {
 
     fn draw_cursor(&mut self, styled_layout: &StyledLayout) {
         if !self.pane.is_cursor_visible() {
+            debug!("cursor not visible");
             return;
         }
 
@@ -237,6 +240,10 @@ impl<'a> DrawPane<'a> {
             // not-really-rendered characters as well.
             cursor_width = self.font.line_height / 2.0;
         }
+        debug!(
+            "drawing cursor: size={}x{}",
+            cursor_width, self.font.line_height
+        );
         self.ctx
             .rectangle(self.x, self.y, cursor_width, self.font.line_height);
         if self.pane.is_active() {
@@ -322,7 +329,10 @@ impl<'a> DrawPane<'a> {
         }
     }
 
+    #[instrument]
     fn draw(&mut self) {
+        debug!("drawing pane with {} lines", self.buf.text().len_lines());
+
         // Fill in the background. Subtract small amount from the
         // right edge to give a border.
         let rect = self.pane.rect();
