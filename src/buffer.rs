@@ -10,7 +10,7 @@ use {
     ropey::Rope,
     std::{
         collections::HashMap,
-        fs, io,
+        fmt, fs, io,
         path::{Path, PathBuf},
     },
     syntect::{
@@ -112,7 +112,6 @@ pub struct StyleSpan {
     pub style: Style,
 }
 
-#[derive(Debug)]
 pub struct Buffer {
     id: BufferId,
 
@@ -132,6 +131,15 @@ pub struct Buffer {
 
     // Each pane showing this buffer has its own cursor.
     cursors: HashMap<PaneId, Position>,
+}
+
+impl fmt::Debug for Buffer {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        // Might put additional fields in here like path, but
+        // definitely want to exclude the text, them, and style_spans
+        // fields.
+        write!(f, "Buffer({})", self.id.0)
+    }
 }
 
 impl Buffer {
