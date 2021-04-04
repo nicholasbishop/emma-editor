@@ -49,8 +49,12 @@ impl App {
             let pos = pane.cursor();
             buf.insert_char(c, pos);
 
-            // Update all cursors
+            // Update all cursors in this buffer.
             for pane in self.pane_tree.panes_mut() {
+                if pane.buffer_id() != buf.id() {
+                    continue;
+                }
+
                 let mut cursor = pane.cursor();
                 if cursor.0 >= pos.0 {
                     cursor.0 += 1;
