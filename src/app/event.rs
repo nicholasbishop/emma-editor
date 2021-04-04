@@ -122,6 +122,12 @@ impl App {
         buf.set_cursor(pane, cursor);
     }
 
+    fn minibuf(&self) -> &Buffer {
+        let id = self.pane_tree.minibuf().buffer_id();
+
+        self.buffers.get(id).expect("missing minibuf buffer")
+    }
+
     fn minibuf_mut(&mut self) -> &mut Buffer {
         let id = self.pane_tree.minibuf().buffer_id();
 
@@ -183,6 +189,28 @@ impl App {
                 // TODO: prompt
                 self.pane_tree.set_minibuf_interactive(true);
             }
+            Action::Confirm => {
+                match self.interactive_state {
+                    InteractiveState::Initial => {}
+                    InteractiveState::OpenFile => {
+                        // Read path from minibuf
+                        let text = self.minibuf().text().to_string();
+                        dbg!(text);
+
+                        //
+                        // Create new buffer with that path
+                        //
+                        // Point active pane (prior to minibuf
+                        // activation) at new buffer, including clean
+                        // up of old cursors
+                    }
+                }
+
+                // TODO: dedup with cancel
+                self.interactive_state = InteractiveState::Initial;
+                self.pane_tree.set_minibuf_interactive(false);
+                self.minibuf_mut().clear();
+            }
             Action::Cancel => {
                 self.interactive_state = InteractiveState::Initial;
                 self.pane_tree.set_minibuf_interactive(false);
@@ -194,6 +222,17 @@ impl App {
         }
     }
 
+    fn get_minibuf_keymap(&self) -> KeyMap {
+        let mut map = KeyMap::new();
+        map.insert(
+            KeySequence::parse("<ctrl>i").unwrap(),
+            Action::Autocomplete,
+        );
+        map.insert(KeySequence::parse("<ret>").unwrap(), Action::Confirm);
+        map.insert(KeySequence::parse("<ctrl>m").unwrap(), Action::Confirm);
+        map
+    }
+
     pub(super) fn handle_key_press(
         &mut self,
         key: gdk::keys::Key,
@@ -201,6 +240,11 @@ impl App {
     ) -> Inhibit {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(self.key_handler.base_keymap.clone());
+
+        // TODO: figure these customizations out better
+        if self.interactive_state != InteractiveState::Initial {
+            keymap_stack.push(self.get_minibuf_keymap());
+        }
 
         // Ignore lone modifier presses.
         if is_modifier(&key) {
