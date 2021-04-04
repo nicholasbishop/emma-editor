@@ -57,8 +57,6 @@ impl App {
                     pane.set_cursor(cursor);
                 }
             }
-
-            self.queue_draw();
         }
     }
 
@@ -131,11 +129,6 @@ impl App {
         }
 
         pane.set_cursor(cursor);
-        self.queue_draw();
-    }
-
-    fn queue_draw(&self) {
-        self.widget.queue_draw();
     }
 
     fn handle_action(&mut self, action: Action) {
@@ -148,7 +141,6 @@ impl App {
             }
             Action::SplitPane(orientation) => {
                 self.pane_tree.split(orientation);
-                self.queue_draw();
             }
             Action::PreviousPane => {
                 let pane_id;
@@ -166,7 +158,6 @@ impl App {
                     pane_id = panes[prev].id().clone();
                 }
                 self.pane_tree.set_active(&pane_id);
-                self.queue_draw();
             }
             Action::NextPane => {
                 let pane_id;
@@ -184,7 +175,6 @@ impl App {
                     pane_id = panes[next].id().clone();
                 }
                 self.pane_tree.set_active(&pane_id);
-                self.queue_draw();
             }
             Action::OpenFile => {
                 self.interactive_state = InteractiveState::OpenFile;
@@ -192,12 +182,10 @@ impl App {
                 self.pane_tree.set_minibuf_interactive(true);
                 // activate the minibuf and give it "focus"
                 // wait for confirm, then load file
-                self.queue_draw();
             }
             Action::Cancel => {
                 self.interactive_state = InteractiveState::Initial;
                 self.pane_tree.set_minibuf_interactive(false);
-                self.queue_draw();
             }
             todo => {
                 dbg!(todo);
@@ -248,6 +236,10 @@ impl App {
         if clear_seq {
             self.key_handler.cur_seq.0.clear();
         }
+
+        // Not every action requires redraw, but most do, no harm
+        // occasionally redrawing when not needed.
+        self.widget.queue_draw();
 
         inhibit
     }
