@@ -19,8 +19,12 @@ use {
 pub struct BufferId(String);
 
 impl BufferId {
-    pub fn new() -> BufferId {
+    fn new() -> BufferId {
         BufferId(util::make_id("buffer"))
+    }
+
+    fn minibuf() -> BufferId {
+        BufferId("buffer-minibuf".into())
     }
 }
 
@@ -103,6 +107,8 @@ pub struct StyleSpan {
 }
 
 pub struct Buffer {
+    id: BufferId,
+
     text: Rope,
     path: Option<PathBuf>,
 
@@ -121,6 +127,7 @@ pub struct Buffer {
 impl Buffer {
     pub fn create_minibuf(theme: &Theme) -> Buffer {
         let mut buf = Buffer {
+            id: BufferId::minibuf(),
             text: Rope::new(),
             path: None,
             theme: theme.clone(),
@@ -138,6 +145,7 @@ impl Buffer {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
         let mut buf = Buffer {
+            id: BufferId::new(),
             text,
             path: Some(path.into()),
             theme: theme.clone(),
@@ -148,6 +156,10 @@ impl Buffer {
         buf.recalc_style_spans();
 
         buf
+    }
+
+    pub fn id(&self) -> &BufferId {
+        &self.id
     }
 
     pub fn text(&self) -> &Rope {

@@ -68,13 +68,14 @@ pub fn init(application: &gtk::Application) {
     let mut buffers = HashMap::new();
 
     // TODO: load a temporary buffer
-    let buffer_id = BufferId::new();
     let buffer = Buffer::from_path(Path::new("graphemes.txt"), &theme).unwrap();
-    buffers.insert(buffer_id.clone(), buffer);
+    let scratch_buffer_id = buffer.id().clone();
+    buffers.insert(scratch_buffer_id.clone(), buffer);
 
     // Create the minibuf buffer
-    let minibuf_buffer_id = BufferId::new();
-    buffers.insert(minibuf_buffer_id.clone(), Buffer::create_minibuf(&theme));
+    let minibuf = Buffer::create_minibuf(&theme);
+    let minibuf_id = minibuf.id().clone();
+    buffers.insert(minibuf_id.clone(), minibuf);
 
     let app = App {
         window,
@@ -83,7 +84,7 @@ pub fn init(application: &gtk::Application) {
         key_handler: event::KeyHandler::new(),
 
         buffers,
-        pane_tree: PaneTree::new(buffer_id, minibuf_buffer_id),
+        pane_tree: PaneTree::new(scratch_buffer_id, minibuf_id),
 
         theme,
         interactive_state: InteractiveState::Initial,
