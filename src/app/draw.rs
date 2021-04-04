@@ -91,6 +91,7 @@ struct DrawPane<'a> {
     span_buf: String,
     margin: f64,
     cursor: LinePosition,
+    len_lines: usize,
     x: f64,
     y: f64,
     empty_style: &'a Style,
@@ -127,6 +128,7 @@ impl<'a> DrawPane<'a> {
             span_buf: String::new(),
             margin: 2.0,
             cursor: LinePosition::default(),
+            len_lines: buf.text().len_lines(),
             x: 0.0,
             y: 0.0,
             empty_style,
@@ -167,24 +169,11 @@ impl<'a> DrawPane<'a> {
         let mut output = Vec::new();
 
         let line_idx = line_idx + self.pane.top_line();
-
-        // Special case: the last "line" of the file is always empty
-        // (no chars at all). In that case no text is drawn, but we
-        // still need to draw the cursor.
-        if line_idx == self.cursor.line && line.len_chars() == 0 {
-            debug!("last-line cursor");
-            output.push(StyledLayout {
-                layout: self.layout_line_range(&line, 0..0),
-                style: self.empty_style,
-                is_cursor: true,
-            });
-            return output;
-        }
-
         let style_spans = &self.buf.style_spans()[line_idx];
 
         let mut span_offset = 0;
         for span in style_spans {
+            debug!("span: {} chars", span.len);
             let mut push =
                 |me: &mut DrawPane, range: Range<usize>, is_cursor| {
                     if !range.is_empty() {
@@ -202,6 +191,7 @@ impl<'a> DrawPane<'a> {
             if line_idx == self.cursor.line
                 && span_range.contains(&self.cursor.offset)
             {
+                debug!("span contains cursor");
                 push(self, span_range.start..self.cursor.offset, false);
 
                 let cursor_end_char =
@@ -212,6 +202,24 @@ impl<'a> DrawPane<'a> {
             } else {
                 push(self, span_range, false);
             }
+        }
+
+        // The last line of the buffer by definition doesn't end in a
+        // new line. (If the last character in a file is a newline,
+        // ropey's iterator produces an empty line at the end.) We
+        // still need to draw the cursor in that case though, so
+        // append it here.
+        if self.cursor.line == line_idx
+            && line_idx + 1 == self.len_lines
+            && self.cursor.offset == line.len_chars()
+        {
+            debug!("eof cursor");
+            output.push(StyledLayout {
+                layout: self.create_layout(""),
+                style: self.empty_style,
+                is_cursor: true,
+            });
+            return output;
         }
 
         output
