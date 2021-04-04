@@ -16,8 +16,8 @@ gtk4 = { git = "https://github.com/gtk-rs/gtk4.git" }
 pangocairo = { git = "https://github.com/gtk-rs/gtk-rs" }
 
 # Logging
-log = "0.4"
-env_logger = "0.8"
+tracing = "0.1"
+tracing-subscriber = "0.2"
 
 # Sync
 parking_lot = "0.11"

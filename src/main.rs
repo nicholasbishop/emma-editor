@@ -10,7 +10,7 @@ mod util;
 use gtk4::{self as gtk, prelude::*};
 
 fn main() {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     let application =
         gtk::Application::new(Some("org.emma.Emma"), Default::default())
