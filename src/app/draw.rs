@@ -318,7 +318,7 @@ impl<'a> DrawPane<'a> {
         set_source_rgb_from_u8(self.ctx, 63, 63, 63);
         self.ctx.fill();
 
-        self.cursor = self.pane.cursor().line_position(self.buf);
+        self.cursor = self.buf.cursor(self.pane).line_position(self.buf);
 
         self.y = rect.y + self.margin;
 

@@ -1,9 +1,15 @@
 use {
-    crate::{grapheme::next_grapheme_boundary, theme::Theme, util},
+    crate::{
+        grapheme::next_grapheme_boundary,
+        pane_tree::{Pane, PaneId},
+        theme::Theme,
+        util,
+    },
     anyhow::Error,
     fehler::throws,
     ropey::Rope,
     std::{
+        collections::HashMap,
         fs, io,
         path::{Path, PathBuf},
     },
@@ -122,6 +128,9 @@ pub struct Buffer {
     // TODO: think about a smarter structure
     // TODO: put in arc for async update
     style_spans: Vec<Vec<StyleSpan>>,
+
+    // Each pane showing this buffer has its own cursor.
+    cursors: HashMap<PaneId, Position>,
 }
 
 impl Buffer {
@@ -132,6 +141,7 @@ impl Buffer {
             path: None,
             theme: theme.clone(),
             style_spans: Vec::new(),
+            cursors: HashMap::new(),
         };
 
         // TODO, async
@@ -150,6 +160,7 @@ impl Buffer {
             path: Some(path.into()),
             theme: theme.clone(),
             style_spans: Vec::new(),
+            cursors: HashMap::new(),
         };
 
         // TODO, async
@@ -174,6 +185,14 @@ impl Buffer {
         &self.style_spans
     }
 
+    pub fn cursor(&self, pane: &Pane) -> Position {
+        *self.cursors.get(pane.id()).expect("no cursor for pane")
+    }
+
+    pub fn set_cursor(&mut self, pane: &Pane, cursor: Position) {
+        self.cursors.insert(pane.id().clone(), cursor);
+    }
+
     pub fn insert_char(&mut self, c: char, pos: Position) {
         self.text.insert(pos.0, &c.to_string());
 
@@ -192,6 +211,13 @@ impl Buffer {
 
         // TODO: async style recalc
         self.recalc_style_spans();
+
+        // Update all cursors in this buffer.
+        for cursor in self.cursors.values_mut() {
+            if cursor.0 >= pos.0 {
+                cursor.0 += 1;
+            }
+        }
     }
 
     fn get_syntax<'a>(&self, syntax_set: &'a SyntaxSet) -> &'a SyntaxReference {

@@ -1,10 +1,10 @@
 use crate::{
     app::Font,
-    buffer::{BufferId, Position},
+    buffer::{Buffer, BufferId, Position},
     util,
 };
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct PaneId(String);
 
 impl PaneId {
@@ -39,7 +39,6 @@ pub struct Pane {
     rect: Rect,
 
     top_line: usize,
-    cursor: Position,
     is_active: bool,
     show_info_bar: bool,
     is_cursor_visible: bool,
@@ -60,14 +59,6 @@ impl Pane {
 
     pub fn top_line(&self) -> usize {
         self.top_line
-    }
-
-    pub fn cursor(&self) -> Position {
-        self.cursor
-    }
-
-    pub fn set_cursor(&mut self, cursor: Position) {
-        self.cursor = cursor;
     }
 
     pub fn is_active(&self) -> bool {
@@ -262,30 +253,32 @@ pub struct PaneTree {
 
 impl PaneTree {
     pub fn new(
-        initial_buffer_id: BufferId,
-        minibuf_buffer_id: BufferId,
+        initial_buffer: &mut Buffer,
+        minibuf_buffer: &mut Buffer,
     ) -> PaneTree {
+        let initial_pane = Pane {
+            id: PaneId::new(),
+            buffer_id: initial_buffer.id().clone(),
+            rect: Rect::default(),
+            top_line: 0,
+            is_active: true,
+            show_info_bar: true,
+            is_cursor_visible: true,
+        };
+        let minibuf_pane = Pane {
+            id: PaneId::minibuf(),
+            buffer_id: minibuf_buffer.id().clone(),
+            rect: Rect::default(),
+            top_line: 0,
+            is_active: false,
+            show_info_bar: false,
+            is_cursor_visible: false,
+        };
+        initial_buffer.set_cursor(&initial_pane, Position::default());
+        minibuf_buffer.set_cursor(&minibuf_pane, Position::default());
         PaneTree {
-            root: Node::Leaf(Pane {
-                id: PaneId::new(),
-                buffer_id: initial_buffer_id,
-                rect: Rect::default(),
-                top_line: 0,
-                cursor: Position::default(),
-                is_active: true,
-                show_info_bar: true,
-                is_cursor_visible: true,
-            }),
-            minibuf: Pane {
-                id: PaneId::minibuf(),
-                buffer_id: minibuf_buffer_id,
-                rect: Rect::default(),
-                top_line: 0,
-                cursor: Position::default(),
-                is_active: false,
-                show_info_bar: false,
-                is_cursor_visible: false,
-            },
+            root: Node::Leaf(initial_pane),
+            minibuf: minibuf_pane,
             is_minibuf_interactive: true,
         }
     }
@@ -355,7 +348,7 @@ impl PaneTree {
         )
     }
 
-    pub fn split(&mut self, orientation: Orientation) {
+    pub fn split(&mut self, orientation: Orientation, buf: &mut Buffer) {
         let active_id;
         let new_pane;
         {
@@ -366,6 +359,8 @@ impl PaneTree {
                 is_active: false,
                 ..active.clone()
             };
+            // Copy the active pane's cursor.
+            buf.set_cursor(&new_pane, buf.cursor(active));
         }
 
         // TODO: make just have this method take self instead?

@@ -65,30 +65,30 @@ pub fn init(application: &gtk::Application) {
 
     let theme = Theme::load_default().expect("failed to load built-in theme");
 
-    let mut buffers = HashMap::new();
-
     // TODO: load a temporary buffer
-    let buffer = Buffer::from_path(Path::new("graphemes.txt"), &theme).unwrap();
-    let scratch_buffer_id = buffer.id().clone();
-    buffers.insert(scratch_buffer_id.clone(), buffer);
+    let mut scratch_buffer =
+        Buffer::from_path(Path::new("graphemes.txt"), &theme).unwrap();
 
     // Create the minibuf buffer
-    let minibuf = Buffer::create_minibuf(&theme);
-    let minibuf_id = minibuf.id().clone();
-    buffers.insert(minibuf_id.clone(), minibuf);
+    let mut minibuf = Buffer::create_minibuf(&theme);
 
-    let app = App {
+    let mut app = App {
         window,
         widget,
 
         key_handler: event::KeyHandler::new(),
 
-        buffers,
-        pane_tree: PaneTree::new(scratch_buffer_id, minibuf_id),
+        buffers: HashMap::new(),
+        pane_tree: PaneTree::new(&mut scratch_buffer, &mut minibuf),
 
         theme,
         interactive_state: InteractiveState::Initial,
     };
+
+    let mut buffers = HashMap::new();
+    buffers.insert(scratch_buffer.id().clone(), scratch_buffer);
+    buffers.insert(minibuf.id().clone(), minibuf);
+    app.buffers = buffers;
 
     // Store app in global.
     APP.with(|cell| {

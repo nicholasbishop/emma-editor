@@ -46,29 +46,16 @@ impl App {
                 .buffers
                 .get_mut(pane.buffer_id())
                 .expect("invalid buffer");
-            let pos = pane.cursor();
+            let pos = buf.cursor(pane);
             buf.insert_char(c, pos);
-
-            // Update all cursors in this buffer.
-            for pane in self.pane_tree.panes_mut() {
-                if pane.buffer_id() != buf.id() {
-                    continue;
-                }
-
-                let mut cursor = pane.cursor();
-                if cursor.0 >= pos.0 {
-                    cursor.0 += 1;
-                    pane.set_cursor(cursor);
-                }
-            }
         }
     }
 
     fn move_cursor(&mut self, step: Move, dir: Direction) {
         let pane = self.pane_tree.active_mut();
-        let buf = self.buffers.get(pane.buffer_id()).unwrap();
+        let buf = self.buffers.get_mut(pane.buffer_id()).unwrap();
         let text = buf.text();
-        let mut cursor = pane.cursor();
+        let mut cursor = buf.cursor(pane);
 
         match step {
             Move::Char => {
@@ -132,7 +119,7 @@ impl App {
             }
         }
 
-        pane.set_cursor(cursor);
+        buf.set_cursor(pane, cursor);
     }
 
     fn handle_action(&mut self, action: Action) {
@@ -144,7 +131,12 @@ impl App {
                 self.move_cursor(step, dir);
             }
             Action::SplitPane(orientation) => {
-                self.pane_tree.split(orientation);
+                self.pane_tree.split(
+                    orientation,
+                    self.buffers
+                        .get_mut(self.pane_tree.active().buffer_id())
+                        .expect("invalid buffer ID"),
+                );
             }
             Action::PreviousPane => {
                 let pane_id;
