@@ -7,6 +7,19 @@ use {
     std::collections::HashMap,
 };
 
+fn name_to_key_map() -> HashMap<&'static str, gdk::keys::Key> {
+    // This map is the only place that needs to be updated to add a
+    // new named key.
+    let mut map = HashMap::new();
+    map.insert("esc", keys::Escape);
+    map.insert("space", keys::space);
+    map.insert("ret", keys::Return);
+    map.insert("plus", keys::plus);
+    map.insert("less", keys::less);
+    map.insert("greater", keys::greater);
+    map
+}
+
 pub fn is_modifier(key: &gdk::keys::Key) -> bool {
     matches!(
         *key,
@@ -50,13 +63,17 @@ fn single_modifier_to_string(m: &ModifierType) -> &'static str {
     }
 }
 
+fn key_to_name_map() -> HashMap<gdk::keys::Key, &'static str> {
+    let mut map = HashMap::new();
+    for (k, v) in name_to_key_map() {
+        map.insert(v, k);
+    }
+    map
+}
+
 fn key_to_string(key: &gdk::keys::Key) -> String {
-    if *key == keys::Escape {
-        "<esc>".into()
-    } else if *key == keys::Return {
-        "<ret>".into()
-    } else if *key == keys::BackSpace {
-        "<backspace>".into()
+    if let Some(name) = key_to_name_map().get(key) {
+        format!("<{}>", name)
     } else if let Some(c) = key.to_unicode() {
         format!("\"{}\"", c)
     } else {
@@ -99,12 +116,9 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
     names.insert("ctrl", ParseItem::Modifier(ModifierType::CONTROL_MASK));
     names.insert("shift", ParseItem::Modifier(ModifierType::SHIFT_MASK));
     names.insert("alt", ParseItem::Modifier(ModifierType::ALT_MASK));
-    names.insert("esc", ParseItem::Key(keys::Escape));
-    names.insert("space", ParseItem::Key(keys::space));
-    names.insert("ret", ParseItem::Key(keys::Return));
-    names.insert("plus", ParseItem::Key(keys::plus));
-    names.insert("less", ParseItem::Key(keys::less));
-    names.insert("greater", ParseItem::Key(keys::greater));
+    for (k, v) in name_to_key_map() {
+        names.insert(k, ParseItem::Key(v));
+    }
 
     let mut items = Vec::new();
     let mut name = String::new();
