@@ -24,6 +24,8 @@ enum InteractiveState {
     OpenFile,
 }
 
+pub type BufferMap = HashMap<BufferId, Buffer>;
+
 struct App {
     window: gtk::ApplicationWindow,
     widget: gtk::DrawingArea,

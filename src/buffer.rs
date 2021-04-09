@@ -208,6 +208,10 @@ impl Buffer {
         self.cursors.insert(pane.id().clone(), cursor);
     }
 
+    pub fn remove_cursor(&mut self, pane: &Pane) {
+        self.cursors.remove(&pane.id());
+    }
+
     /// Remove all text from the buffer.
     pub fn clear(&mut self) {
         self.text = Rope::new();

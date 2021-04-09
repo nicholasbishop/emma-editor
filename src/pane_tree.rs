@@ -1,6 +1,6 @@
 use {
     crate::{
-        app::Font,
+        app::{BufferMap, Font},
         buffer::{Buffer, BufferId, Position},
         util,
     },
@@ -80,6 +80,27 @@ impl Pane {
 
     pub fn is_cursor_visible(&self) -> bool {
         self.is_cursor_visible
+    }
+
+    pub fn switch_buffer(
+        &mut self,
+        buffers: &mut BufferMap,
+        new_buf_id: &BufferId,
+    ) {
+        let old_buf = buffers.get_mut(&self.buffer_id).unwrap();
+        old_buf.remove_cursor(self);
+
+        let new_buf = buffers.get_mut(new_buf_id).unwrap();
+        new_buf.set_cursor(self, Position::default());
+
+        // TODO: think about what should happen to the cursor when a
+        // buffer is viewed by only one pane, then that pane switches
+        // away from the buffer so no panes are showing it, then a
+        // pane shows the buffer again. It aught to put the cursor at
+        // the same place, but currently we don't have anything like
+        // that...
+
+        self.buffer_id = new_buf_id.clone();
     }
 }
 

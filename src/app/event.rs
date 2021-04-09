@@ -7,6 +7,7 @@ use {
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
+    std::path::Path,
 };
 
 pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
@@ -134,6 +135,46 @@ impl App {
         self.buffers.get_mut(id).expect("missing minibuf buffer")
     }
 
+    fn reset_interactive_state(&mut self) {
+        self.interactive_state = InteractiveState::Initial;
+        self.pane_tree.set_minibuf_interactive(false);
+        self.minibuf_mut().clear();
+    }
+
+    fn open_file(&mut self) {
+        // Get the path to open.
+        let text = self.minibuf().text().to_string();
+        let path = Path::new(&text);
+
+        // Reset the minibuf, which also reselect the previous active
+        // pane.
+        self.reset_interactive_state();
+
+        // Load the file in a new buffer.
+        match Buffer::from_path(path, &self.theme) {
+            Ok(buf) => {
+                let buf_id = buf.id().clone();
+                self.buffers.insert(buf_id.clone(), buf);
+                self.pane_tree
+                    .active_mut()
+                    .switch_buffer(&mut self.buffers, &buf_id);
+            }
+            Err(err) => {
+                // TODO: show the error in the minibuf
+                dbg!(err);
+            }
+        }
+    }
+
+    fn handle_confirm(&mut self) {
+        match self.interactive_state {
+            InteractiveState::Initial => {}
+            InteractiveState::OpenFile => {
+                self.open_file();
+            }
+        }
+    }
+
     fn handle_action(&mut self, action: Action) {
         match action {
             Action::Exit => {
@@ -190,31 +231,10 @@ impl App {
                 self.pane_tree.set_minibuf_interactive(true);
             }
             Action::Confirm => {
-                match self.interactive_state {
-                    InteractiveState::Initial => {}
-                    InteractiveState::OpenFile => {
-                        // Read path from minibuf
-                        let text = self.minibuf().text().to_string();
-                        dbg!(text);
-
-                        //
-                        // Create new buffer with that path
-                        //
-                        // Point active pane (prior to minibuf
-                        // activation) at new buffer, including clean
-                        // up of old cursors
-                    }
-                }
-
-                // TODO: dedup with cancel
-                self.interactive_state = InteractiveState::Initial;
-                self.pane_tree.set_minibuf_interactive(false);
-                self.minibuf_mut().clear();
+                self.handle_confirm();
             }
             Action::Cancel => {
-                self.interactive_state = InteractiveState::Initial;
-                self.pane_tree.set_minibuf_interactive(false);
-                self.minibuf_mut().clear();
+                self.reset_interactive_state();
             }
             todo => {
                 dbg!(todo);
