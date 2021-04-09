@@ -11,6 +11,7 @@ fn name_to_key_map() -> HashMap<&'static str, gdk::keys::Key> {
     // This map is the only place that needs to be updated to add a
     // new named key.
     let mut map = HashMap::new();
+    map.insert("backspace", keys::BackSpace);
     map.insert("esc", keys::Escape);
     map.insert("space", keys::space);
     map.insert("ret", keys::Return);

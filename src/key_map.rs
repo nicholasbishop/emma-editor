@@ -31,6 +31,7 @@ pub enum Action {
     ClosePane,
     Confirm,
     OpenShell,
+    Backspace,
 
     /// Delete the buffer in the active pane.
     DeleteBuffer,
@@ -105,6 +106,11 @@ impl KeyMap {
         map.insert(
             KeySequence::parse("<alt><shift><greater>").unwrap(),
             Action::Move(Move::BufferEnd, Direction::Inc),
+        );
+
+        map.insert(
+            KeySequence::parse("<backspace>").unwrap(),
+            Action::Backspace,
         );
 
         map.insert(
