@@ -113,6 +113,10 @@ impl KeyMap {
             KeySequence::parse("<backspace>").unwrap(),
             Action::Delete(Boundary::Grapheme, Direction::Dec),
         );
+        map.insert(
+            KeySequence::parse("<ctrl>d").unwrap(),
+            Action::Delete(Boundary::Grapheme, Direction::Inc),
+        );
 
         map.insert(
             KeySequence::parse("<ctrl>x+k").unwrap(),
