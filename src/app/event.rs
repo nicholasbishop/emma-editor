@@ -77,7 +77,7 @@ impl App {
         let mut cursor = buf.cursor(pane);
 
         match step {
-            Move::Char => {
+            Move::Boundary(Boundary::Grapheme) => {
                 if dir == Direction::Dec {
                     cursor.0 = prev_grapheme_boundary(
                         &text.slice(0..text.len_chars()),

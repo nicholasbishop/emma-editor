@@ -8,13 +8,13 @@ use {
     std::collections::BTreeMap,
 };
 
-// TODO: use Boundary instead
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Move {
-    Char,
+    Boundary(Boundary),
     Line,
-    LineEnd,
     Page,
+    // TODO: move these to Boundary
+    LineEnd,
     BufferEnd,
 }
 
@@ -70,11 +70,11 @@ impl KeyMap {
 
         map.insert(
             KeySequence::parse("<ctrl>b").unwrap(),
-            Action::Move(Move::Char, Direction::Dec),
+            Action::Move(Move::Boundary(Boundary::Grapheme), Direction::Dec),
         );
         map.insert(
             KeySequence::parse("<ctrl>f").unwrap(),
-            Action::Move(Move::Char, Direction::Inc),
+            Action::Move(Move::Boundary(Boundary::Grapheme), Direction::Inc),
         );
         map.insert(
             KeySequence::parse("<ctrl>p").unwrap(),
