@@ -70,7 +70,7 @@ pub fn init(application: &gtk::Application) {
 
     // TODO: load a temporary buffer
     let mut scratch_buffer =
-        Buffer::from_path(Path::new("graphemes.txt"), &theme).unwrap();
+        Buffer::from_path(Path::new("src/app.rs"), &theme).unwrap();
 
     // Create the minibuf buffer
     let mut minibuf = Buffer::create_minibuf(&theme);
