@@ -31,10 +31,10 @@ pub enum Direction {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Boundary {
     Grapheme,
+    LineEnd,
     // TODO:
     // Subword,
     // Word,
-    // LineEnd,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -247,16 +247,31 @@ impl Buffer {
         boundary: Boundary,
         direction: Direction,
     ) -> Position {
-        Position(match (boundary, direction) {
-            (Boundary::Grapheme, Direction::Dec) => prev_grapheme_boundary(
-                &self.text.slice(0..self.text.len_chars()),
-                pos.0,
-            ),
-            (Boundary::Grapheme, Direction::Inc) => next_grapheme_boundary(
-                &self.text.slice(0..self.text.len_chars()),
-                pos.0,
-            ),
-        })
+        match (boundary, direction) {
+            (Boundary::Grapheme, Direction::Dec) => {
+                Position(prev_grapheme_boundary(
+                    &self.text.slice(0..self.text.len_chars()),
+                    pos.0,
+                ))
+            }
+            (Boundary::Grapheme, Direction::Inc) => {
+                Position(next_grapheme_boundary(
+                    &self.text.slice(0..self.text.len_chars()),
+                    pos.0,
+                ))
+            }
+            (Boundary::LineEnd, direction) => {
+                let mut lp = pos.line_position(self);
+                if direction == Direction::Dec {
+                    // TODO: add logic to initially move to
+                    // first-non-whitespace char.
+                    lp.offset = 0;
+                } else {
+                    lp.offset = self.text.line(lp.line).len_chars() - 1;
+                }
+                Position::from_line_position(lp, self)
+            }
+        }
     }
 
     pub fn delete_text(&mut self, range: Range<Position>) {

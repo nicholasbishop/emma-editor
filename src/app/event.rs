@@ -2,7 +2,6 @@ use {
     super::{App, InteractiveState, APP},
     crate::{
         buffer::{Boundary, Buffer, Direction, Position},
-        grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
@@ -77,18 +76,8 @@ impl App {
         let mut cursor = buf.cursor(pane);
 
         match step {
-            Move::Boundary(Boundary::Grapheme) => {
-                if dir == Direction::Dec {
-                    cursor.0 = prev_grapheme_boundary(
-                        &text.slice(0..text.len_chars()),
-                        cursor.0,
-                    );
-                } else {
-                    cursor.0 = next_grapheme_boundary(
-                        &text.slice(0..text.len_chars()),
-                        cursor.0,
-                    );
-                }
+            Move::Boundary(boundary) => {
+                cursor = buf.find_boundary(cursor, boundary, dir);
             }
             Move::Line => {
                 let mut lp = cursor.line_position(buf);
@@ -112,17 +101,6 @@ impl App {
                         lp.line += 1;
                         lp.set_offset_in_graphemes(buf, num_graphemes);
                     }
-                }
-                cursor = Position::from_line_position(lp, buf);
-            }
-            Move::LineEnd => {
-                let mut lp = cursor.line_position(buf);
-                if dir == Direction::Dec {
-                    // TODO: add logic to initially move to
-                    // first-non-whitespace char.
-                    lp.offset = 0;
-                } else {
-                    lp.offset = text.line(lp.line).len_chars() - 1;
                 }
                 cursor = Position::from_line_position(lp, buf);
             }
