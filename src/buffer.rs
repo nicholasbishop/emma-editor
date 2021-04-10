@@ -11,6 +11,7 @@ use {
     std::{
         collections::HashMap,
         fmt, fs, io,
+        ops::Range,
         path::{Path, PathBuf},
     },
     syntect::{
@@ -29,12 +30,11 @@ pub enum Direction {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Boundary {
-    Grapheme(Direction),
+    Grapheme,
     // TODO:
-    // Subword(Direction),
-    // Word(Direction),
-    // LineEnd(Direction),
-    // Line,
+    // Subword,
+    // Word,
+    // LineEnd,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -57,7 +57,7 @@ impl fmt::Display for BufferId {
 }
 
 /// Char index within the buffer.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Position(pub usize);
 
 impl Position {
@@ -241,28 +241,34 @@ impl Buffer {
         }
     }
 
-    pub fn delete_text(&mut self, pos: Position, boundary: Boundary) {
-        match boundary {
-            Boundary::Grapheme(dir) => {
-                if dir == Direction::Dec {
-                    if pos.0 > 0 {
-                        let start = prev_grapheme_boundary(
-                            &self.text.slice(0..self.text.len_chars()),
-                            pos.0,
-                        );
-                        let range = start..pos.0;
-                        self.text.remove(range.clone());
+    pub fn find_boundary(
+        &mut self,
+        pos: Position,
+        boundary: Boundary,
+        direction: Direction,
+    ) -> Position {
+        Position(match (boundary, direction) {
+            (Boundary::Grapheme, Direction::Dec) => prev_grapheme_boundary(
+                &self.text.slice(0..self.text.len_chars()),
+                pos.0,
+            ),
+            (Boundary::Grapheme, Direction::Inc) => next_grapheme_boundary(
+                &self.text.slice(0..self.text.len_chars()),
+                pos.0,
+            ),
+        })
+    }
 
-                        // Update all cursors in this buffer.
-                        for cursor in self.cursors.values_mut() {
-                            if range.contains(&cursor.0) {
-                                cursor.0 = range.start;
-                            } else if cursor.0 >= range.end {
-                                cursor.0 -= range.len();
-                            }
-                        }
-                    }
-                }
+    pub fn delete_text(&mut self, range: Range<Position>) {
+        self.text.remove(range.start.0..range.end.0);
+
+        // Update all cursors in this buffer.
+        for cursor in self.cursors.values_mut() {
+            if range.contains(&cursor) {
+                *cursor = range.start;
+            } else if *cursor >= range.end {
+                // TODO any way to impl len?
+                cursor.0 -= range.end.0 - range.start.0;
             }
         }
 

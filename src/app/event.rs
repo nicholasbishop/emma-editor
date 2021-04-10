@@ -39,14 +39,22 @@ impl KeyHandler {
 }
 
 impl App {
-    fn delete_text(&mut self, boundary: Boundary) {
+    fn delete_text(&mut self, boundary: Boundary, direction: Direction) {
         let pane = self.pane_tree.active();
         let buf = self
             .buffers
             .get_mut(pane.buffer_id())
             .expect("invalid buffer");
         let pos = buf.cursor(pane);
-        buf.delete_text(pos, boundary);
+        let boundary = buf.find_boundary(pos, boundary, direction);
+        if pos != boundary {
+            let range = if pos < boundary {
+                pos..boundary
+            } else {
+                boundary..pos
+            };
+            buf.delete_text(range);
+        }
     }
 
     fn insert_char(&mut self, key: gdk::keys::Key) {
@@ -193,8 +201,8 @@ impl App {
             Action::Move(step, dir) => {
                 self.move_cursor(step, dir);
             }
-            Action::Delete(boundary) => {
-                self.delete_text(boundary);
+            Action::Delete(boundary, direction) => {
+                self.delete_text(boundary, direction);
             }
             Action::SplitPane(orientation) => {
                 self.pane_tree.split(

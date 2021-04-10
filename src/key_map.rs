@@ -8,6 +8,7 @@ use {
     std::collections::BTreeMap,
 };
 
+// TODO: use Boundary instead
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Move {
     Char,
@@ -31,7 +32,7 @@ pub enum Action {
     OpenShell,
 
     /// Delete text in the active pane.
-    Delete(Boundary),
+    Delete(Boundary, Direction),
 
     /// Delete the buffer in the active pane.
     DeleteBuffer,
@@ -110,7 +111,7 @@ impl KeyMap {
 
         map.insert(
             KeySequence::parse("<backspace>").unwrap(),
-            Action::Delete(Boundary::Grapheme(Direction::Dec)),
+            Action::Delete(Boundary::Grapheme, Direction::Dec),
         );
 
         map.insert(
