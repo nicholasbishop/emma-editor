@@ -57,7 +57,7 @@ impl Font {
 
         let mut font_desc = FontDescription::new();
         font_desc.set_family("Monospace");
-        font_desc.set_size(12 * pango::SCALE);
+        font_desc.set_size(14 * pango::SCALE);
 
         let pctx = pangocairo::create_context(ctx).unwrap();
         let language = None;
