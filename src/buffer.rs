@@ -1,7 +1,7 @@
 use {
     crate::{
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
-        key_map::{DeletionBoundary, Direction},
+        key_map::DeletionBoundary,
         pane_tree::{Pane, PaneId},
         theme::Theme,
         util,
@@ -21,6 +21,12 @@ use {
         parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet},
     },
 };
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Direction {
+    Dec,
+    Inc,
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct BufferId(String);

@@ -1,11 +1,10 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{Buffer, Position},
+        buffer::{Buffer, Direction, Position},
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
         key_map::{
-            Action, DeletionBoundary, Direction, KeyMap, KeyMapLookup,
-            KeyMapStack, Move,
+            Action, DeletionBoundary, KeyMap, KeyMapLookup, KeyMapStack, Move,
         },
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },

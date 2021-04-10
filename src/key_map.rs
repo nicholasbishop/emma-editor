@@ -1,14 +1,8 @@
 use {
-    crate::{key_sequence::KeySequence, pane_tree},
+    crate::{buffer::Direction, key_sequence::KeySequence, pane_tree},
     gtk4::gdk::ModifierType,
     std::collections::BTreeMap,
 };
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Direction {
-    Dec,
-    Inc,
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Move {
