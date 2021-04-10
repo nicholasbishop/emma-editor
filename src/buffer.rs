@@ -1,7 +1,6 @@
 use {
     crate::{
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
-        key_map::DeletionBoundary,
         pane_tree::{Pane, PaneId},
         theme::Theme,
         util,
@@ -26,6 +25,16 @@ use {
 pub enum Direction {
     Dec,
     Inc,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Boundary {
+    Grapheme(Direction),
+    // TODO:
+    // Subword(Direction),
+    // Word(Direction),
+    // LineEnd(Direction),
+    // Line,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -232,9 +241,9 @@ impl Buffer {
         }
     }
 
-    pub fn delete_text(&mut self, pos: Position, boundary: DeletionBoundary) {
+    pub fn delete_text(&mut self, pos: Position, boundary: Boundary) {
         match boundary {
-            DeletionBoundary::Grapheme(dir) => {
+            Boundary::Grapheme(dir) => {
                 if dir == Direction::Dec {
                     if pos.0 > 0 {
                         let start = prev_grapheme_boundary(
@@ -255,7 +264,6 @@ impl Buffer {
                     }
                 }
             }
-            _ => todo!(),
         }
 
         // TODO: async style recalc

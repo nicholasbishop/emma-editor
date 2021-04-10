@@ -1,5 +1,9 @@
 use {
-    crate::{buffer::Direction, key_sequence::KeySequence, pane_tree},
+    crate::{
+        buffer::{Boundary, Direction},
+        key_sequence::KeySequence,
+        pane_tree,
+    },
     gtk4::gdk::ModifierType,
     std::collections::BTreeMap,
 };
@@ -11,14 +15,6 @@ pub enum Move {
     LineEnd,
     Page,
     BufferEnd,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DeletionBoundary {
-    Grapheme(Direction),
-    Word(Direction),
-    Line,
-    LineEnd(Direction),
 }
 
 #[allow(dead_code)] // TODO
@@ -35,7 +31,7 @@ pub enum Action {
     OpenShell,
 
     /// Delete text in the active pane.
-    Delete(DeletionBoundary),
+    Delete(Boundary),
 
     /// Delete the buffer in the active pane.
     DeleteBuffer,
@@ -114,7 +110,7 @@ impl KeyMap {
 
         map.insert(
             KeySequence::parse("<backspace>").unwrap(),
-            Action::Delete(DeletionBoundary::Grapheme(Direction::Dec)),
+            Action::Delete(Boundary::Grapheme(Direction::Dec)),
         );
 
         map.insert(

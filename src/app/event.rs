@@ -1,11 +1,9 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{Buffer, Direction, Position},
+        buffer::{Boundary, Buffer, Direction, Position},
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
-        key_map::{
-            Action, DeletionBoundary, KeyMap, KeyMapLookup, KeyMapStack, Move,
-        },
+        key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
@@ -41,7 +39,7 @@ impl KeyHandler {
 }
 
 impl App {
-    fn delete_text(&mut self, boundary: DeletionBoundary) {
+    fn delete_text(&mut self, boundary: Boundary) {
         let pane = self.pane_tree.active();
         let buf = self
             .buffers
