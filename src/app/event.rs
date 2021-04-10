@@ -3,7 +3,10 @@ use {
     crate::{
         buffer::{Buffer, Position},
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
-        key_map::{Action, Direction, KeyMap, KeyMapLookup, KeyMapStack, Move},
+        key_map::{
+            Action, DeletionBoundary, Direction, KeyMap, KeyMapLookup,
+            KeyMapStack, Move,
+        },
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
@@ -39,6 +42,16 @@ impl KeyHandler {
 }
 
 impl App {
+    fn delete_text(&mut self, boundary: DeletionBoundary) {
+        let pane = self.pane_tree.active();
+        let buf = self
+            .buffers
+            .get_mut(pane.buffer_id())
+            .expect("invalid buffer");
+        let pos = buf.cursor(pane);
+        buf.delete_text(pos, boundary);
+    }
+
     fn insert_char(&mut self, key: gdk::keys::Key) {
         // Insert a character into the active pane.
         if let Some(c) = key.to_unicode() {
@@ -182,6 +195,9 @@ impl App {
             }
             Action::Move(step, dir) => {
                 self.move_cursor(step, dir);
+            }
+            Action::Delete(boundary) => {
+                self.delete_text(boundary);
             }
             Action::SplitPane(orientation) => {
                 self.pane_tree.split(

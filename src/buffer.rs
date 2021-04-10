@@ -1,6 +1,7 @@
 use {
     crate::{
-        grapheme::next_grapheme_boundary,
+        grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
+        key_map::{DeletionBoundary, Direction},
         pane_tree::{Pane, PaneId},
         theme::Theme,
         util,
@@ -223,6 +224,36 @@ impl Buffer {
         for cursor in self.cursors.values_mut() {
             cursor.0 = 0;
         }
+    }
+
+    pub fn delete_text(&mut self, pos: Position, boundary: DeletionBoundary) {
+        match boundary {
+            DeletionBoundary::Grapheme(dir) => {
+                if dir == Direction::Dec {
+                    if pos.0 > 0 {
+                        let start = prev_grapheme_boundary(
+                            &self.text.slice(0..self.text.len_chars()),
+                            pos.0,
+                        );
+                        let range = start..pos.0;
+                        self.text.remove(range.clone());
+
+                        // Update all cursors in this buffer.
+                        for cursor in self.cursors.values_mut() {
+                            if range.contains(&cursor.0) {
+                                cursor.0 = range.start;
+                            } else if cursor.0 >= range.end {
+                                cursor.0 -= range.len();
+                            }
+                        }
+                    }
+                }
+            }
+            _ => todo!(),
+        }
+
+        // TODO: async style recalc
+        self.recalc_style_spans();
     }
 
     pub fn insert_char(&mut self, c: char, pos: Position) {

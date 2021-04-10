@@ -19,6 +19,14 @@ pub enum Move {
     BufferEnd,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DeletionBoundary {
+    Grapheme(Direction),
+    Word(Direction),
+    Line,
+    LineEnd(Direction),
+}
+
 #[allow(dead_code)] // TODO
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Action {
@@ -31,7 +39,9 @@ pub enum Action {
     ClosePane,
     Confirm,
     OpenShell,
-    Backspace,
+
+    /// Delete text in the active pane.
+    Delete(DeletionBoundary),
 
     /// Delete the buffer in the active pane.
     DeleteBuffer,
@@ -110,7 +120,7 @@ impl KeyMap {
 
         map.insert(
             KeySequence::parse("<backspace>").unwrap(),
-            Action::Backspace,
+            Action::Delete(DeletionBoundary::Grapheme(Direction::Dec)),
         );
 
         map.insert(
