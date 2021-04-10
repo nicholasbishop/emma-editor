@@ -107,13 +107,6 @@ impl App {
             Move::Page => {
                 dbg!("TODO");
             }
-            Move::BufferEnd => {
-                if dir == Direction::Dec {
-                    cursor.0 = 0;
-                } else {
-                    cursor.0 = text.len_chars();
-                }
-            }
         }
 
         buf.set_cursor(pane, cursor);

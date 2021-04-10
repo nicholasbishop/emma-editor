@@ -13,8 +13,6 @@ pub enum Move {
     Boundary(Boundary),
     Line,
     Page,
-    // TODO: move to Boundary
-    BufferEnd,
 }
 
 #[allow(dead_code)] // TODO
@@ -101,11 +99,11 @@ impl KeyMap {
         );
         map.insert(
             KeySequence::parse("<alt><shift><less>").unwrap(),
-            Action::Move(Move::BufferEnd, Direction::Dec),
+            Action::Move(Move::Boundary(Boundary::BufferEnd), Direction::Dec),
         );
         map.insert(
             KeySequence::parse("<alt><shift><greater>").unwrap(),
-            Action::Move(Move::BufferEnd, Direction::Inc),
+            Action::Move(Move::Boundary(Boundary::BufferEnd), Direction::Inc),
         );
 
         map.insert(

@@ -32,6 +32,7 @@ pub enum Direction {
 pub enum Boundary {
     Grapheme,
     LineEnd,
+    BufferEnd,
     // TODO:
     // Subword,
     // Word,
@@ -270,6 +271,10 @@ impl Buffer {
                     lp.offset = self.text.line(lp.line).len_chars() - 1;
                 }
                 Position::from_line_position(lp, self)
+            }
+            (Boundary::BufferEnd, Direction::Dec) => Position(0),
+            (Boundary::BufferEnd, Direction::Inc) => {
+                Position(self.text.len_chars())
             }
         }
     }
