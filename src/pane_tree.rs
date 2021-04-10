@@ -1,7 +1,7 @@
 use {
     crate::{
         app::{BufferMap, Font},
-        buffer::{Buffer, BufferId, Position},
+        buffer::{Buffer, BufferId, CharIndex},
         util,
     },
     std::fmt,
@@ -91,7 +91,7 @@ impl Pane {
         old_buf.remove_cursor(self);
 
         let new_buf = buffers.get_mut(new_buf_id).unwrap();
-        new_buf.set_cursor(self, Position::default());
+        new_buf.set_cursor(self, CharIndex::default());
 
         // TODO: think about what should happen to the cursor when a
         // buffer is viewed by only one pane, then that pane switches
@@ -305,8 +305,8 @@ impl PaneTree {
             show_info_bar: false,
             is_cursor_visible: false,
         };
-        initial_buffer.set_cursor(&initial_pane, Position::default());
-        minibuf_buffer.set_cursor(&minibuf_pane, Position::default());
+        initial_buffer.set_cursor(&initial_pane, CharIndex::default());
+        minibuf_buffer.set_cursor(&minibuf_pane, CharIndex::default());
         PaneTree {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,

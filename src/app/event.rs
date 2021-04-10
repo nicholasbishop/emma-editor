@@ -1,7 +1,7 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{Boundary, Buffer, Direction, Position},
+        buffer::{Boundary, Buffer, CharIndex, Direction},
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
@@ -102,7 +102,7 @@ impl App {
                         lp.set_offset_in_graphemes(buf, num_graphemes);
                     }
                 }
-                cursor = Position::from_line_position(lp, buf);
+                cursor = CharIndex::from_line_position(lp, buf);
             }
             Move::Page => {
                 dbg!("TODO");

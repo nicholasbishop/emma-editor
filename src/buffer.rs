@@ -36,6 +36,7 @@ pub enum Boundary {
     // TODO:
     // Subword,
     // Word,
+    // LineEndExcludingWhitespace,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -59,14 +60,14 @@ impl fmt::Display for BufferId {
 
 /// Char index within the buffer.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Position(pub usize);
+pub struct CharIndex(pub usize);
 
-impl Position {
-    pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> Position {
-        Position(buf.text.line_to_char(pos.line) + pos.offset)
+impl CharIndex {
+    pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> CharIndex {
+        CharIndex(buf.text.line_to_char(pos.line) + pos.offset)
     }
 
-    /// Convert the Position to a LinePosition.
+    /// Convert the CharIndex to a LinePosition.
     pub fn line_position(&self, buf: &Buffer) -> LinePosition {
         let text = &buf.text;
 
@@ -153,7 +154,7 @@ pub struct Buffer {
     style_spans: Vec<Vec<StyleSpan>>,
 
     // Each pane showing this buffer has its own cursor.
-    cursors: HashMap<PaneId, Position>,
+    cursors: HashMap<PaneId, CharIndex>,
 }
 
 impl fmt::Debug for Buffer {
@@ -217,11 +218,11 @@ impl Buffer {
         &self.style_spans
     }
 
-    pub fn cursor(&self, pane: &Pane) -> Position {
+    pub fn cursor(&self, pane: &Pane) -> CharIndex {
         *self.cursors.get(pane.id()).expect("no cursor for pane")
     }
 
-    pub fn set_cursor(&mut self, pane: &Pane, cursor: Position) {
+    pub fn set_cursor(&mut self, pane: &Pane, cursor: CharIndex) {
         self.cursors.insert(pane.id().clone(), cursor);
     }
 
@@ -244,19 +245,19 @@ impl Buffer {
 
     pub fn find_boundary(
         &mut self,
-        pos: Position,
+        pos: CharIndex,
         boundary: Boundary,
         direction: Direction,
-    ) -> Position {
+    ) -> CharIndex {
         match (boundary, direction) {
             (Boundary::Grapheme, Direction::Dec) => {
-                Position(prev_grapheme_boundary(
+                CharIndex(prev_grapheme_boundary(
                     &self.text.slice(0..self.text.len_chars()),
                     pos.0,
                 ))
             }
             (Boundary::Grapheme, Direction::Inc) => {
-                Position(next_grapheme_boundary(
+                CharIndex(next_grapheme_boundary(
                     &self.text.slice(0..self.text.len_chars()),
                     pos.0,
                 ))
@@ -270,16 +271,16 @@ impl Buffer {
                 } else {
                     lp.offset = self.text.line(lp.line).len_chars() - 1;
                 }
-                Position::from_line_position(lp, self)
+                CharIndex::from_line_position(lp, self)
             }
-            (Boundary::BufferEnd, Direction::Dec) => Position(0),
+            (Boundary::BufferEnd, Direction::Dec) => CharIndex(0),
             (Boundary::BufferEnd, Direction::Inc) => {
-                Position(self.text.len_chars())
+                CharIndex(self.text.len_chars())
             }
         }
     }
 
-    pub fn delete_text(&mut self, range: Range<Position>) {
+    pub fn delete_text(&mut self, range: Range<CharIndex>) {
         self.text.remove(range.start.0..range.end.0);
 
         // Update all cursors in this buffer.
@@ -296,7 +297,7 @@ impl Buffer {
         self.recalc_style_spans();
     }
 
-    pub fn insert_char(&mut self, c: char, pos: Position) {
+    pub fn insert_char(&mut self, c: char, pos: CharIndex) {
         self.text.insert(pos.0, &c.to_string());
 
         // Update the associated style span to account for the new
