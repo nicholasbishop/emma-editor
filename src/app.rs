@@ -45,16 +45,13 @@ pub fn init(application: &gtk::Application) {
     // Create single widget that is used for drawing the whole
     // application.
     let widget = gtk::DrawingArea::new();
-    widget.set_draw_func(|widget, ctx, width, height| {
+    widget.set_draw_func(|_widget, ctx, width, height| {
         APP.with(|app| {
             let width = width as f64;
             let height = height as f64;
 
             let mut app = app.borrow_mut();
             let app = app.as_mut().unwrap();
-
-            // TODO: do we need to wait til draw for this?
-            app.line_height = LineHeight::calculate(widget);
 
             app.pane_tree.recalc_layout(width, height, app.line_height);
             app.draw(ctx, width, height, app.line_height, &app.theme);
@@ -94,6 +91,8 @@ pub fn init(application: &gtk::Application) {
     // Create the minibuf buffer
     let mut minibuf = Buffer::create_minibuf(&theme);
 
+    let line_height = LineHeight::calculate(&widget);
+
     let mut app = App {
         window,
         widget,
@@ -105,8 +104,7 @@ pub fn init(application: &gtk::Application) {
 
         theme,
         interactive_state: InteractiveState::Initial,
-        // TODO
-        line_height: LineHeight(0.0),
+        line_height,
     };
 
     let mut buffers = HashMap::new();
