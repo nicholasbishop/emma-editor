@@ -24,7 +24,6 @@ recent useful branches:
 
 Some todos:
 - Close pane
-- Open file via minibuf
 - Switch buffer via minibuf
 - Close buffer
 - Async highlighting
