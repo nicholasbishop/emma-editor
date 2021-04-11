@@ -68,7 +68,7 @@ pub fn init(application: &gtk::Application) {
     css.load_from_data(
         br#"
         widget { 
-            font-family: "DejaVu Sans Mono";
+            font-family: monospace;
             font-size: 11.5pt;
         }
     "#,
