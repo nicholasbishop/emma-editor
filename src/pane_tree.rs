@@ -40,6 +40,12 @@ pub struct Rect {
     pub height: f64,
 }
 
+impl Rect {
+    pub fn bottom(&self) -> f64 {
+        self.y + self.height
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Pane {
     id: PaneId,
@@ -101,6 +107,29 @@ impl Pane {
         // that...
 
         self.buffer_id = new_buf_id.clone();
+    }
+
+    // If the cursor is not visible in the pane, scroll it so that the
+    // cursor is vertically in the middle of the pane.
+    pub fn maybe_rescroll(
+        &mut self,
+        buf: &Buffer,
+        pos: CharIndex,
+        line_height: LineHeight,
+    ) {
+        let line_height = line_height.0;
+        let line_index = buf.text().char_to_line(pos.0);
+
+        let top =
+            (line_index as f64 - self.top_line as f64 + 1.0) * line_height;
+        let bottom = top + line_height;
+        if top < self.rect.y || bottom > self.rect.bottom() {
+            // Scroll current line to middle of the screen.
+            let half_height = self.rect.height / 2.0;
+            let half_height_in_lines =
+                (half_height / line_height).round() as usize;
+            self.top_line = line_index.saturating_sub(half_height_in_lines);
+        }
     }
 }
 

@@ -103,6 +103,8 @@ impl App {
         }
 
         buf.set_cursor(pane, cursor);
+
+        pane.maybe_rescroll(buf, cursor, self.line_height);
     }
 
     fn minibuf(&self) -> &Buffer {
