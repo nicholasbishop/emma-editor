@@ -79,7 +79,9 @@ impl App {
             Move::Boundary(boundary) => {
                 cursor = buf.find_boundary(cursor, boundary, dir);
             }
-            Move::Line => {
+            Move::Line | Move::Page => {
+                let offset = if step == Move::Line { 1 } else { 20 };
+
                 let mut lp = cursor.line_position(buf);
 
                 // When moving between lines, use grapheme offset
@@ -87,26 +89,16 @@ impl App {
                 // less visually horizontally aligned. Probably would
                 // need to be more sophisticated for non-monospace
                 // fonts though.
-                #[allow(clippy::collapsible_else_if)]
+                let num_graphemes = lp.grapheme_offset(buf);
+
                 if dir == Direction::Dec {
-                    if lp.line > 0 {
-                        let num_graphemes = lp.grapheme_offset(buf);
-
-                        lp.line -= 1;
-                        lp.set_offset_in_graphemes(buf, num_graphemes);
-                    }
+                    lp.line = lp.line.saturating_sub(offset);
                 } else {
-                    if lp.line + 1 < text.len_lines() {
-                        let num_graphemes = lp.grapheme_offset(buf);
-
-                        lp.line += 1;
-                        lp.set_offset_in_graphemes(buf, num_graphemes);
-                    }
+                    lp.line =
+                        std::cmp::min(lp.line + offset, text.len_lines() - 1);
                 }
+                lp.set_offset_in_graphemes(buf, num_graphemes);
                 cursor = CharIndex::from_line_position(lp, buf);
-            }
-            Move::Page => {
-                dbg!("TODO");
             }
         }
 
