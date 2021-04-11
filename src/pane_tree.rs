@@ -1,6 +1,6 @@
 use {
     crate::{
-        app::{BufferMap, Font},
+        app::{BufferMap, LineHeight},
         buffer::{Buffer, BufferId, CharIndex},
         util,
     },
@@ -315,8 +315,13 @@ impl PaneTree {
         }
     }
 
-    pub fn recalc_layout(&mut self, width: f64, height: f64, font: &Font) {
-        let minibuf_height = font.line_height();
+    pub fn recalc_layout(
+        &mut self,
+        width: f64,
+        height: f64,
+        line_height: LineHeight,
+    ) {
+        let minibuf_height = line_height.0;
         self.minibuf.rect = Rect {
             x: 0.0,
             y: height - minibuf_height,

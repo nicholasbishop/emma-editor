@@ -1,7 +1,8 @@
 mod draw;
 mod event;
 
-pub use draw::Font;
+pub use draw::LineHeight;
+
 use {
     crate::{
         buffer::{Buffer, BufferId},
@@ -37,6 +38,7 @@ struct App {
 
     theme: Theme,
     interactive_state: InteractiveState,
+    line_height: LineHeight,
 }
 
 pub fn init(application: &gtk::Application) {
@@ -48,13 +50,14 @@ pub fn init(application: &gtk::Application) {
             let width = width as f64;
             let height = height as f64;
 
-            let font = Font::new(widget.get_pango_context());
-
             let mut app = app.borrow_mut();
             let app = app.as_mut().unwrap();
 
-            app.pane_tree.recalc_layout(width, height, &font);
-            app.draw(ctx, width, height, &font, &app.theme);
+            // TODO: do we need to wait til draw for this?
+            app.line_height = LineHeight::calculate(widget);
+
+            app.pane_tree.recalc_layout(width, height, app.line_height);
+            app.draw(ctx, width, height, app.line_height, &app.theme);
         })
     });
 
@@ -102,6 +105,8 @@ pub fn init(application: &gtk::Application) {
 
         theme,
         interactive_state: InteractiveState::Initial,
+        // TODO
+        line_height: LineHeight(0.0),
     };
 
     let mut buffers = HashMap::new();

@@ -40,25 +40,18 @@ fn pango_unscale(i: i32) -> f64 {
     i as f64 / pango::SCALE as f64
 }
 
-// TODO: remove or rename this
-#[derive(Debug)]
-pub struct Font {
-    line_height: f64,
-}
+#[derive(Clone, Copy, Debug)]
+pub struct LineHeight(pub f64);
 
-impl Font {
-    pub fn new(pctx: pango::Context) -> Font {
+impl LineHeight {
+    pub fn calculate(widget: &gtk::DrawingArea) -> LineHeight {
+        let pctx = widget.get_pango_context();
         let font_desc = pctx.get_font_description();
 
         let language = None;
         let metrics = pctx.get_metrics(font_desc.as_ref(), language).unwrap();
-        let line_height = pango_unscale(metrics.get_height());
 
-        Font { line_height }
-    }
-
-    pub fn line_height(&self) -> f64 {
-        self.line_height
+        LineHeight(pango_unscale(metrics.get_height()))
     }
 }
 
@@ -73,7 +66,7 @@ struct DrawPane<'a> {
     widget: &'a gtk::DrawingArea,
     pane: &'a Pane,
     buf: &'a Buffer,
-    font: &'a Font,
+    line_height: LineHeight,
     theme: &'a Theme,
     span_buf: String,
     margin: f64,
@@ -205,14 +198,14 @@ impl<'a> DrawPane<'a> {
             // which give (0, double-line-height), but
             // might need to think about other kinds of
             // not-really-rendered characters as well.
-            cursor_width = self.font.line_height / 2.0;
+            cursor_width = self.line_height.0 / 2.0;
         }
         debug!(
             "drawing cursor: size={}x{}",
-            cursor_width, self.font.line_height
+            cursor_width, self.line_height.0
         );
         self.ctx
-            .rectangle(self.x, self.y, cursor_width, self.font.line_height);
+            .rectangle(self.x, self.y, cursor_width, self.line_height.0);
         if self.pane.is_active() {
             self.ctx.fill();
         } else {
@@ -247,7 +240,7 @@ impl<'a> DrawPane<'a> {
             self.draw_layout(&styled_layout.layout);
         }
 
-        self.y += self.font.line_height;
+        self.y += self.line_height.0;
     }
 
     fn draw_info_bar(&mut self) {
@@ -265,9 +258,9 @@ impl<'a> DrawPane<'a> {
         let rect = self.pane.rect();
         self.ctx.rectangle(
             rect.x,
-            rect.y + rect.height - self.font.line_height,
+            rect.y + rect.height - self.line_height.0,
             rect.width,
-            self.font.line_height,
+            self.line_height.0,
         );
         self.ctx.fill();
 
@@ -289,7 +282,7 @@ impl<'a> DrawPane<'a> {
             let layout = self.create_layout(&name.to_string_lossy());
 
             self.x = rect.x;
-            self.y = rect.y + rect.height - self.font.line_height;
+            self.y = rect.y + rect.height - self.line_height.0;
             self.draw_layout(&layout);
         }
     }
@@ -336,7 +329,7 @@ impl App {
         ctx: &cairo::Context,
         width: f64,
         height: f64,
-        font: &Font,
+        line_height: LineHeight,
         theme: &Theme,
     ) {
         // Fill in the background. This acts as the border color
@@ -360,7 +353,7 @@ impl App {
                 widget: &self.widget,
                 pane,
                 buf,
-                font,
+                line_height,
                 theme,
                 span_buf: String::new(),
                 margin: 2.0,
