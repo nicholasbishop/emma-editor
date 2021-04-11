@@ -6,11 +6,13 @@ pub use draw::LineHeight;
 use {
     crate::{
         buffer::{Buffer, BufferId},
+        config::Config,
         pane_tree::PaneTree,
         theme::Theme,
     },
     gtk4::{self as gtk, gdk, prelude::*},
     std::{cell::RefCell, collections::HashMap, path::Path},
+    tracing::error,
 };
 
 // This global is needed for callbacks on the main thread. On other
@@ -64,14 +66,27 @@ pub fn init(application: &gtk::Application) {
     window.set_default_size(800, 800);
     window.set_child(Some(&widget));
 
+    let config = match Config::load() {
+        Ok(config) => config,
+        Err(err) => {
+            // TODO: would be good to show this error in the UI
+            error!("failed to load config: {}", err);
+            Config::default()
+        }
+    };
+
     let css = gtk::CssProvider::new();
     css.load_from_data(
-        br#"
-        widget { 
+        format!(
+            r#"
+        widget {{ 
             font-family: monospace;
-            font-size: 11.5pt;
-        }
+            font-size: {font_size}pt;
+        }}
     "#,
+            font_size = config.font_size
+        )
+        .as_bytes(),
     );
     gtk::StyleContext::add_provider_for_display(
         &gdk::Display::get_default().unwrap(),

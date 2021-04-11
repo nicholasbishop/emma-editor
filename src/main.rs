@@ -1,5 +1,6 @@
 mod app;
 mod buffer;
+mod config;
 mod grapheme;
 mod key_map;
 mod key_sequence;
