@@ -87,6 +87,7 @@ impl App {
                 // less visually horizontally aligned. Probably would
                 // need to be more sophisticated for non-monospace
                 // fonts though.
+                #[allow(clippy::collapsible_else_if)]
                 if dir == Direction::Dec {
                     if lp.line > 0 {
                         let num_graphemes = lp.grapheme_offset(buf);

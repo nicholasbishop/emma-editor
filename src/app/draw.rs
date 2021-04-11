@@ -8,7 +8,7 @@ use {
     },
     gtk4::{
         self as gtk, cairo,
-        pango::{self, FontDescription, Layout},
+        pango::{self, Layout},
         prelude::*,
     },
     ropey::RopeSlice,
