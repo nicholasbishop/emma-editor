@@ -69,7 +69,7 @@ pub fn init(application: &gtk::Application) {
         br#"
         widget { 
             font-family: "DejaVu Sans Mono";
-            font-size: 11.5pt;
+            font-size: 11pt;
         }
     "#,
     );

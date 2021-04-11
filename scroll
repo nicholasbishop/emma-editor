@@ -1,0 +1,4 @@
+When cursor goes off the bottom of the pane:
+Alter the top_line of the pane such that the cursor is now in the center line of the pane
+
+What does it mean to go off the bottom?
