@@ -70,7 +70,7 @@ struct StyledLayout<'a> {
 
 struct DrawPane<'a> {
     ctx: &'a cairo::Context,
-    widget: gtk::Widget,
+    widget: &'a gtk::DrawingArea,
     pane: &'a Pane,
     buf: &'a Buffer,
     font: &'a Font,
@@ -98,32 +98,6 @@ impl<'a> fmt::Debug for DrawPane<'a> {
 }
 
 impl<'a> DrawPane<'a> {
-    fn new(
-        ctx: &'a cairo::Context,
-        widget: gtk::Widget,
-        pane: &'a Pane,
-        buf: &'a Buffer,
-        font: &'a Font,
-        theme: &'a Theme,
-        empty_style: &'a Style,
-    ) -> DrawPane<'a> {
-        DrawPane {
-            ctx,
-            widget,
-            pane,
-            buf,
-            font,
-            theme,
-            span_buf: String::new(),
-            margin: 2.0,
-            cursor: LinePosition::default(),
-            len_lines: buf.text().len_lines(),
-            x: 0.0,
-            y: 0.0,
-            empty_style,
-        }
-    }
-
     fn create_layout(&self, text: &str) -> Layout {
         self.widget.create_pango_layout(Some(text))
     }
@@ -381,15 +355,21 @@ impl App {
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
-            let mut dp = DrawPane::new(
+            let mut dp = DrawPane {
                 ctx,
-                self.widget.clone().upcast(),
+                widget: &self.widget,
                 pane,
                 buf,
                 font,
                 theme,
-                &empty_style,
-            );
+                span_buf: String::new(),
+                margin: 2.0,
+                cursor: LinePosition::default(),
+                len_lines: buf.text().len_lines(),
+                x: 0.0,
+                y: 0.0,
+                empty_style: &empty_style,
+            };
             dp.draw();
         }
     }
