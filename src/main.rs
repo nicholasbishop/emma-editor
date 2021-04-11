@@ -18,5 +18,5 @@ fn main() {
 
     application.connect_activate(|app| app::init(app));
 
-    application.run(&[]);
+    application.run();
 }

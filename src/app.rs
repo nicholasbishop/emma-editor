@@ -8,7 +8,7 @@ use {
         pane_tree::PaneTree,
         theme::Theme,
     },
-    gtk4::{self as gtk, prelude::*},
+    gtk4::{self as gtk, gdk, prelude::*},
     std::{cell::RefCell, collections::HashMap, path::Path},
 };
 
@@ -43,12 +43,12 @@ pub fn init(application: &gtk::Application) {
     // Create single widget that is used for drawing the whole
     // application.
     let widget = gtk::DrawingArea::new();
-    widget.set_draw_func(|_widget, ctx, width, height| {
+    widget.set_draw_func(|widget, ctx, width, height| {
         APP.with(|app| {
             let width = width as f64;
             let height = height as f64;
 
-            let font = Font::new(ctx);
+            let font = Font::new(widget.get_pango_context());
 
             let mut app = app.borrow_mut();
             let app = app.as_mut().unwrap();
@@ -63,6 +63,22 @@ pub fn init(application: &gtk::Application) {
     window.set_title(Some("emma"));
     window.set_default_size(800, 800);
     window.set_child(Some(&widget));
+
+    let css = gtk::CssProvider::new();
+    css.load_from_data(
+        br#"
+        widget { 
+            font-family: "DejaVu Sans Mono";
+            font-size: 11.5pt;
+        }
+    "#,
+    );
+    gtk::StyleContext::add_provider_for_display(
+        &gdk::Display::get_default().unwrap(),
+        &css,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
+
     window.show();
     event::create_gtk_key_handler(&window);
 

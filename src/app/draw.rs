@@ -7,8 +7,9 @@ use {
         theme::Theme,
     },
     gtk4::{
-        cairo,
+        self as gtk, cairo,
         pango::{self, FontDescription, Layout},
+        prelude::*,
     },
     ropey::RopeSlice,
     std::{fmt, ops::Range},
@@ -39,35 +40,21 @@ fn pango_unscale(i: i32) -> f64 {
     i as f64 / pango::SCALE as f64
 }
 
+// TODO: remove or rename this
 #[derive(Debug)]
 pub struct Font {
-    description: FontDescription,
     line_height: f64,
 }
 
 impl Font {
-    pub fn new(ctx: &cairo::Context) -> Font {
-        // TODO: prints out the list of font families
-        // let font_map = pangocairo::FontMap::get_default().unwrap();
-        // use gtk4::prelude::*;
-        // let families = font_map.list_families();
-        // for fam in families {
-        //     println!("{}", fam.get_name().unwrap());
-        // }
+    pub fn new(pctx: pango::Context) -> Font {
+        let font_desc = pctx.get_font_description();
 
-        let mut font_desc = FontDescription::new();
-        font_desc.set_family("Monospace");
-        font_desc.set_size(14 * pango::SCALE);
-
-        let pctx = pangocairo::create_context(ctx).unwrap();
         let language = None;
-        let metrics = pctx.get_metrics(Some(&font_desc), language).unwrap();
+        let metrics = pctx.get_metrics(font_desc.as_ref(), language).unwrap();
         let line_height = pango_unscale(metrics.get_height());
 
-        Font {
-            description: font_desc,
-            line_height,
-        }
+        Font { line_height }
     }
 
     pub fn line_height(&self) -> f64 {
@@ -83,6 +70,7 @@ struct StyledLayout<'a> {
 
 struct DrawPane<'a> {
     ctx: &'a cairo::Context,
+    widget: gtk::Widget,
     pane: &'a Pane,
     buf: &'a Buffer,
     font: &'a Font,
@@ -112,6 +100,7 @@ impl<'a> fmt::Debug for DrawPane<'a> {
 impl<'a> DrawPane<'a> {
     fn new(
         ctx: &'a cairo::Context,
+        widget: gtk::Widget,
         pane: &'a Pane,
         buf: &'a Buffer,
         font: &'a Font,
@@ -120,6 +109,7 @@ impl<'a> DrawPane<'a> {
     ) -> DrawPane<'a> {
         DrawPane {
             ctx,
+            widget,
             pane,
             buf,
             font,
@@ -135,10 +125,7 @@ impl<'a> DrawPane<'a> {
     }
 
     fn create_layout(&self, text: &str) -> Layout {
-        let layout = pangocairo::create_layout(self.ctx).unwrap();
-        layout.set_font_description(Some(&self.font.description));
-        layout.set_text(text);
-        layout
+        self.widget.create_pango_layout(Some(text))
     }
 
     fn layout_line_range(
@@ -396,8 +383,15 @@ impl App {
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
-            let mut dp =
-                DrawPane::new(ctx, pane, buf, font, theme, &empty_style);
+            let mut dp = DrawPane::new(
+                ctx,
+                self.widget.clone().upcast(),
+                pane,
+                buf,
+                font,
+                theme,
+                &empty_style,
+            );
             dp.draw();
         }
     }
