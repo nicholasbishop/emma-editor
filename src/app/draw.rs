@@ -154,7 +154,6 @@ impl<'a> DrawPane<'a> {
     ) -> Vec<StyledLayout<'a>> {
         let mut output = Vec::new();
 
-        let line_idx = line_idx + self.pane.top_line();
         let style_spans = &self.buf.style_spans()[line_idx];
 
         let mut span_offset = 0;
@@ -248,8 +247,6 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_line(&mut self, line: &RopeSlice, line_idx: usize) {
-        let line_idx = line_idx + self.pane.top_line();
-
         self.x = self.pane.rect().x;
 
         self.ctx.move_to(self.margin, self.y);
@@ -343,6 +340,7 @@ impl<'a> DrawPane<'a> {
         for (line_idx, line) in
             self.buf.text().lines_at(self.pane.top_line()).enumerate()
         {
+            let line_idx = self.pane.top_line() + line_idx;
             self.draw_line(&line, line_idx);
 
             // Stop if rendering past the bottom of the widget. TODO:
