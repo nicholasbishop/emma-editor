@@ -37,6 +37,7 @@ struct App {
 
     theme: Theme,
     interactive_state: InteractiveState,
+    line_height: f64,
 }
 
 pub fn init(application: &gtk::Application) {
@@ -48,10 +49,12 @@ pub fn init(application: &gtk::Application) {
             let width = width as f64;
             let height = height as f64;
 
+            // TODO: remove this and just pass in line_height
             let font = Font::new(widget.get_pango_context());
 
             let mut app = app.borrow_mut();
             let app = app.as_mut().unwrap();
+            app.line_height = draw::calculate_line_height(widget);
 
             app.pane_tree.recalc_layout(width, height, &font);
             app.draw(ctx, width, height, &font, &app.theme);
@@ -102,6 +105,7 @@ pub fn init(application: &gtk::Application) {
 
         theme,
         interactive_state: InteractiveState::Initial,
+        line_height: 0.0,
     };
 
     let mut buffers = HashMap::new();

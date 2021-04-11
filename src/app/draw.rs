@@ -40,6 +40,16 @@ fn pango_unscale(i: i32) -> f64 {
     i as f64 / pango::SCALE as f64
 }
 
+pub fn calculate_line_height(widget: &gtk::DrawingArea) -> f64 {
+    let pctx = widget.get_pango_context();
+    let font_desc = pctx.get_font_description();
+
+    let language = None;
+    let metrics = pctx.get_metrics(font_desc.as_ref(), language).unwrap();
+
+    pango_unscale(metrics.get_height())
+}
+
 // TODO: remove or rename this
 #[derive(Debug)]
 pub struct Font {
