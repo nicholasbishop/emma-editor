@@ -7,8 +7,9 @@ use {
         theme::Theme,
     },
     gtk4::{
-        cairo,
+        self as gtk, cairo,
         pango::{self, FontDescription, Layout},
+        prelude::*,
     },
     ropey::RopeSlice,
     std::{fmt, ops::Range},
@@ -46,7 +47,7 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn new(ctx: &cairo::Context) -> Font {
+    pub fn new(pctx: pango::Context) -> Font {
         // TODO: prints out the list of font families
         // let font_map = pangocairo::FontMap::get_default().unwrap();
         // use gtk4::prelude::*;
@@ -59,7 +60,6 @@ impl Font {
         font_desc.set_family("Monospace");
         font_desc.set_size(14 * pango::SCALE);
 
-        let pctx = pangocairo::create_context(ctx).unwrap();
         let language = None;
         let metrics = pctx.get_metrics(Some(&font_desc), language).unwrap();
         let line_height = pango_unscale(metrics.get_height());
@@ -83,6 +83,7 @@ struct StyledLayout<'a> {
 
 struct DrawPane<'a> {
     ctx: &'a cairo::Context,
+    widget: gtk::Widget,
     pane: &'a Pane,
     buf: &'a Buffer,
     font: &'a Font,
@@ -112,6 +113,7 @@ impl<'a> fmt::Debug for DrawPane<'a> {
 impl<'a> DrawPane<'a> {
     fn new(
         ctx: &'a cairo::Context,
+        widget: gtk::Widget,
         pane: &'a Pane,
         buf: &'a Buffer,
         font: &'a Font,
@@ -120,6 +122,7 @@ impl<'a> DrawPane<'a> {
     ) -> DrawPane<'a> {
         DrawPane {
             ctx,
+            widget,
             pane,
             buf,
             font,
@@ -135,9 +138,10 @@ impl<'a> DrawPane<'a> {
     }
 
     fn create_layout(&self, text: &str) -> Layout {
-        let layout = pangocairo::create_layout(self.ctx).unwrap();
-        layout.set_font_description(Some(&self.font.description));
-        layout.set_text(text);
+        let layout = self.widget.create_pango_layout(Some(text));
+        // TODO
+        // layout.set_font_description(Some(&self.font.description));
+        // layout.set_text(text);
         layout
     }
 
@@ -396,8 +400,15 @@ impl App {
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
-            let mut dp =
-                DrawPane::new(ctx, pane, buf, font, theme, &empty_style);
+            let mut dp = DrawPane::new(
+                ctx,
+                self.widget.clone().upcast(),
+                pane,
+                buf,
+                font,
+                theme,
+                &empty_style,
+            );
             dp.draw();
         }
     }

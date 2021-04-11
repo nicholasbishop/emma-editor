@@ -43,12 +43,12 @@ pub fn init(application: &gtk::Application) {
     // Create single widget that is used for drawing the whole
     // application.
     let widget = gtk::DrawingArea::new();
-    widget.set_draw_func(|_widget, ctx, width, height| {
+    widget.set_draw_func(|widget, ctx, width, height| {
         APP.with(|app| {
             let width = width as f64;
             let height = height as f64;
 
-            let font = Font::new(ctx);
+            let font = Font::new(widget.get_pango_context());
 
             let mut app = app.borrow_mut();
             let app = app.as_mut().unwrap();
