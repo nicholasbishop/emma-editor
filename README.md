@@ -33,7 +33,6 @@ Some todos:
 - Text undo/redo
 - Search
 - dabrev
-- Pane info bar
 - Compilation buffer
 - Multi-window support
 - Workspace switcher
