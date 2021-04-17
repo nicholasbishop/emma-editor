@@ -42,6 +42,15 @@ impl KeyHandler {
 
 impl App {
     #[throws]
+    fn active_buffer_mut(&mut self) -> &mut Buffer {
+        let pane = self.pane_tree.active();
+        let buf = self.buffers.get_mut(pane.buffer_id()).ok_or_else(|| {
+            anyhow!("internal error: active pane points to invalid buffer")
+        })?;
+        buf
+    }
+
+    #[throws]
     fn active_pane_buffer_mut(&mut self) -> (&Pane, &mut Buffer) {
         let pane = self.pane_tree.active();
         let buf = self.buffers.get_mut(pane.buffer_id()).ok_or_else(|| {
@@ -198,19 +207,11 @@ impl App {
                 self.delete_text(boundary, direction)?;
             }
             Action::Undo => {
-                let pane = self.pane_tree.active();
-                let buf = self
-                    .buffers
-                    .get_mut(pane.buffer_id())
-                    .expect("invalid buffer");
+                let buf = self.active_buffer_mut()?;
                 buf.undo();
             }
             Action::Redo => {
-                let pane = self.pane_tree.active();
-                let buf = self
-                    .buffers
-                    .get_mut(pane.buffer_id())
-                    .expect("invalid buffer");
+                let buf = self.active_buffer_mut()?;
                 buf.redo();
             }
             Action::SplitPane(orientation) => {
