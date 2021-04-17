@@ -65,102 +65,74 @@ pub struct KeyMap(BTreeMap<KeySequence, Action>);
 impl KeyMap {
     pub fn new() -> KeyMap {
         let mut map = KeyMap::default();
-        // TODO: for now make it easy to quit
-        map.insert(KeySequence::parse("<esc>").unwrap(), Action::Exit);
 
-        map.insert(
-            KeySequence::parse("<ctrl>b").unwrap(),
+        let mut insert = |keys, action| {
+            map.insert(KeySequence::parse(keys).unwrap(), action)
+        };
+
+        // TODO: for now make it easy to quit
+        insert("<esc>", Action::Exit);
+
+        insert(
+            "<ctrl>b",
             Action::Move(Move::Boundary(Boundary::Grapheme), Direction::Dec),
         );
-        map.insert(
-            KeySequence::parse("<ctrl>f").unwrap(),
+        insert(
+            "<ctrl>f",
             Action::Move(Move::Boundary(Boundary::Grapheme), Direction::Inc),
         );
-        map.insert(
-            KeySequence::parse("<ctrl>p").unwrap(),
-            Action::Move(Move::Line, Direction::Dec),
-        );
-        map.insert(
-            KeySequence::parse("<ctrl>n").unwrap(),
-            Action::Move(Move::Line, Direction::Inc),
-        );
-        map.insert(
-            KeySequence::parse("<ctrl>a").unwrap(),
+        insert("<ctrl>p", Action::Move(Move::Line, Direction::Dec));
+        insert("<ctrl>n", Action::Move(Move::Line, Direction::Inc));
+        insert(
+            "<ctrl>a",
             Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Dec),
         );
-        map.insert(
-            KeySequence::parse("<ctrl>e").unwrap(),
+        insert(
+            "<ctrl>e",
             Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Inc),
         );
-        map.insert(
-            KeySequence::parse("<alt>v").unwrap(),
-            Action::Move(Move::Page, Direction::Dec),
-        );
-        map.insert(
-            KeySequence::parse("<ctrl>v").unwrap(),
-            Action::Move(Move::Page, Direction::Inc),
-        );
-        map.insert(
-            KeySequence::parse("<alt><shift><less>").unwrap(),
+        insert("<alt>v", Action::Move(Move::Page, Direction::Dec));
+        insert("<ctrl>v", Action::Move(Move::Page, Direction::Inc));
+        insert(
+            "<alt><shift><less>",
             Action::Move(Move::Boundary(Boundary::BufferEnd), Direction::Dec),
         );
-        map.insert(
-            KeySequence::parse("<alt><shift><greater>").unwrap(),
+        insert(
+            "<alt><shift><greater>",
             Action::Move(Move::Boundary(Boundary::BufferEnd), Direction::Inc),
         );
 
-        map.insert(
-            KeySequence::parse("<backspace>").unwrap(),
+        insert(
+            "<backspace>",
             Action::Delete(Boundary::Grapheme, Direction::Dec),
         );
-        map.insert(
-            KeySequence::parse("<ctrl>d").unwrap(),
+        insert(
+            "<ctrl>d",
             Action::Delete(Boundary::Grapheme, Direction::Inc),
         );
 
-        map.insert(KeySequence::parse("<ctrl>/").unwrap(), Action::Undo);
-        map.insert(KeySequence::parse("<ctrl><shift>?").unwrap(), Action::Redo);
+        insert("<ctrl>/", Action::Undo);
+        insert("<ctrl><shift>?", Action::Redo);
 
-        map.insert(
-            KeySequence::parse("<ctrl>x+k").unwrap(),
-            Action::DeleteBuffer,
-        );
-        map.insert(
-            KeySequence::parse("<ctrl>x+<ctrl>f").unwrap(),
-            Action::OpenFile,
-        );
-        map.insert(
-            KeySequence::parse("<ctrl>x+<ctrl>s").unwrap(),
-            Action::SaveFile,
-        );
-        map.insert(
-            KeySequence::parse("<ctrl><shift>j").unwrap(),
-            Action::PreviousPane,
-        );
-        map.insert(
-            KeySequence::parse("<ctrl><shift>k").unwrap(),
-            Action::NextPane,
-        );
-        map.insert(
-            KeySequence::parse("<ctrl>x+2").unwrap(),
+        insert("<ctrl>x+k", Action::DeleteBuffer);
+        insert("<ctrl>x+<ctrl>f", Action::OpenFile);
+        insert("<ctrl>x+<ctrl>s", Action::SaveFile);
+        insert("<ctrl><shift>j", Action::PreviousPane);
+        insert("<ctrl><shift>k", Action::NextPane);
+        insert(
+            "<ctrl>x+2",
             Action::SplitPane(pane_tree::Orientation::Vertical),
         );
-        map.insert(
-            KeySequence::parse("<ctrl>x+3").unwrap(),
+        insert(
+            "<ctrl>x+3",
             Action::SplitPane(pane_tree::Orientation::Horizontal),
         );
-        map.insert(KeySequence::parse("<ctrl>x+0").unwrap(), Action::ClosePane);
-        map.insert(
-            KeySequence::parse("<ctrl>c+<ctrl>s").unwrap(),
-            Action::OpenShell,
-        );
-        map.insert(
-            KeySequence::parse("<ctrl>x+b").unwrap(),
-            Action::SwitchToBuffer,
-        );
+        insert("<ctrl>x+0", Action::ClosePane);
+        insert("<ctrl>c+<ctrl>s", Action::OpenShell);
+        insert("<ctrl>x+b", Action::SwitchToBuffer);
         // TODO: make this generic so that any key sequence can be
         // canceled with ctrl+g.
-        map.insert(KeySequence::parse("<ctrl>g").unwrap(), Action::Cancel);
+        insert("<ctrl>g", Action::Cancel);
         map
     }
 
