@@ -136,11 +136,18 @@ pub struct StyleSpan {
     pub style: Style,
 }
 
+struct HistoryItem {
+    text: Rope,
+    // TODO: style_spans?
+}
+
 pub struct Buffer {
     id: BufferId,
 
     text: Rope,
     path: Option<PathBuf>,
+
+    history: Vec<HistoryItem>,
 
     // TODO: consider using a reference instead of always cloning
     // theme.
@@ -171,6 +178,7 @@ impl Buffer {
         let mut buf = Buffer {
             id: BufferId::minibuf(),
             text: Rope::new(),
+            history: Vec::new(),
             path: None,
             theme: theme.clone(),
             style_spans: Vec::new(),
@@ -190,6 +198,7 @@ impl Buffer {
         let mut buf = Buffer {
             id: BufferId::new(),
             text,
+            history: Vec::new(),
             path: Some(path.into()),
             theme: theme.clone(),
             style_spans: Vec::new(),
@@ -241,6 +250,14 @@ impl Buffer {
         for cursor in self.cursors.values_mut() {
             cursor.0 = 0;
         }
+    }
+
+    pub fn undo(&mut self) {
+        todo!();
+    }
+
+    pub fn redo(&mut self) {
+        todo!();
     }
 
     pub fn find_boundary(

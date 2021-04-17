@@ -170,6 +170,22 @@ impl App {
             Action::Delete(boundary, direction) => {
                 self.delete_text(boundary, direction);
             }
+            Action::Undo => {
+                let pane = self.pane_tree.active();
+                let buf = self
+                    .buffers
+                    .get_mut(pane.buffer_id())
+                    .expect("invalid buffer");
+                buf.undo();
+            }
+            Action::Redo => {
+                let pane = self.pane_tree.active();
+                let buf = self
+                    .buffers
+                    .get_mut(pane.buffer_id())
+                    .expect("invalid buffer");
+                buf.redo();
+            }
             Action::SplitPane(orientation) => {
                 self.pane_tree.split(
                     orientation,

@@ -28,6 +28,9 @@ pub enum Action {
     Confirm,
     OpenShell,
 
+    Undo,
+    Redo,
+
     /// Delete text in the active pane.
     Delete(Boundary, Direction),
 
@@ -114,6 +117,9 @@ impl KeyMap {
             KeySequence::parse("<ctrl>d").unwrap(),
             Action::Delete(Boundary::Grapheme, Direction::Inc),
         );
+
+        map.insert(KeySequence::parse("<ctrl>/").unwrap(), Action::Undo);
+        map.insert(KeySequence::parse("<ctrl>?").unwrap(), Action::Redo);
 
         map.insert(
             KeySequence::parse("<ctrl>x+k").unwrap(),
