@@ -119,7 +119,7 @@ impl KeyMap {
         );
 
         map.insert(KeySequence::parse("<ctrl>/").unwrap(), Action::Undo);
-        map.insert(KeySequence::parse("<ctrl>?").unwrap(), Action::Redo);
+        map.insert(KeySequence::parse("<ctrl><shift>?").unwrap(), Action::Redo);
 
         map.insert(
             KeySequence::parse("<ctrl>x+k").unwrap(),

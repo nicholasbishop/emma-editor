@@ -46,7 +46,10 @@ impl KeySequenceAtom {
     ) -> KeySequenceAtom {
         KeySequenceAtom {
             modifiers: state,
-            // Convert the key to lowercase as a way to normalize.
+            // Convert the key to lowercase as a way to
+            // normalize. This is far from perfect, for example "?"
+            // should probably be the same thing as "<shift>/", but
+            // that's not handled well right now.
             key: key.to_lower(),
         }
     }
