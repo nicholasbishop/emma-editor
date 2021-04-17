@@ -14,10 +14,4 @@ Emma is a text editor.
 - pane_tree.rs: tree of panes, where each pane shows a buffer
 - theme.rs: YAML format for themes (see also `emma.theme.yml`)
 
-## Dev
-
-This code is in heavy development. For my own reference, here are some
-recent useful branches:
-
-- bishop-custom-textview-2
-- bishop-main-backup-20210328
+See [doc](doc) directory for additional documentation.
