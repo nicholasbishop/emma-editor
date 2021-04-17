@@ -455,11 +455,14 @@ impl PaneTree {
             self.active_id_before_minibuf = Some(self.active().id().clone());
             self.set_active(&minibuf_id);
         } else {
-            let id = self
-                .active_id_before_minibuf
-                .take()
-                .expect("active_id_before_minibuf not set");
-            self.set_active(&id);
+            // TODO: check this case better. If the minibuf is
+            // transitioning from interactive -> not-interactive then
+            // active_id_before_minibuf should always be set, but not
+            // when transitioning from not-interactive ->
+            // not-interactive.
+            if let Some(id) = self.active_id_before_minibuf.take() {
+                self.set_active(&id);
+            }
         }
     }
 }

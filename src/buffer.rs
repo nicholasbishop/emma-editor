@@ -320,11 +320,16 @@ impl Buffer {
         // each one -- they should be grouped together. Same goes for
         // most other edit actions such as deleting characters.
         //
+        // ActionType::None is special -- this never merges into the
+        // existing history item.
+        //
         // TODO: we'll probably need to make this a bit smarter. For
         // example, if the user types a whole paragraph it shouldn't
         // be a single undo entry. Maybe it should limit it by time or
         // by length of typed text.
-        if self.last_action_type != action_type {
+        if self.last_action_type != action_type
+            || action_type == ActionType::None
+        {
             self.history.push(self.history.last().unwrap().clone());
             self.active_history_index = self.history.len() - 1;
             self.last_action_type = action_type;
@@ -427,6 +432,18 @@ impl Buffer {
                 cursor.0 += 1;
             }
         }
+    }
+
+    /// Replace the entire contents of the buffer with `text`.
+    pub fn set_text(&mut self, text: &str) {
+        self.maybe_store_history_item(ActionType::None);
+
+        *self.text_mut().unwrap() = Rope::from_str(text);
+
+        // TODO: async style recalc
+        self.recalc_style_spans();
+
+        // TODO: update all cursors
     }
 
     fn get_syntax<'a>(&self, syntax_set: &'a SyntaxSet) -> &'a SyntaxReference {

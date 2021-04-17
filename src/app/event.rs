@@ -5,6 +5,8 @@ use {
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
     },
+    anyhow::Error,
+    fehler::throws,
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
     std::path::Path,
 };
@@ -125,6 +127,14 @@ impl App {
         self.minibuf_mut().clear();
     }
 
+    fn display_error(&mut self, error: Error) {
+        self.reset_interactive_state();
+        // TODO: think about how this error will get unset. On next
+        // key press, like emacs? Hide or fade after a timeout?
+        self.minibuf_mut().set_text(&format!("{}", error));
+    }
+
+    #[throws]
     fn open_file(&mut self) {
         // Get the path to open.
         let text = self.minibuf().text().to_string();
@@ -135,30 +145,25 @@ impl App {
         self.reset_interactive_state();
 
         // Load the file in a new buffer.
-        match Buffer::from_path(path, &self.theme) {
-            Ok(buf) => {
-                let buf_id = buf.id().clone();
-                self.buffers.insert(buf_id.clone(), buf);
-                self.pane_tree
-                    .active_mut()
-                    .switch_buffer(&mut self.buffers, &buf_id);
-            }
-            Err(err) => {
-                // TODO: show the error in the minibuf
-                dbg!(err);
-            }
-        }
+        let buf = Buffer::from_path(path, &self.theme)?;
+        let buf_id = buf.id().clone();
+        self.buffers.insert(buf_id.clone(), buf);
+        self.pane_tree
+            .active_mut()
+            .switch_buffer(&mut self.buffers, &buf_id);
     }
 
+    #[throws]
     fn handle_confirm(&mut self) {
         match self.interactive_state {
             InteractiveState::Initial => {}
             InteractiveState::OpenFile => {
-                self.open_file();
+                self.open_file()?;
             }
         }
     }
 
+    #[throws]
     fn handle_action(&mut self, action: Action) {
         match action {
             Action::Exit => {
@@ -234,7 +239,7 @@ impl App {
                 self.pane_tree.set_minibuf_interactive(true);
             }
             Action::Confirm => {
-                self.handle_confirm();
+                self.handle_confirm()?;
             }
             Action::Cancel => {
                 self.reset_interactive_state();
@@ -297,7 +302,9 @@ impl App {
                 // Waiting for the sequence to be completed.
             }
             KeyMapLookup::Action(action) => {
-                self.handle_action(action);
+                if let Err(err) = self.handle_action(action) {
+                    self.display_error(err);
+                }
             }
         }
 
