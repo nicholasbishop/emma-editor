@@ -14,8 +14,7 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     let application =
-        gtk::Application::new(Some("org.emma.Emma"), Default::default())
-            .expect("initialization failed");
+        gtk::Application::new(Some("org.emma.Emma"), Default::default());
 
     application.connect_activate(|app| app::init(app));
 

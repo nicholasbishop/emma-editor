@@ -45,13 +45,13 @@ pub struct LineHeight(pub f64);
 
 impl LineHeight {
     pub fn calculate(widget: &gtk::DrawingArea) -> LineHeight {
-        let pctx = widget.get_pango_context();
-        let font_desc = pctx.get_font_description();
+        let pctx = widget.pango_context();
+        let font_desc = pctx.font_description();
 
         let language = None;
         let metrics = pctx.get_metrics(font_desc.as_ref(), language).unwrap();
 
-        LineHeight(pango_unscale(metrics.get_height()))
+        LineHeight(pango_unscale(metrics.height()))
     }
 }
 
@@ -111,7 +111,7 @@ impl<'a> DrawPane<'a> {
     fn draw_layout(&mut self, layout: &Layout) {
         self.ctx.move_to(self.x, self.y);
         pangocairo::show_layout(self.ctx, layout);
-        self.x += pango_unscale(layout.get_size().0);
+        self.x += pango_unscale(layout.size().0);
     }
 
     fn styled_layouts_from_line(
@@ -192,7 +192,7 @@ impl<'a> DrawPane<'a> {
                 .as_ref()
                 .expect("caret color not set in theme"),
         );
-        let mut cursor_width = pango_unscale(styled_layout.layout.get_size().0);
+        let mut cursor_width = pango_unscale(styled_layout.layout.size().0);
         if cursor_width == 0.0 {
             // TODO: this is needed for at least newlines,
             // which give (0, double-line-height), but
