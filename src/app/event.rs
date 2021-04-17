@@ -256,12 +256,14 @@ impl App {
 
     fn get_minibuf_keymap(&self) -> KeyMap {
         let mut map = KeyMap::new();
-        map.insert(
-            KeySequence::parse("<ctrl>i").unwrap(),
-            Action::Autocomplete,
-        );
-        map.insert(KeySequence::parse("<ret>").unwrap(), Action::Confirm);
-        map.insert(KeySequence::parse("<ctrl>m").unwrap(), Action::Confirm);
+
+        let mut insert = |keys, action| {
+            map.insert(KeySequence::parse(keys).unwrap(), action)
+        };
+
+        insert("<ctrl>i", Action::Autocomplete);
+        insert("<ret>", Action::Confirm);
+        insert("<ctrl>m", Action::Confirm);
         map
     }
 
