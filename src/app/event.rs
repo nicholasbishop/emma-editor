@@ -1,15 +1,15 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{Boundary, Buffer, CharIndex, Direction},
+        buffer::{Boundary, Buffer, BufferId, CharIndex, Direction},
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
-        pane_tree::Pane,
+        pane_tree::{Pane, PaneTree},
     },
     anyhow::{anyhow, Error},
     fehler::throws,
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
-    std::path::Path,
+    std::{collections::HashMap, path::Path},
 };
 
 pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
@@ -40,22 +40,39 @@ impl KeyHandler {
     }
 }
 
+fn invalid_active_buffer_error() -> Error {
+    anyhow!("internal error: active pane points to invalid buffer")
+}
+
+#[throws]
+fn active_buffer_mut<'a, 'b>(
+    pane_tree: &'a PaneTree,
+    buffers: &'b mut HashMap<BufferId, Buffer>,
+) -> &'b mut Buffer {
+    let pane = pane_tree.active();
+    buffers
+        .get_mut(pane.buffer_id())
+        .ok_or_else(invalid_active_buffer_error)?
+}
+
 impl App {
     #[throws]
     fn active_buffer_mut(&mut self) -> &mut Buffer {
         let pane = self.pane_tree.active();
-        let buf = self.buffers.get_mut(pane.buffer_id()).ok_or_else(|| {
-            anyhow!("internal error: active pane points to invalid buffer")
-        })?;
+        let buf = self
+            .buffers
+            .get_mut(pane.buffer_id())
+            .ok_or_else(invalid_active_buffer_error)?;
         buf
     }
 
     #[throws]
     fn active_pane_buffer_mut(&mut self) -> (&Pane, &mut Buffer) {
         let pane = self.pane_tree.active();
-        let buf = self.buffers.get_mut(pane.buffer_id()).ok_or_else(|| {
-            anyhow!("internal error: active pane points to invalid buffer")
-        })?;
+        let buf = self
+            .buffers
+            .get_mut(pane.buffer_id())
+            .ok_or_else(invalid_active_buffer_error)?;
         (pane, buf)
     }
 
@@ -215,12 +232,9 @@ impl App {
                 buf.redo();
             }
             Action::SplitPane(orientation) => {
-                self.pane_tree.split(
-                    orientation,
-                    self.buffers
-                        .get_mut(self.pane_tree.active().buffer_id())
-                        .expect("invalid buffer ID"),
-                );
+                let buf =
+                    active_buffer_mut(&self.pane_tree, &mut self.buffers)?;
+                self.pane_tree.split(orientation, buf);
             }
             Action::PreviousPane => {
                 let pane_id;
