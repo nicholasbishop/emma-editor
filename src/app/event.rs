@@ -51,6 +51,15 @@ impl App {
     }
 
     #[throws]
+    fn active_pane_mut_buffer_mut(&mut self) -> (&mut Pane, &mut Buffer) {
+        let pane = self.pane_tree.active_mut();
+        let buf = self.buffers.get_mut(pane.buffer_id()).ok_or_else(|| {
+            anyhow!("internal error: active pane points to invalid buffer")
+        })?;
+        (pane, buf)
+    }
+
+    #[throws]
     fn delete_text(&mut self, boundary: Boundary, direction: Direction) {
         let (pane, buf) = self.active_pane_buffer_mut()?;
         let pos = buf.cursor(pane);
@@ -65,22 +74,20 @@ impl App {
         }
     }
 
+    #[throws]
     fn insert_char(&mut self, key: gdk::keys::Key) {
         // Insert a character into the active pane.
         if let Some(c) = key.to_unicode() {
-            let pane = self.pane_tree.active();
-            let buf = self
-                .buffers
-                .get_mut(pane.buffer_id())
-                .expect("invalid buffer");
+            let (pane, buf) = self.active_pane_buffer_mut()?;
             let pos = buf.cursor(pane);
             buf.insert_char(c, pos);
         }
     }
 
+    #[throws]
     fn move_cursor(&mut self, step: Move, dir: Direction) {
-        let pane = self.pane_tree.active_mut();
-        let buf = self.buffers.get_mut(pane.buffer_id()).unwrap();
+        let line_height = self.line_height;
+        let (pane, buf) = self.active_pane_mut_buffer_mut()?;
         let text = buf.text();
         let mut cursor = buf.cursor(pane);
 
@@ -113,7 +120,7 @@ impl App {
 
         buf.set_cursor(pane, cursor);
 
-        pane.maybe_rescroll(buf, cursor, self.line_height);
+        pane.maybe_rescroll(buf, cursor, line_height);
     }
 
     fn minibuf(&self) -> &Buffer {
@@ -182,10 +189,10 @@ impl App {
                 self.window.close();
             }
             Action::Insert(key) => {
-                self.insert_char(key);
+                self.insert_char(key)?;
             }
             Action::Move(step, dir) => {
-                self.move_cursor(step, dir);
+                self.move_cursor(step, dir)?;
             }
             Action::Delete(boundary, direction) => {
                 self.delete_text(boundary, direction)?;
