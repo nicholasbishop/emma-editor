@@ -141,12 +141,18 @@ enum ActionType {
     None,
     Clear,
     InsertChar,
+    Deletion,
 }
+
+type CursorMap = HashMap<PaneId, CharIndex>;
 
 #[derive(Clone)]
 struct HistoryItem {
     text: Rope,
     // TODO: style_spans?
+
+    // Each pane showing this buffer has its own cursor.
+    cursors: CursorMap,
 }
 
 pub struct Buffer {
@@ -168,9 +174,6 @@ pub struct Buffer {
     // TODO: think about a smarter structure
     // TODO: put in arc for async update
     style_spans: Vec<Vec<StyleSpan>>,
-
-    // Each pane showing this buffer has its own cursor.
-    cursors: HashMap<PaneId, CharIndex>,
 }
 
 impl fmt::Debug for Buffer {
@@ -191,13 +194,15 @@ impl Buffer {
     ) -> Buffer {
         let mut buf = Buffer {
             id,
-            history: vec![HistoryItem { text }],
+            history: vec![HistoryItem {
+                text,
+                cursors: CursorMap::new(),
+            }],
             active_history_index: 0,
             last_action_type: ActionType::None,
             path,
             theme: theme.clone(),
             style_spans: Vec::new(),
-            cursors: HashMap::new(),
         };
 
         // TODO, async
@@ -245,7 +250,11 @@ impl Buffer {
     }
 
     pub fn cursor(&self, pane: &Pane) -> CharIndex {
-        *self.cursors.get(pane.id()).expect("no cursor for pane")
+        *self
+            .active_history_item()
+            .cursors
+            .get(pane.id())
+            .expect("no cursor for pane")
     }
 
     pub fn set_cursor(&mut self, pane: &Pane, cursor: CharIndex) {
@@ -254,11 +263,19 @@ impl Buffer {
         // history items, not one).
         self.last_action_type = ActionType::None;
 
-        self.cursors.insert(pane.id().clone(), cursor);
+        self.cursors_mut().insert(pane.id().clone(), cursor);
+
+        // TODO: set_cursor is used for two cases: moving a cursor and
+        // adding a new cursor to represent a new pane showing the
+        // buffer. Need to think about handling the second case across
+        // history items better.
     }
 
     pub fn remove_cursor(&mut self, pane: &Pane) {
-        self.cursors.remove(&pane.id());
+        // Remove the cursor from all history items.
+        for item in &mut self.history {
+            item.cursors.remove(&pane.id());
+        }
     }
 
     /// Remove all text from the buffer.
@@ -271,9 +288,17 @@ impl Buffer {
         self.recalc_style_spans();
 
         // Update all cursors.
-        for cursor in self.cursors.values_mut() {
+        for cursor in self.cursors_mut().values_mut() {
             cursor.0 = 0;
         }
+    }
+
+    fn active_history_item(&self) -> &HistoryItem {
+        &self.history[self.active_history_index]
+    }
+
+    fn cursors_mut(&mut self) -> &mut CursorMap {
+        &mut self.history[self.active_history_index].cursors
     }
 
     fn maybe_store_history_item(&mut self, action_type: ActionType) {
@@ -357,10 +382,12 @@ impl Buffer {
     }
 
     pub fn delete_text(&mut self, range: Range<CharIndex>) {
+        self.maybe_store_history_item(ActionType::Deletion);
+
         self.text_mut().unwrap().remove(range.start.0..range.end.0);
 
         // Update all cursors in this buffer.
-        for cursor in self.cursors.values_mut() {
+        for cursor in self.cursors_mut().values_mut() {
             if range.contains(&cursor) {
                 *cursor = range.start;
             } else if *cursor >= range.end {
@@ -395,7 +422,7 @@ impl Buffer {
         self.recalc_style_spans();
 
         // Update all cursors in this buffer.
-        for cursor in self.cursors.values_mut() {
+        for cursor in self.cursors_mut().values_mut() {
             if cursor.0 >= pos.0 {
                 cursor.0 += 1;
             }
