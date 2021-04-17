@@ -25,6 +25,7 @@ std::thread_local! {
 enum InteractiveState {
     Initial,
     OpenFile,
+    Search,
 }
 
 pub type BufferMap = HashMap<BufferId, Buffer>;

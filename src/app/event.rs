@@ -205,6 +205,9 @@ impl App {
             InteractiveState::OpenFile => {
                 self.open_file()?;
             }
+            InteractiveState::Search => {
+                todo!();
+            }
         }
     }
 
@@ -222,6 +225,10 @@ impl App {
             }
             Action::Delete(boundary, direction) => {
                 self.delete_text(boundary, direction)?;
+            }
+            Action::InteractiveSearch => {
+                self.set_interactive_state(InteractiveState::Search);
+                // TODO: prompt
             }
             Action::Undo => {
                 let buf = self.active_buffer_mut()?;
