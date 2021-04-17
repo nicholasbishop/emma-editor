@@ -27,6 +27,7 @@ pub enum Action {
     ClosePane,
     Confirm,
     OpenShell,
+    InteractiveSearch,
 
     Undo,
     Redo,
@@ -110,6 +111,8 @@ impl KeyMap {
             "<ctrl>d",
             Action::Delete(Boundary::Grapheme, Direction::Inc),
         );
+
+        insert("<ctrl>s", Action::InteractiveSearch);
 
         insert("<ctrl>/", Action::Undo);
         insert("<ctrl><shift>?", Action::Redo);
