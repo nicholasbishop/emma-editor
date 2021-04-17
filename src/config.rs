@@ -27,7 +27,7 @@ impl Config {
     #[throws]
     pub fn load() -> Config {
         let path = dirs::config_dir()
-            .ok_or(anyhow!("config dir unknown"))?
+            .ok_or_else(|| anyhow!("config dir unknown"))?
             .join("emma/emma.yml");
         let raw = fs::read_to_string(path)?;
 
