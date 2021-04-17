@@ -64,12 +64,12 @@ pub struct CharIndex(pub usize);
 
 impl CharIndex {
     pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> CharIndex {
-        CharIndex(buf.text.line_to_char(pos.line) + pos.offset)
+        CharIndex(buf.text().line_to_char(pos.line) + pos.offset)
     }
 
     /// Convert the CharIndex to a LinePosition.
     pub fn line_position(&self, buf: &Buffer) -> LinePosition {
-        let text = &buf.text;
+        let text = &buf.text();
 
         let line_idx = text.char_to_line(self.0);
         let line_offset = self.0 - text.line_to_char(line_idx);
@@ -93,7 +93,7 @@ impl LinePosition {
     /// Count the number of graphemes between the start of the line
     /// and the line offset.
     pub fn grapheme_offset(&self, buf: &Buffer) -> usize {
-        let line = buf.text.line(self.line);
+        let line = buf.text().line(self.line);
         let mut num_graphemes = 0;
         let mut cur_offset = 0;
         while cur_offset < self.offset {
@@ -116,7 +116,7 @@ impl LinePosition {
         buf: &Buffer,
         mut num_graphemes: usize,
     ) {
-        let line = buf.text.line(self.line);
+        let line = buf.text().line(self.line);
         let num_chars = line.len_chars();
         self.offset = 0;
         while num_graphemes > 0 {
@@ -136,6 +136,14 @@ pub struct StyleSpan {
     pub style: Style,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ActionType {
+    None,
+    Clear,
+    InsertChar,
+}
+
+#[derive(Clone)]
 struct HistoryItem {
     text: Rope,
     // TODO: style_spans?
@@ -144,10 +152,11 @@ struct HistoryItem {
 pub struct Buffer {
     id: BufferId,
 
-    text: Rope,
     path: Option<PathBuf>,
 
     history: Vec<HistoryItem>,
+    active_history_index: usize,
+    last_action_type: ActionType,
 
     // TODO: consider using a reference instead of always cloning
     // theme.
@@ -174,12 +183,18 @@ impl fmt::Debug for Buffer {
 }
 
 impl Buffer {
-    pub fn create_minibuf(theme: &Theme) -> Buffer {
+    fn new(
+        id: BufferId,
+        text: Rope,
+        path: Option<PathBuf>,
+        theme: &Theme,
+    ) -> Buffer {
         let mut buf = Buffer {
-            id: BufferId::minibuf(),
-            text: Rope::new(),
-            history: Vec::new(),
-            path: None,
+            id,
+            history: vec![HistoryItem { text }],
+            active_history_index: 0,
+            last_action_type: ActionType::None,
+            path,
             theme: theme.clone(),
             style_spans: Vec::new(),
             cursors: HashMap::new(),
@@ -191,24 +206,15 @@ impl Buffer {
         buf
     }
 
+    pub fn create_minibuf(theme: &Theme) -> Buffer {
+        Buffer::new(BufferId::minibuf(), Rope::new(), None, theme)
+    }
+
     #[throws]
     pub fn from_path(path: &Path, theme: &Theme) -> Buffer {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
-        let mut buf = Buffer {
-            id: BufferId::new(),
-            text,
-            history: Vec::new(),
-            path: Some(path.into()),
-            theme: theme.clone(),
-            style_spans: Vec::new(),
-            cursors: HashMap::new(),
-        };
-
-        // TODO, async
-        buf.recalc_style_spans();
-
-        buf
+        Buffer::new(BufferId::new(), text, Some(path.into()), theme)
     }
 
     pub fn id(&self) -> &BufferId {
@@ -216,7 +222,18 @@ impl Buffer {
     }
 
     pub fn text(&self) -> &Rope {
-        &self.text
+        &self.history[self.active_history_index].text
+    }
+
+    /// Get a mutable reference to the rope. This is only valid if the
+    /// active history item is the newest one -- editing earlier
+    /// entries in the history stack is not allowed.
+    pub fn text_mut(&mut self) -> Option<&mut Rope> {
+        if self.active_history_index == self.history.len() - 1 {
+            Some(&mut self.history[self.active_history_index].text)
+        } else {
+            None
+        }
     }
 
     pub fn path(&self) -> Option<&Path> {
@@ -232,6 +249,11 @@ impl Buffer {
     }
 
     pub fn set_cursor(&mut self, pane: &Pane, cursor: CharIndex) {
+        // This isn't an undoable action, but should prevent history
+        // (e.g. press 'a', move cursor, press 'b' should be two
+        // history items, not one).
+        self.last_action_type = ActionType::None;
+
         self.cursors.insert(pane.id().clone(), cursor);
     }
 
@@ -241,7 +263,9 @@ impl Buffer {
 
     /// Remove all text from the buffer.
     pub fn clear(&mut self) {
-        self.text = Rope::new();
+        self.maybe_store_history_item(ActionType::Clear);
+
+        *self.text_mut().unwrap() = Rope::new();
 
         // TODO: async style recalc
         self.recalc_style_spans();
@@ -252,12 +276,52 @@ impl Buffer {
         }
     }
 
+    fn maybe_store_history_item(&mut self, action_type: ActionType) {
+        // Check if the active history item is not most recent history
+        // item. That means the user has run undo one or more times,
+        // and is now making edits.
+        if self.active_history_index != self.history.len() - 1 {
+            // Chop off all newer history items.
+            self.history.truncate(self.active_history_index + 1);
+
+            // Reset the last_action_type; whatever action is occuring
+            // now should not be merged into the top history item.
+            self.last_action_type = ActionType::None;
+        }
+
+        // If the action type is unchanged then we don't store a new
+        // item. The idea here is that if a number of keys are typed
+        // to insert characters we don't want to individually undo
+        // each one -- they should be grouped together. Same goes for
+        // most other edit actions such as deleting characters.
+        //
+        // TODO: we'll probably need to make this a bit smarter. For
+        // example, if the user types a whole paragraph it shouldn't
+        // be a single undo entry. Maybe it should limit it by time or
+        // by length of typed text.
+        if self.last_action_type != action_type {
+            self.history.push(self.history.last().unwrap().clone());
+            self.active_history_index = self.history.len() - 1;
+            self.last_action_type = action_type;
+        }
+    }
+
     pub fn undo(&mut self) {
-        todo!();
+        if self.active_history_index > 0 {
+            self.active_history_index -= 1;
+        }
+
+        // TODO: async style recalc
+        self.recalc_style_spans();
     }
 
     pub fn redo(&mut self) {
-        todo!();
+        if self.active_history_index + 1 < self.history.len() {
+            self.active_history_index += 1;
+        }
+
+        // TODO: async style recalc
+        self.recalc_style_spans();
     }
 
     pub fn find_boundary(
@@ -266,19 +330,14 @@ impl Buffer {
         boundary: Boundary,
         direction: Direction,
     ) -> CharIndex {
+        let text = self.text();
         match (boundary, direction) {
-            (Boundary::Grapheme, Direction::Dec) => {
-                CharIndex(prev_grapheme_boundary(
-                    &self.text.slice(0..self.text.len_chars()),
-                    pos.0,
-                ))
-            }
-            (Boundary::Grapheme, Direction::Inc) => {
-                CharIndex(next_grapheme_boundary(
-                    &self.text.slice(0..self.text.len_chars()),
-                    pos.0,
-                ))
-            }
+            (Boundary::Grapheme, Direction::Dec) => CharIndex(
+                prev_grapheme_boundary(&text.slice(0..text.len_chars()), pos.0),
+            ),
+            (Boundary::Grapheme, Direction::Inc) => CharIndex(
+                next_grapheme_boundary(&text.slice(0..text.len_chars()), pos.0),
+            ),
             (Boundary::LineEnd, direction) => {
                 let mut lp = pos.line_position(self);
                 if direction == Direction::Dec {
@@ -286,19 +345,19 @@ impl Buffer {
                     // first-non-whitespace char.
                     lp.offset = 0;
                 } else {
-                    lp.offset = self.text.line(lp.line).len_chars() - 1;
+                    lp.offset = text.line(lp.line).len_chars() - 1;
                 }
                 CharIndex::from_line_position(lp, self)
             }
             (Boundary::BufferEnd, Direction::Dec) => CharIndex(0),
             (Boundary::BufferEnd, Direction::Inc) => {
-                CharIndex(self.text.len_chars())
+                CharIndex(text.len_chars())
             }
         }
     }
 
     pub fn delete_text(&mut self, range: Range<CharIndex>) {
-        self.text.remove(range.start.0..range.end.0);
+        self.text_mut().unwrap().remove(range.start.0..range.end.0);
 
         // Update all cursors in this buffer.
         for cursor in self.cursors.values_mut() {
@@ -315,7 +374,9 @@ impl Buffer {
     }
 
     pub fn insert_char(&mut self, c: char, pos: CharIndex) {
-        self.text.insert(pos.0, &c.to_string());
+        self.maybe_store_history_item(ActionType::InsertChar);
+
+        self.text_mut().unwrap().insert(pos.0, &c.to_string());
 
         // Update the associated style span to account for the new
         // character.
@@ -368,8 +429,11 @@ impl Buffer {
         let mut highlight_state =
             HighlightState::new(&highlighter, ScopeStack::new());
 
+        // Duplicate text() method to avoid borrowing issue.
+        let text = &self.history[self.active_history_index].text;
+
         let mut full_line = String::new();
-        for line in self.text.lines() {
+        for line in text.lines() {
             full_line.clear();
             // TODO: any way to avoid pulling the full line in? Should
             // at least limit the length probably.
