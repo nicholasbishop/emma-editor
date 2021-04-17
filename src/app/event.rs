@@ -121,14 +121,19 @@ impl App {
         self.buffers.get_mut(id).expect("missing minibuf buffer")
     }
 
-    fn reset_interactive_state(&mut self) {
-        self.interactive_state = InteractiveState::Initial;
-        self.pane_tree.set_minibuf_interactive(false);
+    fn set_interactive_state(&mut self, state: InteractiveState) {
+        let is_interactive = state != InteractiveState::Initial;
+        self.interactive_state = state;
+        self.pane_tree.set_minibuf_interactive(is_interactive);
         self.minibuf_mut().clear();
     }
 
+    fn clear_interactive_state(&mut self) {
+        self.set_interactive_state(InteractiveState::Initial);
+    }
+
     fn display_error(&mut self, error: Error) {
-        self.reset_interactive_state();
+        self.clear_interactive_state();
         // TODO: think about how this error will get unset. On next
         // key press, like emacs? Hide or fade after a timeout?
         self.minibuf_mut().set_text(&format!("{}", error));
@@ -140,9 +145,9 @@ impl App {
         let text = self.minibuf().text().to_string();
         let path = Path::new(&text);
 
-        // Reset the minibuf, which also reselect the previous active
+        // Reset the minibuf, which also reselects the previous active
         // pane.
-        self.reset_interactive_state();
+        self.clear_interactive_state();
 
         // Load the file in a new buffer.
         let buf = Buffer::from_path(path, &self.theme)?;
@@ -234,15 +239,14 @@ impl App {
                 self.pane_tree.set_active(&pane_id);
             }
             Action::OpenFile => {
-                self.interactive_state = InteractiveState::OpenFile;
+                self.set_interactive_state(InteractiveState::OpenFile);
                 // TODO: prompt
-                self.pane_tree.set_minibuf_interactive(true);
             }
             Action::Confirm => {
                 self.handle_confirm()?;
             }
             Action::Cancel => {
-                self.reset_interactive_state();
+                self.clear_interactive_state();
             }
             todo => {
                 dbg!(todo);
