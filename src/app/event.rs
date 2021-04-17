@@ -4,8 +4,9 @@ use {
         buffer::{Boundary, Buffer, CharIndex, Direction},
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
+        pane_tree::Pane,
     },
-    anyhow::Error,
+    anyhow::{anyhow, Error},
     fehler::throws,
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
     std::path::Path,
@@ -40,12 +41,18 @@ impl KeyHandler {
 }
 
 impl App {
-    fn delete_text(&mut self, boundary: Boundary, direction: Direction) {
+    #[throws]
+    fn active_pane_buffer_mut(&mut self) -> (&Pane, &mut Buffer) {
         let pane = self.pane_tree.active();
-        let buf = self
-            .buffers
-            .get_mut(pane.buffer_id())
-            .expect("invalid buffer");
+        let buf = self.buffers.get_mut(pane.buffer_id()).ok_or_else(|| {
+            anyhow!("internal error: active pane points to invalid buffer")
+        })?;
+        (pane, buf)
+    }
+
+    #[throws]
+    fn delete_text(&mut self, boundary: Boundary, direction: Direction) {
+        let (pane, buf) = self.active_pane_buffer_mut()?;
         let pos = buf.cursor(pane);
         let boundary = buf.find_boundary(pos, boundary, direction);
         if pos != boundary {
@@ -178,7 +185,7 @@ impl App {
                 self.move_cursor(step, dir);
             }
             Action::Delete(boundary, direction) => {
-                self.delete_text(boundary, direction);
+                self.delete_text(boundary, direction)?;
             }
             Action::Undo => {
                 let pane = self.pane_tree.active();
