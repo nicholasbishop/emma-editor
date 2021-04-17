@@ -4,7 +4,7 @@ use {
         key_sequence::KeySequence,
         pane_tree,
     },
-    gtk4::gdk::ModifierType,
+    gtk4::gdk::{self, ModifierType},
     std::collections::BTreeMap,
 };
 
@@ -16,8 +16,12 @@ pub enum Move {
 }
 
 #[allow(dead_code)] // TODO
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Action {
+    // Insert text for a key press, e.g. pressing the 'a' key inserts
+    // an 'a' character into the active buffer.
+    Insert(gdk::keys::Key),
+
     Exit,
     OpenFile,
     SaveFile,
@@ -56,7 +60,6 @@ pub enum Action {
 pub enum KeyMapLookup {
     Action(Action),
     Prefix,
-    NoEntry,
     BadSequence,
 }
 
@@ -146,7 +149,7 @@ impl KeyMap {
     pub fn lookup(&self, seq: &KeySequence) -> KeyMapLookup {
         // First check for the exact sequence
         if let Some(action) = self.0.get(seq) {
-            return KeyMapLookup::Action(*action);
+            return KeyMapLookup::Action(action.clone());
         }
 
         // Then check if the sequence could be a prefix for something
@@ -165,7 +168,7 @@ impl KeyMap {
             && (seq.0[0].modifiers.is_empty()
                 || seq.0[0].modifiers == ModifierType::SHIFT_MASK)
         {
-            return KeyMapLookup::NoEntry;
+            return KeyMapLookup::Action(Action::Insert(seq.0[0].key.clone()));
         }
 
         // TODO: special "<ctrl>g" type thing to kill any sequence

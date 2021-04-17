@@ -181,6 +181,9 @@ impl App {
             Action::Exit => {
                 self.window.close();
             }
+            Action::Insert(key) => {
+                self.insert_char(key);
+            }
             Action::Move(step, dir) => {
                 self.move_cursor(step, dir);
             }
@@ -297,15 +300,12 @@ impl App {
         // shift, but currently that is treated as a valid
         // sequence. Need to figure out how to prevent that.
 
-        let atom = KeySequenceAtom::from_event(key.clone(), state);
+        let atom = KeySequenceAtom::from_event(key, state);
         self.key_handler.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
         let inhibit = Inhibit(true);
         match keymap_stack.lookup(&self.key_handler.cur_seq) {
-            KeyMapLookup::NoEntry => {
-                self.insert_char(key);
-            }
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
                 dbg!("bad seq", &self.key_handler.cur_seq);
