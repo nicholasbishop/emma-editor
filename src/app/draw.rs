@@ -61,7 +61,7 @@ impl LineHeight {
         let font_desc = pctx.font_description();
 
         let language = None;
-        let metrics = pctx.get_metrics(font_desc.as_ref(), language).unwrap();
+        let metrics = pctx.metrics(font_desc.as_ref(), language).unwrap();
 
         LineHeight(pango_unscale(metrics.height()))
     }

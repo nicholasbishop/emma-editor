@@ -90,7 +90,7 @@ pub fn init(application: &gtk::Application) {
         .as_bytes(),
     );
     gtk::StyleContext::add_provider_for_display(
-        &gdk::Display::get_default().unwrap(),
+        &gdk::Display::default().unwrap(),
         &css,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
