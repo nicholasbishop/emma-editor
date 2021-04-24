@@ -23,6 +23,7 @@ tracing-subscriber = { version = "0.2", default-features = false, features = ["e
 parking_lot = "0.11"
 
 # Text
+aho-corasick = "0.7"
 ropey = "1.2"
 syntect = "4.5"
 unicode-segmentation = "1.7"
