@@ -43,6 +43,18 @@ fn pango_unscale(i: i32) -> f64 {
 #[derive(Clone, Copy, Debug)]
 pub struct LineHeight(pub f64);
 
+#[derive(Default)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
 impl LineHeight {
     pub fn calculate(widget: &gtk::DrawingArea) -> LineHeight {
         let pctx = widget.pango_context();
@@ -72,8 +84,7 @@ struct DrawPane<'a> {
     margin: f64,
     cursor: LinePosition,
     len_lines: usize,
-    x: f64,
-    y: f64,
+    pos: Point,
     empty_style: &'a Style,
 }
 
@@ -81,11 +92,10 @@ impl<'a> fmt::Debug for DrawPane<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(
             f,
-            "DrawPane({}, {}, pos={},{})",
+            "DrawPane({}, {}, pos={})",
             self.pane.id(),
             self.buf.id(),
-            self.x,
-            self.y
+            self.pos,
         )
     }
 }
@@ -109,9 +119,9 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_layout(&mut self, layout: &Layout) {
-        self.ctx.move_to(self.x, self.y);
+        self.ctx.move_to(self.pos.x, self.pos.y);
         pangocairo::show_layout(self.ctx, layout);
-        self.x += pango_unscale(layout.size().0);
+        self.pos.x += pango_unscale(layout.size().0);
     }
 
     fn styled_layouts_from_line(
@@ -204,8 +214,12 @@ impl<'a> DrawPane<'a> {
             "drawing cursor: size={}x{}",
             cursor_width, self.line_height.0
         );
-        self.ctx
-            .rectangle(self.x, self.y, cursor_width, self.line_height.0);
+        self.ctx.rectangle(
+            self.pos.x,
+            self.pos.y,
+            cursor_width,
+            self.line_height.0,
+        );
         if self.pane.is_active() {
             self.ctx.fill();
         } else {
@@ -214,9 +228,9 @@ impl<'a> DrawPane<'a> {
     }
 
     fn draw_line(&mut self, line: &RopeSlice, line_idx: usize) {
-        self.x = self.pane.rect().x;
+        self.pos.x = self.pane.rect().x;
 
-        self.ctx.move_to(self.margin, self.y);
+        self.ctx.move_to(self.margin, self.pos.y);
 
         set_source_rgb_from_u8(self.ctx, 220, 220, 204);
 
@@ -240,7 +254,7 @@ impl<'a> DrawPane<'a> {
             self.draw_layout(&styled_layout.layout);
         }
 
-        self.y += self.line_height.0;
+        self.pos.y += self.line_height.0;
     }
 
     fn draw_info_bar(&mut self) {
@@ -281,8 +295,8 @@ impl<'a> DrawPane<'a> {
 
             let layout = self.create_layout(&name.to_string_lossy());
 
-            self.x = rect.x;
-            self.y = rect.y + rect.height - self.line_height.0;
+            self.pos.x = rect.x;
+            self.pos.y = rect.y + rect.height - self.line_height.0;
             self.draw_layout(&layout);
         }
     }
@@ -302,7 +316,7 @@ impl<'a> DrawPane<'a> {
 
         self.cursor = self.buf.cursor(self.pane).line_position(self.buf);
 
-        self.y = rect.y + self.margin;
+        self.pos.y = rect.y + self.margin;
 
         for (line_idx, line) in
             self.buf.text().lines_at(self.pane.top_line()).enumerate()
@@ -312,7 +326,7 @@ impl<'a> DrawPane<'a> {
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
-            if self.y > (rect.y + rect.height as f64) {
+            if self.pos.y > (rect.y + rect.height as f64) {
                 break;
             }
         }
@@ -359,8 +373,7 @@ impl App {
                 margin: 2.0,
                 cursor: LinePosition::default(),
                 len_lines: buf.text().len_lines(),
-                x: 0.0,
-                y: 0.0,
+                pos: Point::default(),
                 empty_style: &empty_style,
             };
             dp.draw();
