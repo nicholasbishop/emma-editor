@@ -100,11 +100,11 @@ impl<'a> fmt::Debug for DrawPane<'a> {
     }
 }
 
-fn create_layout(widget: &gtk::DrawingArea, text: &str) -> Layout {
-    widget.create_pango_layout(Some(text))
-}
-
 impl<'a> DrawPane<'a> {
+    fn create_layout(&self, text: &str) -> Layout {
+        self.widget.create_pango_layout(Some(text))
+    }
+
     fn layout_line_range(
         &mut self,
         line: &RopeSlice,
@@ -115,7 +115,7 @@ impl<'a> DrawPane<'a> {
             self.span_buf.push_str(chunk);
         }
 
-        create_layout(self.widget, &self.span_buf)
+        self.create_layout(&self.span_buf)
     }
 
     fn draw_layout(&mut self, layout: &Layout) {
@@ -177,7 +177,7 @@ impl<'a> DrawPane<'a> {
         {
             debug!("eof cursor");
             output.push(StyledLayout {
-                layout: create_layout(self.widget, ""),
+                layout: self.create_layout(""),
                 style: self.empty_style,
                 is_cursor: true,
             });
@@ -293,7 +293,7 @@ impl<'a> DrawPane<'a> {
                 );
             }
 
-            let layout = create_layout(self.widget, &name.to_string_lossy());
+            let layout = self.create_layout(&name.to_string_lossy());
 
             self.pos.x = rect.x;
             self.pos.y = rect.y + rect.height - self.line_height.0;
