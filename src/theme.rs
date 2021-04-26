@@ -33,6 +33,7 @@ struct YamlThemeSettings {
     background: Option<String>,
     info_bar_active: Option<YamlThemeItem>,
     info_bar_inactive: Option<YamlThemeItem>,
+    search_match: Option<YamlThemeItem>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -94,6 +95,8 @@ impl YamlTheme {
 
         expand_item(&mut self.settings.info_bar_active)?;
         expand_item(&mut self.settings.info_bar_inactive)?;
+
+        expand_item(&mut self.settings.search_match)?;
 
         for scope in self.scopes.values_mut() {
             expand(&mut scope.foreground)?;
@@ -160,6 +163,7 @@ pub struct Theme {
     pub syntect: SyntectTheme,
     pub info_bar_active: ForeAndBack,
     pub info_bar_inactive: ForeAndBack,
+    pub search_match: ForeAndBack,
 }
 
 impl Theme {
@@ -196,6 +200,11 @@ impl Theme {
             )?,
             info_bar_inactive: ForeAndBack::parse_with_default(
                 &yaml.settings.info_bar_inactive,
+                rgb(0, 0, 0),
+                rgb(255, 128, 128),
+            )?,
+            search_match: ForeAndBack::parse_with_default(
+                &yaml.settings.search_match,
                 rgb(0, 0, 0),
                 rgb(255, 128, 128),
             )?,
