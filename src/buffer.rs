@@ -5,6 +5,7 @@ use {
         theme::Theme,
         util,
     },
+    aho_corasick::AhoCorasick,
     anyhow::Error,
     fehler::throws,
     ropey::Rope,
@@ -130,7 +131,7 @@ impl LinePosition {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StyleSpan {
     pub len: usize,
     pub style: Style,
@@ -155,6 +156,36 @@ struct HistoryItem {
     cursors: CursorMap,
 }
 
+/// Matching spans within a line.
+#[derive(Clone, Debug, Default)]
+pub struct LineMatches {
+    pub spans: Vec<Range<usize>>,
+}
+
+pub struct SearchState {
+    pane_id: PaneId,
+    start_line_index: usize,
+    matches: Vec<LineMatches>,
+}
+
+impl SearchState {
+    pub fn line_matches(
+        &self,
+        pane: &Pane,
+        line_index: usize,
+    ) -> Option<&LineMatches> {
+        if pane.id() != &self.pane_id {
+            return None;
+        }
+
+        if let Some(offset) = line_index.checked_sub(pane.top_line()) {
+            self.matches.get(offset)
+        } else {
+            None
+        }
+    }
+}
+
 pub struct Buffer {
     id: BufferId,
 
@@ -174,6 +205,8 @@ pub struct Buffer {
     // TODO: think about a smarter structure
     // TODO: put in arc for async update
     style_spans: Vec<Vec<StyleSpan>>,
+
+    search: Option<SearchState>,
 }
 
 impl fmt::Debug for Buffer {
@@ -203,6 +236,7 @@ impl Buffer {
             path,
             theme: theme.clone(),
             style_spans: Vec::new(),
+            search: None,
         };
 
         // TODO, async
@@ -247,6 +281,10 @@ impl Buffer {
 
     pub fn style_spans(&self) -> &Vec<Vec<StyleSpan>> {
         &self.style_spans
+    }
+
+    pub fn search_state(&self) -> &Option<SearchState> {
+        &self.search
     }
 
     pub fn cursor(&self, pane: &Pane) -> CharIndex {
@@ -444,6 +482,35 @@ impl Buffer {
         self.recalc_style_spans();
 
         // TODO: update all cursors
+    }
+
+    pub fn search(&mut self, text: &str, pane: &Pane, num_lines: usize) {
+        if text.is_empty() {
+            return;
+        }
+
+        let mut state = SearchState {
+            pane_id: pane.id().clone(),
+            start_line_index: pane.top_line(),
+            matches: Vec::with_capacity(num_lines),
+        };
+        state.matches.resize(num_lines, LineMatches::default());
+
+        let ac = AhoCorasick::new(&[text]);
+        for (offset, line) in
+            self.text().lines_at(state.start_line_index).enumerate()
+        {
+            if offset > num_lines {
+                break;
+            }
+
+            let line_str = line.to_string();
+            for m in ac.find_iter(&line_str) {
+                state.matches[offset].spans.push(m.start()..m.end());
+            }
+        }
+
+        self.search = Some(state);
     }
 
     fn get_syntax<'a>(&self, syntax_set: &'a SyntaxSet) -> &'a SyntaxReference {
