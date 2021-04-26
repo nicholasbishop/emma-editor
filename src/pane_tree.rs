@@ -157,10 +157,13 @@ impl Node {
         }
     }
 
-    fn active(&self) -> Option<&Node> {
+    fn find_leaf<F>(&self, f: F) -> Option<&Node>
+    where
+        F: Fn(&Pane) -> bool,
+    {
         match self {
             Node::Leaf(leaf) => {
-                if leaf.is_active() {
+                if f(leaf) {
                     Some(self)
                 } else {
                     None
@@ -175,6 +178,10 @@ impl Node {
                 None
             }
         }
+    }
+
+    fn active(&self) -> Option<&Node> {
+        self.find_leaf(|leaf| leaf.is_active())
     }
 
     fn active_mut(&mut self) -> Option<&mut Node> {
@@ -398,6 +405,24 @@ impl PaneTree {
             pane
         } else {
             panic!("no active pane");
+        }
+    }
+
+    pub fn active_excluding_minibuf(&self) -> &Pane {
+        if let Some(id) = &self.active_id_before_minibuf {
+            if let Some(Node::Leaf(pane)) =
+                self.root.find_leaf(|pane| &pane.id == id)
+            {
+                pane
+            } else {
+                panic!("invalid active_id_before_minibuf");
+            }
+        } else {
+            if let Some(Node::Leaf(pane)) = self.root.active() {
+                pane
+            } else {
+                panic!("no active pane");
+            }
         }
     }
 
