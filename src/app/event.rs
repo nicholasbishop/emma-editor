@@ -212,36 +212,66 @@ impl App {
     }
 
     #[throws]
+    fn handle_buffer_changed(&mut self) {
+        if self.interactive_state == InteractiveState::Search {
+            let minibuf = self.minibuf();
+            let search_for = minibuf.text().to_string();
+
+            let line_height = self.line_height;
+
+            let pane = self.pane_tree.active_excluding_minibuf();
+            let buf = self
+                .buffers
+                .get_mut(pane.buffer_id())
+                .ok_or_else(invalid_active_buffer_error)?;
+            let num_lines =
+                (pane.rect().height / line_height.0).round() as usize;
+            buf.search(&search_for, pane, num_lines);
+        }
+    }
+
+    #[throws]
     fn handle_action(&mut self, action: Action) {
+        let buffer_changed;
+
         match action {
             Action::Exit => {
                 self.window.close();
+                buffer_changed = false;
             }
             Action::Insert(key) => {
                 self.insert_char(key)?;
+                buffer_changed = true;
             }
             Action::Move(step, dir) => {
                 self.move_cursor(step, dir)?;
+                buffer_changed = false;
             }
             Action::Delete(boundary, direction) => {
                 self.delete_text(boundary, direction)?;
+                buffer_changed = true;
             }
             Action::InteractiveSearch => {
                 self.set_interactive_state(InteractiveState::Search);
                 // TODO: prompt
+
+                buffer_changed = false;
             }
             Action::Undo => {
                 let buf = self.active_buffer_mut()?;
                 buf.undo();
+                buffer_changed = true;
             }
             Action::Redo => {
                 let buf = self.active_buffer_mut()?;
                 buf.redo();
+                buffer_changed = true;
             }
             Action::SplitPane(orientation) => {
                 let buf =
                     active_buffer_mut(&self.pane_tree, &mut self.buffers)?;
                 self.pane_tree.split(orientation, buf);
+                buffer_changed = false;
             }
             Action::PreviousPane => {
                 let pane_id;
@@ -259,6 +289,7 @@ impl App {
                     pane_id = panes[prev].id().clone();
                 }
                 self.pane_tree.set_active(&pane_id);
+                buffer_changed = false;
             }
             Action::NextPane => {
                 let pane_id;
@@ -276,20 +307,30 @@ impl App {
                     pane_id = panes[next].id().clone();
                 }
                 self.pane_tree.set_active(&pane_id);
+                buffer_changed = false;
             }
             Action::OpenFile => {
                 self.set_interactive_state(InteractiveState::OpenFile);
                 // TODO: prompt
+
+                buffer_changed = false;
             }
             Action::Confirm => {
                 self.handle_confirm()?;
+                buffer_changed = false;
             }
             Action::Cancel => {
                 self.clear_interactive_state();
+                buffer_changed = false;
             }
             todo => {
+                buffer_changed = false;
                 dbg!(todo);
             }
+        }
+
+        if buffer_changed {
+            self.handle_buffer_changed()?;
         }
     }
 
