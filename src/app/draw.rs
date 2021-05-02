@@ -1,7 +1,7 @@
 use {
     super::App,
     crate::{
-        buffer::{Buffer, LinePosition},
+        buffer::{Buffer, LineMatches, LinePosition, StyleSpan},
         grapheme::next_grapheme_boundary,
         pane_tree::Pane,
         theme::Theme,
@@ -67,10 +67,130 @@ impl LineHeight {
     }
 }
 
-struct StyledLayout<'a> {
+struct StyledLayout {
     layout: Layout,
-    style: &'a Style,
+    // TODO: this should be a reference but then things get *really*
+    // complicated with the borrow checker.
+    style: Style,
     is_cursor: bool,
+}
+
+fn apply_match_style(
+    base_spans: &[StyleSpan],
+    matches: &LineMatches,
+    match_style: &Style,
+) -> Vec<StyleSpan> {
+    // TODO: the way this is implemented is almost certainly not the
+    // best way to do it, but seems reasonably easy to verify.
+
+    // TODO: share between outer iterations
+    let mut output = Vec::with_capacity(base_spans.len());
+
+    // TODO: share between outer iterations
+    let mut scratch =
+        Vec::with_capacity(base_spans.iter().map(|s| s.len).sum());
+
+    // Fill in the base indices.
+    for (base_index, base_span) in base_spans.iter().enumerate() {
+        for _ in 0..base_span.len {
+            scratch.push(base_index);
+        }
+    }
+
+    // Override with match markers.
+    let match_marker = usize::MAX;
+    for match_span in &matches.spans {
+        for index in match_span.start..match_span.end {
+            scratch[index] = match_marker;
+        }
+    }
+
+    // Go through the scratch vec and convert back to spans.
+    let mut span_len = 0;
+    for scratch_index in 0..scratch.len() {
+        let cur = scratch[scratch_index];
+        let next = scratch.get(scratch_index + 1);
+        span_len += 1;
+
+        if Some(&cur) != next {
+            let style = if cur == match_marker {
+                match_style
+            } else {
+                &base_spans[cur].style
+            };
+            output.push(StyleSpan {
+                len: span_len,
+                style: style.clone(),
+            });
+            span_len = 0;
+        }
+    }
+
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn match_style() -> Style {
+        Style::default()
+    }
+
+    fn style1() -> Style {
+        let mut style = Style::default();
+        style.foreground.r = 1;
+        style
+    }
+
+    #[test]
+    fn test_apply_match_style() {
+        let base_spans = vec![StyleSpan {
+            len: 5,
+            style: style1(),
+        }];
+        let mut matches = LineMatches { spans: vec![] };
+
+        fn label(style_spans: &[StyleSpan]) -> Vec<(&'static str, usize)> {
+            style_spans
+                .iter()
+                .map(|span| {
+                    let name = if span.style == match_style() {
+                        "match"
+                    } else if span.style == style1() {
+                        "style1"
+                    } else {
+                        "unknown"
+                    };
+                    (name, span.len)
+                })
+                .collect()
+        }
+
+        fn check(
+            base_spans: &[StyleSpan],
+            matches: &LineMatches,
+            expected: &[(&str, usize)],
+        ) {
+            let mods = apply_match_style(&base_spans, matches, &match_style());
+            assert_eq!(label(&mods), expected);
+        }
+
+        // No matches
+        check(&base_spans, &matches, &[("style1", 5)]);
+
+        // One match, replaces the base span
+        matches.spans = vec![0..5];
+        check(&base_spans, &matches, &[("match", 5)]);
+
+        // One match at the start of the base span
+        matches.spans = vec![0..3];
+        check(&base_spans, &matches, &[("match", 3), ("style1", 2)]);
+
+        // One match at the end of the base span
+        matches.spans = vec![3..5];
+        check(&base_spans, &matches, &[("style1", 3), ("match", 2)]);
+    }
 }
 
 struct DrawPane<'a> {
@@ -85,7 +205,6 @@ struct DrawPane<'a> {
     cursor: LinePosition,
     len_lines: usize,
     pos: Point,
-    empty_style: &'a Style,
 }
 
 impl<'a> fmt::Debug for DrawPane<'a> {
@@ -128,10 +247,27 @@ impl<'a> DrawPane<'a> {
         &mut self,
         line: &RopeSlice,
         line_idx: usize,
-    ) -> Vec<StyledLayout<'a>> {
+    ) -> Vec<StyledLayout> {
         let mut output = Vec::new();
 
-        let style_spans = &self.buf.style_spans()[line_idx];
+        let match_style = Style {
+            background: self.theme.search_match.background,
+            foreground: self.theme.search_match.foreground,
+            ..Style::default()
+        };
+
+        let base_style_spans = &self.buf.style_spans()[line_idx];
+        let mut style_spans = base_style_spans;
+        // TODO: share across iterations
+        let modified_style_spans;
+        if let Some(search) = self.buf.search_state() {
+            if let Some(matches) = search.line_matches(self.pane, line_idx) {
+                modified_style_spans =
+                    apply_match_style(base_style_spans, matches, &match_style);
+
+                style_spans = &modified_style_spans;
+            }
+        }
 
         let mut span_offset = 0;
         for span in style_spans {
@@ -141,7 +277,7 @@ impl<'a> DrawPane<'a> {
                     if !range.is_empty() {
                         output.push(StyledLayout {
                             layout: me.layout_line_range(&line, range),
-                            style: &span.style,
+                            style: span.style.clone(),
                             is_cursor,
                         });
                     }
@@ -178,7 +314,7 @@ impl<'a> DrawPane<'a> {
             debug!("eof cursor");
             output.push(StyledLayout {
                 layout: self.create_layout(""),
-                style: self.empty_style,
+                style: Style::default(),
                 is_cursor: true,
             });
             return output;
@@ -357,8 +493,6 @@ impl App {
         let mut panes = self.pane_tree.panes();
         panes.push(self.pane_tree.minibuf());
 
-        let empty_style = Style::default();
-
         for pane in panes {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
@@ -374,7 +508,6 @@ impl App {
                 cursor: LinePosition::default(),
                 len_lines: buf.text().len_lines(),
                 pos: Point::default(),
-                empty_style: &empty_style,
             };
             dp.draw();
         }
