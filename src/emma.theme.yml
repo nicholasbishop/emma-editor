@@ -13,6 +13,7 @@ vars:
 settings:
   caret: "#ffff00"
   foreground: "$plain"
+  background: "#00000000"
   info_bar_active:
     foreground: "$yellow"
     background: "#1e2320"
