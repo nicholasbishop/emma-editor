@@ -92,6 +92,7 @@ impl YamlTheme {
 
         expand(&mut self.settings.caret)?;
         expand(&mut self.settings.foreground)?;
+        expand(&mut self.settings.background)?;
 
         expand_item(&mut self.settings.info_bar_active)?;
         expand_item(&mut self.settings.info_bar_inactive)?;
@@ -109,14 +110,20 @@ fn parse_color(s: &Option<String>) -> Option<Color> {
     if let Some(s) = s {
         if let Some(rest) = s.strip_prefix('#') {
             // TODO: support shorthand colors like "#555"?
-            if rest.len() == 6 {
-                // TODO: alpha support
-                Some(Color {
-                    r: u8::from_str_radix(&rest[0..2], 16)?,
-                    g: u8::from_str_radix(&rest[2..4], 16)?,
-                    b: u8::from_str_radix(&rest[4..6], 16)?,
-                    a: 255,
-                })
+            if rest.len() >= 6 {
+                let r = u8::from_str_radix(&rest[0..2], 16)?;
+                let g = u8::from_str_radix(&rest[2..4], 16)?;
+                let b = u8::from_str_radix(&rest[4..6], 16)?;
+
+                let a = if rest.len() == 6 {
+                    255
+                } else if rest.len() == 8 {
+                    u8::from_str_radix(&rest[4..6], 16)?
+                } else {
+                    bail!("color has invalid length: {}", s);
+                };
+
+                Some(Color { r, g, b, a })
             } else {
                 bail!("color is too short: {}", s);
             }
@@ -179,6 +186,7 @@ impl Theme {
 
         theme.settings.caret = parse_color(&yaml.settings.caret)?;
         theme.settings.foreground = parse_color(&yaml.settings.foreground)?;
+        theme.settings.background = parse_color(&yaml.settings.background)?;
         for scope in yaml.scopes.values() {
             theme.scopes.push(ThemeItem {
                 scope: scope.scope_selectors().map_err(LoadingError::from)?,
