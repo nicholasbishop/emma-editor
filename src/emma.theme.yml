@@ -22,7 +22,7 @@ settings:
     background: "#2e3330"
   search_match:
     foreground: "#000000"
-    background: "#ffff00"  # TODO
+    background: "#edd400"
 
 scopes:
   comment:
