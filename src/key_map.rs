@@ -164,11 +164,15 @@ impl KeyMap {
         // modifiers (other than shift) then just pass it along; this
         // handles things like pressing the letter 'a' where we just
         // want the default insertion action to occur.
-        if seq.0.len() == 1
-            && (seq.0[0].modifiers.is_empty()
-                || seq.0[0].modifiers == ModifierType::SHIFT_MASK)
-        {
-            return KeyMapLookup::Action(Action::Insert(seq.0[0].key.clone()));
+        if seq.0.len() == 1 {
+            let atom = &seq.0[0];
+            if atom.modifiers.is_empty() {
+                return KeyMapLookup::Action(Action::Insert(atom.key.clone()));
+            } else if atom.modifiers == ModifierType::SHIFT_MASK {
+                return KeyMapLookup::Action(Action::Insert(
+                    atom.key.to_upper(),
+                ));
+            }
         }
 
         // TODO: special "<ctrl>g" type thing to kill any sequence
