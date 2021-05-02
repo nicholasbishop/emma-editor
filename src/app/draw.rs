@@ -373,6 +373,20 @@ impl<'a> DrawPane<'a> {
         let styled_layouts = self.styled_layouts_from_line(line, line_idx);
 
         for styled_layout in styled_layouts {
+            // Draw background
+            set_source_from_syntect_color(
+                self.ctx,
+                &styled_layout.style.background,
+            );
+            let size = styled_layout.layout.size();
+            self.ctx.rectangle(
+                self.pos.x,
+                self.pos.y,
+                pango_unscale(size.0),
+                pango_unscale(size.1),
+            );
+            self.ctx.fill();
+
             if styled_layout.is_cursor {
                 self.draw_cursor(&styled_layout);
 
