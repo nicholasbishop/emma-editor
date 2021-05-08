@@ -1,7 +1,7 @@
 use {
     super::App,
     crate::{
-        buffer::{Buffer, LineIndex, LineMatches, LinePosition, StyleSpan},
+        buffer::{AbsLine, Buffer, LineMatches, LinePosition, StyleSpan},
         grapheme::next_grapheme_boundary,
         pane_tree::Pane,
         theme::Theme,
@@ -248,7 +248,7 @@ impl<'a> DrawPane<'a> {
     fn styled_layouts_from_line(
         &mut self,
         line: &RopeSlice,
-        line_idx: LineIndex,
+        line_idx: AbsLine,
     ) -> Vec<StyledLayout> {
         let mut output = Vec::new();
 
@@ -365,7 +365,7 @@ impl<'a> DrawPane<'a> {
         }
     }
 
-    fn draw_line(&mut self, line: &RopeSlice, line_idx: LineIndex) {
+    fn draw_line(&mut self, line: &RopeSlice, line_idx: AbsLine) {
         self.pos.x = self.pane.rect().x;
 
         self.ctx.move_to(self.margin, self.pos.y);
@@ -473,7 +473,7 @@ impl<'a> DrawPane<'a> {
         for (line_idx, line) in
             self.buf.text().lines_at(self.pane.top_line()).enumerate()
         {
-            let line_idx = LineIndex(self.pane.top_line() + line_idx);
+            let line_idx = AbsLine(self.pane.top_line() + line_idx);
             self.draw_line(&line, line_idx);
 
             // Stop if rendering past the bottom of the widget. TODO:

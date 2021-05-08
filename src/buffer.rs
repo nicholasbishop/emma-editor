@@ -76,7 +76,7 @@ impl CharIndex {
         let line_offset = self.0 - text.line_to_char(line_idx);
 
         LinePosition {
-            line: LineIndex(line_idx),
+            line: AbsLine(line_idx),
             offset: line_offset,
         }
     }
@@ -84,22 +84,22 @@ impl CharIndex {
 
 /// Line index (zero indexed) within the buffer.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct LineIndex(pub usize);
+pub struct AbsLine(pub usize);
 
-impl LineIndex {
+impl AbsLine {
     pub fn offset_from(&self, val: usize) -> Option<usize> {
         self.0.checked_sub(val)
     }
 
-    pub fn saturating_sub(&self, val: usize) -> LineIndex {
-        LineIndex(self.0.saturating_sub(val))
+    pub fn saturating_sub(&self, val: usize) -> AbsLine {
+        AbsLine(self.0.saturating_sub(val))
     }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct LinePosition {
     /// Line index.
-    pub line: LineIndex,
+    pub line: AbsLine,
     /// Character offset from the start of the line.
     pub offset: usize,
 }
@@ -186,7 +186,7 @@ impl SearchState {
     pub fn line_matches(
         &self,
         pane: &Pane,
-        line_index: LineIndex,
+        line_index: AbsLine,
     ) -> Option<&LineMatches> {
         if pane.id() != &self.pane_id {
             return None;
@@ -202,7 +202,7 @@ impl SearchState {
     pub fn next_match(&self, line_pos: LinePosition) -> Option<LinePosition> {
         let lm_base = line_pos.line.offset_from(self.start_line_index)?;
         for (lm_offset, lm) in self.matches.iter().skip(lm_base).enumerate() {
-            let line = LineIndex(self.start_line_index + lm_base + lm_offset);
+            let line = AbsLine(self.start_line_index + lm_base + lm_offset);
 
             for span in &lm.spans {
                 // Ignore matches on line_pos's line that are before

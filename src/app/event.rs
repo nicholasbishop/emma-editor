@@ -1,7 +1,7 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{Boundary, Buffer, BufferId, CharIndex, Direction, LineIndex},
+        buffer::{AbsLine, Boundary, Buffer, BufferId, CharIndex, Direction},
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
         pane_tree::{Pane, PaneTree},
@@ -136,7 +136,7 @@ impl App {
                 if dir == Direction::Dec {
                     lp.line = lp.line.saturating_sub(offset);
                 } else {
-                    lp.line = LineIndex(std::cmp::min(
+                    lp.line = AbsLine(std::cmp::min(
                         lp.line.0 + offset,
                         text.len_lines() - 1,
                     ));
