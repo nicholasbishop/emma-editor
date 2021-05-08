@@ -59,13 +59,13 @@ impl fmt::Display for BufferId {
     }
 }
 
-/// Char index within the buffer.
+/// Char index (zero indexed) within the buffer.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CharIndex(pub usize);
 
 impl CharIndex {
     pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> CharIndex {
-        CharIndex(buf.text().line_to_char(pos.line) + pos.offset)
+        CharIndex(buf.text().line_to_char(pos.line.0) + pos.offset)
     }
 
     /// Convert the CharIndex to a LinePosition.
@@ -76,16 +76,30 @@ impl CharIndex {
         let line_offset = self.0 - text.line_to_char(line_idx);
 
         LinePosition {
-            line: line_idx,
+            line: LineIndex(line_idx),
             offset: line_offset,
         }
     }
 }
 
+/// Line index (zero indexed) within the buffer.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+pub struct LineIndex(pub usize);
+
+impl LineIndex {
+    pub fn offset_from(&self, val: usize) -> Option<usize> {
+        self.0.checked_sub(val)
+    }
+
+    pub fn saturating_sub(&self, val: usize) -> LineIndex {
+        LineIndex(self.0.saturating_sub(val))
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct LinePosition {
-    /// Line index (zero-indexed).
-    pub line: usize,
+    /// Line index.
+    pub line: LineIndex,
     /// Character offset from the start of the line.
     pub offset: usize,
 }
@@ -94,7 +108,7 @@ impl LinePosition {
     /// Count the number of graphemes between the start of the line
     /// and the line offset.
     pub fn grapheme_offset(&self, buf: &Buffer) -> usize {
-        let line = buf.text().line(self.line);
+        let line = buf.text().line(self.line.0);
         let mut num_graphemes = 0;
         let mut cur_offset = 0;
         while cur_offset < self.offset {
@@ -117,7 +131,7 @@ impl LinePosition {
         buf: &Buffer,
         mut num_graphemes: usize,
     ) {
-        let line = buf.text().line(self.line);
+        let line = buf.text().line(self.line.0);
         let num_chars = line.len_chars();
         self.offset = 0;
         while num_graphemes > 0 {
@@ -172,13 +186,13 @@ impl SearchState {
     pub fn line_matches(
         &self,
         pane: &Pane,
-        line_index: usize,
+        line_index: LineIndex,
     ) -> Option<&LineMatches> {
         if pane.id() != &self.pane_id {
             return None;
         }
 
-        if let Some(offset) = line_index.checked_sub(pane.top_line()) {
+        if let Some(offset) = line_index.offset_from(pane.top_line()) {
             self.matches.get(offset)
         } else {
             None
@@ -186,9 +200,9 @@ impl SearchState {
     }
 
     pub fn next_match(&self, line_pos: LinePosition) -> Option<LinePosition> {
-        let lm_base = line_pos.line.checked_sub(self.start_line_index)?;
+        let lm_base = line_pos.line.offset_from(self.start_line_index)?;
         for (lm_offset, lm) in self.matches.iter().skip(lm_base).enumerate() {
-            let line = self.start_line_index + lm_base + lm_offset;
+            let line = LineIndex(self.start_line_index + lm_base + lm_offset);
 
             for span in &lm.spans {
                 // Ignore matches on line_pos's line that are before
@@ -434,7 +448,7 @@ impl Buffer {
                     // first-non-whitespace char.
                     lp.offset = 0;
                 } else {
-                    lp.offset = text.line(lp.line).len_chars() - 1;
+                    lp.offset = text.line(lp.line.0).len_chars() - 1;
                 }
                 CharIndex::from_line_position(lp, self)
             }
@@ -472,7 +486,7 @@ impl Buffer {
         // Update the associated style span to account for the new
         // character.
         let lp = pos.line_position(self);
-        if let Some(spans) = self.style_spans.get_mut(lp.line) {
+        if let Some(spans) = self.style_spans.get_mut(lp.line.0) {
             let offset = 0;
             for span in spans {
                 if lp.offset >= offset && lp.offset < offset + span.len {

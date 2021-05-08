@@ -1,7 +1,7 @@
 use {
     super::App,
     crate::{
-        buffer::{Buffer, LineMatches, LinePosition, StyleSpan},
+        buffer::{Buffer, LineIndex, LineMatches, LinePosition, StyleSpan},
         grapheme::next_grapheme_boundary,
         pane_tree::Pane,
         theme::Theme,
@@ -246,7 +246,7 @@ impl<'a> DrawPane<'a> {
     fn styled_layouts_from_line(
         &mut self,
         line: &RopeSlice,
-        line_idx: usize,
+        line_idx: LineIndex,
     ) -> Vec<StyledLayout> {
         let mut output = Vec::new();
 
@@ -256,7 +256,7 @@ impl<'a> DrawPane<'a> {
             ..Style::default()
         };
 
-        let base_style_spans = &self.buf.style_spans()[line_idx];
+        let base_style_spans = &self.buf.style_spans()[line_idx.0];
         let mut style_spans = base_style_spans;
         // TODO: share across iterations
         let modified_style_spans;
@@ -308,7 +308,7 @@ impl<'a> DrawPane<'a> {
         // still need to draw the cursor in that case though, so
         // append it here.
         if self.cursor.line == line_idx
-            && line_idx + 1 == self.len_lines
+            && line_idx.0 + 1 == self.len_lines
             && self.cursor.offset == line.len_chars()
         {
             debug!("eof cursor");
@@ -363,7 +363,7 @@ impl<'a> DrawPane<'a> {
         }
     }
 
-    fn draw_line(&mut self, line: &RopeSlice, line_idx: usize) {
+    fn draw_line(&mut self, line: &RopeSlice, line_idx: LineIndex) {
         self.pos.x = self.pane.rect().x;
 
         self.ctx.move_to(self.margin, self.pos.y);
@@ -471,7 +471,7 @@ impl<'a> DrawPane<'a> {
         for (line_idx, line) in
             self.buf.text().lines_at(self.pane.top_line()).enumerate()
         {
-            let line_idx = self.pane.top_line() + line_idx;
+            let line_idx = LineIndex(self.pane.top_line() + line_idx);
             self.draw_line(&line, line_idx);
 
             // Stop if rendering past the bottom of the widget. TODO:

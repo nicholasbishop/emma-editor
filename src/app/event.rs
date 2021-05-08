@@ -1,7 +1,7 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{Boundary, Buffer, BufferId, CharIndex, Direction},
+        buffer::{Boundary, Buffer, BufferId, CharIndex, Direction, LineIndex},
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
         pane_tree::{Pane, PaneTree},
@@ -136,8 +136,10 @@ impl App {
                 if dir == Direction::Dec {
                     lp.line = lp.line.saturating_sub(offset);
                 } else {
-                    lp.line =
-                        std::cmp::min(lp.line + offset, text.len_lines() - 1);
+                    lp.line = LineIndex(std::cmp::min(
+                        lp.line.0 + offset,
+                        text.len_lines() - 1,
+                    ));
                 }
                 lp.set_offset_in_graphemes(buf, num_graphemes);
                 cursor = CharIndex::from_line_position(lp, buf);
