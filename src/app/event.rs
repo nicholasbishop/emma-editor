@@ -206,7 +206,24 @@ impl App {
                 self.open_file()?;
             }
             InteractiveState::Search => {
-                todo!();
+                let pane = self.pane_tree.active_excluding_minibuf();
+                let buf = self
+                    .buffers
+                    .get_mut(pane.buffer_id())
+                    .ok_or_else(invalid_active_buffer_error)?;
+                let pos = buf.cursor(pane);
+                let line_pos = pos.line_position(&buf);
+
+                // Find the next match and move the cursor there.
+                if let Some(search) = buf.search_state() {
+                    if let Some(m) = dbg!(search.next_match(line_pos)) {
+                        let ci = CharIndex::from_line_position(m, buf);
+                        buf.set_cursor(pane, ci);
+                    }
+                }
+
+                buf.clear_search();
+                self.clear_interactive_state();
             }
         }
     }

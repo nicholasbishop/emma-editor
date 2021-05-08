@@ -184,6 +184,27 @@ impl SearchState {
             None
         }
     }
+
+    pub fn next_match(&self, line_pos: LinePosition) -> Option<LinePosition> {
+        let lm_base = line_pos.line.checked_sub(self.start_line_index)?;
+        for (lm_offset, lm) in self.matches.iter().skip(lm_base).enumerate() {
+            let line = self.start_line_index + lm_base + lm_offset;
+
+            for span in &lm.spans {
+                // Ignore matches on line_pos's line that are before
+                // the char offset.
+                if line == line_pos.line && span.start < line_pos.offset {
+                    continue;
+                }
+
+                return Some(LinePosition {
+                    line,
+                    offset: span.start,
+                });
+            }
+        }
+        None
+    }
 }
 
 pub struct Buffer {
@@ -511,6 +532,10 @@ impl Buffer {
         }
 
         self.search = Some(state);
+    }
+
+    pub fn clear_search(&mut self) {
+        self.search = None;
     }
 
     fn get_syntax<'a>(&self, syntax_set: &'a SyntaxSet) -> &'a SyntaxReference {
