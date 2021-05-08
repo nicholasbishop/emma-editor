@@ -216,7 +216,7 @@ impl App {
 
                 // Find the next match and move the cursor there.
                 if let Some(search) = buf.search_state() {
-                    if let Some(m) = dbg!(search.next_match(line_pos)) {
+                    if let Some(m) = search.next_match(line_pos) {
                         let ci = CharIndex::from_line_position(m, buf);
                         buf.set_cursor(pane, ci);
                     }
