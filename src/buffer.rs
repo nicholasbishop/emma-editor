@@ -82,13 +82,17 @@ impl CharIndex {
     }
 }
 
+/// Relative line offset.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+pub struct RelLine(pub usize);
+
 /// Line index (zero indexed) within the buffer.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AbsLine(pub usize);
 
 impl AbsLine {
-    pub fn offset_from(&self, val: usize) -> Option<usize> {
-        self.0.checked_sub(val)
+    pub fn offset_from(&self, val: usize) -> Option<RelLine> {
+        Some(RelLine(self.0.checked_sub(val)?))
     }
 
     pub fn saturating_sub(&self, val: usize) -> AbsLine {
@@ -193,7 +197,7 @@ impl SearchState {
         }
 
         if let Some(offset) = line_index.offset_from(pane.top_line()) {
-            self.matches.get(offset)
+            self.matches.get(offset.0)
         } else {
             None
         }
@@ -201,8 +205,8 @@ impl SearchState {
 
     pub fn next_match(&self, line_pos: LinePosition) -> Option<LinePosition> {
         let lm_base = line_pos.line.offset_from(self.start_line_index)?;
-        for (lm_offset, lm) in self.matches.iter().skip(lm_base).enumerate() {
-            let line = AbsLine(self.start_line_index + lm_base + lm_offset);
+        for (lm_offset, lm) in self.matches.iter().skip(lm_base.0).enumerate() {
+            let line = AbsLine(self.start_line_index + lm_base.0 + lm_offset);
 
             for span in &lm.spans {
                 // Ignore matches on line_pos's line that are before
