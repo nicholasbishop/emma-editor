@@ -6,6 +6,7 @@ mod key_map;
 mod key_sequence;
 mod offset;
 mod pane_tree;
+mod rope;
 mod theme;
 mod util;
 
