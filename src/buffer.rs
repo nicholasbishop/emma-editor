@@ -67,18 +67,18 @@ pub struct CharIndex(pub usize);
 
 impl CharIndex {
     pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> CharIndex {
-        CharIndex(buf.text().line_to_char(pos.line.0) + pos.offset)
+        CharIndex(buf.text().line_to_char(pos.line) + pos.offset)
     }
 
     /// Convert the CharIndex to a LinePosition.
     pub fn line_position(&self, buf: &Buffer) -> LinePosition {
         let text = &buf.text();
 
-        let line_idx = text.char_to_line(self.0);
-        let line_offset = self.0 - text.line_to_char(line_idx);
+        let line = text.char_to_line(self.0);
+        let line_offset = self.0 - text.line_to_char(line);
 
         LinePosition {
-            line: AbsLine(line_idx),
+            line,
             offset: line_offset,
         }
     }
