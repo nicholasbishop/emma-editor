@@ -66,10 +66,6 @@ impl fmt::Display for BufferId {
 pub struct AbsChar(pub usize);
 
 impl AbsChar {
-    pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> AbsChar {
-        AbsChar(buf.text().line_to_char(pos.line) + pos.offset)
-    }
-
     /// Convert the AbsChar to a LinePosition.
     pub fn line_position(&self, buf: &Buffer) -> LinePosition {
         let text = &buf.text();
@@ -93,6 +89,10 @@ pub struct LinePosition {
 }
 
 impl LinePosition {
+    pub fn to_abs_char(&self, buf: &Buffer) -> AbsChar {
+        AbsChar(buf.text().line_to_char(self.line) + self.offset)
+    }
+
     /// Count the number of graphemes between the start of the line
     /// and the line offset.
     pub fn grapheme_offset(&self, buf: &Buffer) -> usize {
@@ -438,7 +438,7 @@ impl Buffer {
                 } else {
                     lp.offset = text.line(lp.line).len_chars() - 1;
                 }
-                AbsChar::from_line_position(lp, self)
+                lp.to_abs_char(self)
             }
             (Boundary::BufferEnd, Direction::Dec) => AbsChar(0),
             (Boundary::BufferEnd, Direction::Inc) => AbsChar(text.len_chars()),
