@@ -4,6 +4,7 @@ use {
         buffer::{AbsLine, Buffer, LineMatches, LinePosition, StyleSpan},
         grapheme::next_grapheme_boundary,
         pane_tree::Pane,
+        rope::RopeSlice,
         theme::Theme,
     },
     gtk4::{
@@ -11,7 +12,6 @@ use {
         pango::{self, Layout},
         prelude::*,
     },
-    ropey::RopeSlice,
     std::{fmt, ops::Range},
     syntect::highlighting::Style,
     tracing::{debug, instrument},

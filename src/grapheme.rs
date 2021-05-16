@@ -2,7 +2,10 @@
 // https://github.com/cessen/ropey/blob/c8b315d24cca22df10cbe55c15dc447a5c68e4cd/examples/graphemes_step.rs
 // (MIT license)
 
-use ropey::{str_utils::byte_to_char_idx, RopeSlice};
+// TODO: unify this better with crate::rope
+
+use crate::rope::RopeSlice;
+use ropey::str_utils::byte_to_char_idx;
 use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete};
 
 /// Finds the previous grapheme boundary before the given char position.

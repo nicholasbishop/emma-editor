@@ -4,13 +4,13 @@ use {
     crate::{
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
         pane_tree::{Pane, PaneId},
+        rope::Rope,
         theme::Theme,
         util,
     },
     aho_corasick::AhoCorasick,
     anyhow::Error,
     fehler::throws,
-    ropey::Rope,
     std::{
         collections::HashMap,
         fmt, fs, io,
