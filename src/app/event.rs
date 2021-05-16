@@ -1,7 +1,7 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{AbsLine, Boundary, Buffer, BufferId, AbsChar, Direction},
+        buffer::{AbsChar, AbsLine, Boundary, Buffer, BufferId, Direction},
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
         pane_tree::{Pane, PaneTree},

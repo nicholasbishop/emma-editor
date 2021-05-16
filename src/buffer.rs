@@ -441,9 +441,7 @@ impl Buffer {
                 AbsChar::from_line_position(lp, self)
             }
             (Boundary::BufferEnd, Direction::Dec) => AbsChar(0),
-            (Boundary::BufferEnd, Direction::Inc) => {
-                AbsChar(text.len_chars())
-            }
+            (Boundary::BufferEnd, Direction::Inc) => AbsChar(text.len_chars()),
         }
     }
 

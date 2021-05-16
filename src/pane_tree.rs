@@ -1,7 +1,7 @@
 use {
     crate::{
         app::{BufferMap, LineHeight},
-        buffer::{Buffer, BufferId, AbsChar},
+        buffer::{AbsChar, Buffer, BufferId},
         rope::AbsLine,
         util,
     },
