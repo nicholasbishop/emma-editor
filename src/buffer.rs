@@ -63,14 +63,14 @@ impl fmt::Display for BufferId {
 
 /// Char index (zero indexed) within the buffer.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct CharIndex(pub usize);
+pub struct AbsChar(pub usize);
 
-impl CharIndex {
-    pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> CharIndex {
-        CharIndex(buf.text().line_to_char(pos.line) + pos.offset)
+impl AbsChar {
+    pub fn from_line_position(pos: LinePosition, buf: &Buffer) -> AbsChar {
+        AbsChar(buf.text().line_to_char(pos.line) + pos.offset)
     }
 
-    /// Convert the CharIndex to a LinePosition.
+    /// Convert the AbsChar to a LinePosition.
     pub fn line_position(&self, buf: &Buffer) -> LinePosition {
         let text = &buf.text();
 
@@ -147,7 +147,7 @@ enum ActionType {
     Deletion,
 }
 
-type CursorMap = HashMap<PaneId, CharIndex>;
+type CursorMap = HashMap<PaneId, AbsChar>;
 
 #[derive(Clone)]
 struct HistoryItem {
@@ -310,7 +310,7 @@ impl Buffer {
         &self.search
     }
 
-    pub fn cursor(&self, pane: &Pane) -> CharIndex {
+    pub fn cursor(&self, pane: &Pane) -> AbsChar {
         *self
             .active_history_item()
             .cursors
@@ -318,7 +318,7 @@ impl Buffer {
             .expect("no cursor for pane")
     }
 
-    pub fn set_cursor(&mut self, pane: &Pane, cursor: CharIndex) {
+    pub fn set_cursor(&mut self, pane: &Pane, cursor: AbsChar) {
         // This isn't an undoable action, but should prevent history
         // (e.g. press 'a', move cursor, press 'b' should be two
         // history items, not one).
@@ -417,16 +417,16 @@ impl Buffer {
 
     pub fn find_boundary(
         &mut self,
-        pos: CharIndex,
+        pos: AbsChar,
         boundary: Boundary,
         direction: Direction,
-    ) -> CharIndex {
+    ) -> AbsChar {
         let text = self.text();
         match (boundary, direction) {
-            (Boundary::Grapheme, Direction::Dec) => CharIndex(
+            (Boundary::Grapheme, Direction::Dec) => AbsChar(
                 prev_grapheme_boundary(&text.slice(0..text.len_chars()), pos.0),
             ),
-            (Boundary::Grapheme, Direction::Inc) => CharIndex(
+            (Boundary::Grapheme, Direction::Inc) => AbsChar(
                 next_grapheme_boundary(&text.slice(0..text.len_chars()), pos.0),
             ),
             (Boundary::LineEnd, direction) => {
@@ -438,16 +438,16 @@ impl Buffer {
                 } else {
                     lp.offset = text.line(lp.line).len_chars() - 1;
                 }
-                CharIndex::from_line_position(lp, self)
+                AbsChar::from_line_position(lp, self)
             }
-            (Boundary::BufferEnd, Direction::Dec) => CharIndex(0),
+            (Boundary::BufferEnd, Direction::Dec) => AbsChar(0),
             (Boundary::BufferEnd, Direction::Inc) => {
-                CharIndex(text.len_chars())
+                AbsChar(text.len_chars())
             }
         }
     }
 
-    pub fn delete_text(&mut self, range: Range<CharIndex>) {
+    pub fn delete_text(&mut self, range: Range<AbsChar>) {
         self.maybe_store_history_item(ActionType::Deletion);
 
         self.text_mut().unwrap().remove(range.start.0..range.end.0);
@@ -466,7 +466,7 @@ impl Buffer {
         self.recalc_style_spans();
     }
 
-    pub fn insert_char(&mut self, c: char, pos: CharIndex) {
+    pub fn insert_char(&mut self, c: char, pos: AbsChar) {
         self.maybe_store_history_item(ActionType::InsertChar);
 
         self.text_mut().unwrap().insert(pos.0, &c.to_string());

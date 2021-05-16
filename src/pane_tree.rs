@@ -1,7 +1,7 @@
 use {
     crate::{
         app::{BufferMap, LineHeight},
-        buffer::{Buffer, BufferId, CharIndex},
+        buffer::{Buffer, BufferId, AbsChar},
         rope::AbsLine,
         util,
     },
@@ -98,7 +98,7 @@ impl Pane {
         old_buf.remove_cursor(self);
 
         let new_buf = buffers.get_mut(new_buf_id).unwrap();
-        new_buf.set_cursor(self, CharIndex::default());
+        new_buf.set_cursor(self, AbsChar::default());
 
         // TODO: think about what should happen to the cursor when a
         // buffer is viewed by only one pane, then that pane switches
@@ -115,7 +115,7 @@ impl Pane {
     pub fn maybe_rescroll(
         &mut self,
         buf: &Buffer,
-        pos: CharIndex,
+        pos: AbsChar,
         line_height: LineHeight,
     ) {
         let line_height = line_height.0;
@@ -342,8 +342,8 @@ impl PaneTree {
             show_info_bar: false,
             is_cursor_visible: false,
         };
-        initial_buffer.set_cursor(&initial_pane, CharIndex::default());
-        minibuf_buffer.set_cursor(&minibuf_pane, CharIndex::default());
+        initial_buffer.set_cursor(&initial_pane, AbsChar::default());
+        minibuf_buffer.set_cursor(&minibuf_pane, AbsChar::default());
         PaneTree {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,

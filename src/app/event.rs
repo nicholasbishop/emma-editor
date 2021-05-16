@@ -1,7 +1,7 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{AbsLine, Boundary, Buffer, BufferId, CharIndex, Direction},
+        buffer::{AbsLine, Boundary, Buffer, BufferId, AbsChar, Direction},
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
         pane_tree::{Pane, PaneTree},
@@ -142,7 +142,7 @@ impl App {
                     ));
                 }
                 lp.set_offset_in_graphemes(buf, num_graphemes);
-                cursor = CharIndex::from_line_position(lp, buf);
+                cursor = AbsChar::from_line_position(lp, buf);
             }
         }
 
@@ -219,7 +219,7 @@ impl App {
                 // Find the next match and move the cursor there.
                 if let Some(search) = buf.search_state() {
                     if let Some(m) = search.next_match(line_pos) {
-                        let ci = CharIndex::from_line_position(m, buf);
+                        let ci = AbsChar::from_line_position(m, buf);
                         buf.set_cursor(pane, ci);
                     }
                 }
