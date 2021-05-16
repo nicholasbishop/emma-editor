@@ -166,7 +166,7 @@ pub struct LineMatches {
 
 pub struct SearchState {
     pane_id: PaneId,
-    start_line_index: usize,
+    start_line_index: AbsLine,
     matches: Vec<LineMatches>,
 }
 
@@ -180,7 +180,7 @@ impl SearchState {
             return None;
         }
 
-        if let Some(offset) = line_index.offset_from(pane.top_line()) {
+        if let Some(offset) = line_index.offset_from(pane.top_line().0) {
             self.matches.get(offset.0)
         } else {
             None
@@ -188,9 +188,9 @@ impl SearchState {
     }
 
     pub fn next_match(&self, line_pos: LinePosition) -> Option<LinePosition> {
-        let lm_base = line_pos.line.offset_from(self.start_line_index)?;
+        let lm_base = line_pos.line.offset_from(self.start_line_index.0)?;
         for (lm_offset, lm) in self.matches.iter().skip(lm_base.0).enumerate() {
-            let line = AbsLine(self.start_line_index + lm_base.0 + lm_offset);
+            let line = AbsLine(self.start_line_index.0 + lm_base.0 + lm_offset);
 
             for span in &lm.spans {
                 // Ignore matches on line_pos's line that are before

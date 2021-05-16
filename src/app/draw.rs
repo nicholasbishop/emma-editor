@@ -473,7 +473,7 @@ impl<'a> DrawPane<'a> {
         for (line_idx, line) in
             self.buf.text().lines_at(self.pane.top_line()).enumerate()
         {
-            let line_idx = AbsLine(self.pane.top_line() + line_idx);
+            let line_idx = AbsLine(self.pane.top_line().0 + line_idx);
             self.draw_line(&line, line_idx);
 
             // Stop if rendering past the bottom of the widget. TODO:

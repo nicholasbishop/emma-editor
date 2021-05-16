@@ -5,6 +5,8 @@ use std::{
     ops::RangeBounds,
 };
 
+// TODO: make `pub usize` below not `pub`.
+
 /// Relative line offset.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct RelLine(pub usize);
@@ -88,9 +90,8 @@ impl Rope {
         self.0.line_to_char(line_idx.0)
     }
 
-    // TODO: use AbsLine
-    pub fn lines_at(&self, line_idx: usize) -> Lines {
-        Lines(self.0.lines_at(line_idx))
+    pub fn lines_at(&self, line_idx: AbsLine) -> Lines {
+        Lines(self.0.lines_at(line_idx.0))
     }
 
     // TODO: stricter type

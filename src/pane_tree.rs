@@ -2,6 +2,7 @@ use {
     crate::{
         app::{BufferMap, LineHeight},
         buffer::{Buffer, BufferId, CharIndex},
+        rope::AbsLine,
         util,
     },
     std::fmt,
@@ -53,7 +54,7 @@ pub struct Pane {
     buffer_id: BufferId,
     rect: Rect,
 
-    top_line: usize,
+    top_line: AbsLine,
     is_active: bool,
     show_info_bar: bool,
     is_cursor_visible: bool,
@@ -72,7 +73,7 @@ impl Pane {
         &self.rect
     }
 
-    pub fn top_line(&self) -> usize {
+    pub fn top_line(&self) -> AbsLine {
         self.top_line
     }
 
@@ -121,14 +122,14 @@ impl Pane {
         let line_index = buf.text().char_to_line(pos.0);
 
         let top =
-            (line_index.0 as f64 - self.top_line as f64 + 1.0) * line_height;
+            (line_index.0 as f64 - self.top_line.0 as f64 + 1.0) * line_height;
         let bottom = top + line_height;
         if top < self.rect.y || bottom > self.rect.bottom() {
             // Scroll current line to middle of the screen.
             let half_height = self.rect.height / 2.0;
             let half_height_in_lines =
                 (half_height / line_height).round() as usize;
-            self.top_line = line_index.saturating_sub(half_height_in_lines).0;
+            self.top_line = line_index.saturating_sub(half_height_in_lines);
         }
     }
 }
@@ -327,7 +328,7 @@ impl PaneTree {
             id: PaneId::new(),
             buffer_id: initial_buffer.id().clone(),
             rect: Rect::default(),
-            top_line: 0,
+            top_line: AbsLine(0),
             is_active: true,
             show_info_bar: true,
             is_cursor_visible: true,
@@ -336,7 +337,7 @@ impl PaneTree {
             id: PaneId::minibuf(),
             buffer_id: minibuf_buffer.id().clone(),
             rect: Rect::default(),
-            top_line: 0,
+            top_line: AbsLine(0),
             is_active: false,
             show_info_bar: false,
             is_cursor_visible: false,
