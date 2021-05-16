@@ -96,7 +96,7 @@ impl LinePosition {
     /// Count the number of graphemes between the start of the line
     /// and the line offset.
     pub fn grapheme_offset(&self, buf: &Buffer) -> usize {
-        let line = buf.text().line(self.line.0);
+        let line = buf.text().line(self.line);
         let mut num_graphemes = 0;
         let mut cur_offset = 0;
         while cur_offset < self.offset {
@@ -119,7 +119,7 @@ impl LinePosition {
         buf: &Buffer,
         mut num_graphemes: usize,
     ) {
-        let line = buf.text().line(self.line.0);
+        let line = buf.text().line(self.line);
         let num_chars = line.len_chars();
         self.offset = 0;
         while num_graphemes > 0 {
@@ -436,7 +436,7 @@ impl Buffer {
                     // first-non-whitespace char.
                     lp.offset = 0;
                 } else {
-                    lp.offset = text.line(lp.line.0).len_chars() - 1;
+                    lp.offset = text.line(lp.line).len_chars() - 1;
                 }
                 CharIndex::from_line_position(lp, self)
             }

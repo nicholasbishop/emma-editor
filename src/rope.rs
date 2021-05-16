@@ -76,9 +76,8 @@ impl Rope {
         self.0.len_lines()
     }
 
-    // TODO: use AbsLine
-    pub fn line(&self, line_idx: usize) -> RopeSlice {
-        RopeSlice(self.0.line(line_idx))
+    pub fn line(&self, line_idx: AbsLine) -> RopeSlice {
+        RopeSlice(self.0.line(line_idx.0))
     }
 
     pub fn lines(&self) -> Lines {
