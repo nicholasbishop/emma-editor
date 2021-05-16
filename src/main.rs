@@ -4,7 +4,6 @@ mod config;
 mod grapheme;
 mod key_map;
 mod key_sequence;
-mod offset;
 mod pane_tree;
 mod rope;
 mod theme;

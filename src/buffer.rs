@@ -1,4 +1,4 @@
-pub use crate::offset::{AbsLine, RelLine};
+pub use crate::rope::{AbsLine, RelLine};
 
 use {
     crate::{
