@@ -1,4 +1,4 @@
-pub use crate::rope::{AbsChar, AbsLine, RelLine};
+pub use crate::rope::{AbsChar, AbsLine, RelChar, RelLine};
 
 use {
     crate::{
