@@ -103,12 +103,11 @@ impl Rope {
         self.0.remove(convert_abs_char_range_bounds(char_range));
     }
 
-    // TODO: stricter type
     pub fn slice<R>(&self, char_range: R) -> RopeSlice
     where
-        R: RangeBounds<usize>,
+        R: RangeBounds<AbsChar>,
     {
-        RopeSlice(self.0.slice(char_range))
+        RopeSlice(self.0.slice(convert_abs_char_range_bounds(char_range)))
     }
 }
 

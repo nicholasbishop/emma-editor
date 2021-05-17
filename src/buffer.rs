@@ -417,12 +417,12 @@ impl Buffer {
     ) -> AbsChar {
         let text = self.text();
         match (boundary, direction) {
-            (Boundary::Grapheme, Direction::Dec) => AbsChar(
-                prev_grapheme_boundary(&text.slice(0..text.len_chars()), pos.0),
-            ),
-            (Boundary::Grapheme, Direction::Inc) => AbsChar(
-                next_grapheme_boundary(&text.slice(0..text.len_chars()), pos.0),
-            ),
+            (Boundary::Grapheme, Direction::Dec) => {
+                AbsChar(prev_grapheme_boundary(&text.slice(..), pos.0))
+            }
+            (Boundary::Grapheme, Direction::Inc) => {
+                AbsChar(next_grapheme_boundary(&text.slice(..), pos.0))
+            }
             (Boundary::LineEnd, direction) => {
                 let mut lp = LinePosition::from_abs_char(pos, self);
                 if direction == Direction::Dec {
