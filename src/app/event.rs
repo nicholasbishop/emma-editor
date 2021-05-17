@@ -1,7 +1,9 @@
 use {
     super::{App, InteractiveState, APP},
     crate::{
-        buffer::{AbsLine, Boundary, Buffer, BufferId, Direction},
+        buffer::{
+            AbsLine, Boundary, Buffer, BufferId, Direction, LinePosition,
+        },
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
         pane_tree::{Pane, PaneTree},
@@ -124,7 +126,7 @@ impl App {
             Move::Line | Move::Page => {
                 let offset = if step == Move::Line { 1 } else { 20 };
 
-                let mut lp = cursor.line_position(buf);
+                let mut lp = LinePosition::from_abs_char(cursor, buf);
 
                 // When moving between lines, use grapheme offset
                 // rather than char offset to keep the cursor more or
@@ -214,7 +216,7 @@ impl App {
                     .get_mut(pane.buffer_id())
                     .ok_or_else(invalid_active_buffer_error)?;
                 let pos = buf.cursor(pane);
-                let line_pos = pos.line_position(buf);
+                let line_pos = LinePosition::from_abs_char(pos, buf);
 
                 // Find the next match and move the cursor there.
                 if let Some(search) = buf.search_state() {

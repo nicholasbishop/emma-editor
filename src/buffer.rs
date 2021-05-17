@@ -65,21 +65,6 @@ impl fmt::Display for BufferId {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AbsChar(pub usize);
 
-impl AbsChar {
-    /// Convert the AbsChar to a LinePosition.
-    pub fn line_position(&self, buf: &Buffer) -> LinePosition {
-        let text = &buf.text();
-
-        let line = text.char_to_line(self.0);
-        let line_offset = self.0 - text.line_to_char(line);
-
-        LinePosition {
-            line,
-            offset: line_offset,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Default)]
 pub struct LinePosition {
     /// Line index.
@@ -89,6 +74,19 @@ pub struct LinePosition {
 }
 
 impl LinePosition {
+    /// Convert the AbsChar to a LinePosition.
+    pub fn from_abs_char(pos: AbsChar, buf: &Buffer) -> LinePosition {
+        let text = &buf.text();
+
+        let line = text.char_to_line(pos.0);
+        let line_offset = pos.0 - text.line_to_char(line);
+
+        LinePosition {
+            line,
+            offset: line_offset,
+        }
+    }
+
     pub fn to_abs_char(&self, buf: &Buffer) -> AbsChar {
         AbsChar(buf.text().line_to_char(self.line) + self.offset)
     }
@@ -430,7 +428,7 @@ impl Buffer {
                 next_grapheme_boundary(&text.slice(0..text.len_chars()), pos.0),
             ),
             (Boundary::LineEnd, direction) => {
-                let mut lp = pos.line_position(self);
+                let mut lp = LinePosition::from_abs_char(pos, self);
                 if direction == Direction::Dec {
                     // TODO: add logic to initially move to
                     // first-non-whitespace char.
@@ -471,7 +469,7 @@ impl Buffer {
 
         // Update the associated style span to account for the new
         // character.
-        let lp = pos.line_position(self);
+        let lp = LinePosition::from_abs_char(pos, self);
         if let Some(spans) = self.style_spans.get_mut(lp.line.0) {
             let offset = 0;
             for span in spans {
