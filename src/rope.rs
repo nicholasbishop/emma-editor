@@ -2,7 +2,7 @@
 
 use std::{
     io::{self, Read},
-    ops::RangeBounds,
+    ops::{Bound, RangeBounds},
 };
 
 // TODO: make `pub usize` below not `pub`.
@@ -96,12 +96,11 @@ impl Rope {
         Lines(self.0.lines_at(line_idx.0))
     }
 
-    // TODO: stricter type
     pub fn remove<R>(&mut self, char_range: R)
     where
-        R: RangeBounds<usize>,
+        R: RangeBounds<AbsChar>,
     {
-        self.0.remove(char_range);
+        self.0.remove(convert_abs_char_range_bounds(char_range));
     }
 
     // TODO: stricter type
@@ -157,4 +156,21 @@ impl<'a> RopeSlice<'a> {
     {
         RopeSlice(self.0.slice(char_range))
     }
+}
+
+fn convert_abs_char_bound(b: Bound<&AbsChar>) -> Bound<usize> {
+    match b {
+        Bound::Included(v) => Bound::Included(v.0),
+        Bound::Excluded(v) => Bound::Excluded(v.0),
+        Bound::Unbounded => Bound::Unbounded,
+    }
+}
+
+fn convert_abs_char_range_bounds<R: RangeBounds<AbsChar>>(
+    char_range: R,
+) -> (Bound<usize>, Bound<usize>) {
+    (
+        convert_abs_char_bound(char_range.start_bound()),
+        convert_abs_char_bound(char_range.end_bound()),
+    )
 }

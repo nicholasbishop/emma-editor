@@ -442,7 +442,7 @@ impl Buffer {
     pub fn delete_text(&mut self, range: Range<AbsChar>) {
         self.maybe_store_history_item(ActionType::Deletion);
 
-        self.text_mut().unwrap().remove(range.start.0..range.end.0);
+        self.text_mut().unwrap().remove(range.clone());
 
         // Update all cursors in this buffer.
         for cursor in self.cursors_mut().values_mut() {
