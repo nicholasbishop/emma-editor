@@ -7,11 +7,15 @@ use std::{
 
 // TODO: make `pub usize` below not `pub`.
 
+/// Char index (zero indexed) within the rope.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+pub struct AbsChar(pub usize);
+
 /// Relative line offset.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct RelLine(pub usize);
 
-/// Line index (zero indexed) within the buffer.
+/// Line index (zero indexed) within the rope.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AbsLine(pub usize);
 

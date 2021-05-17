@@ -1,4 +1,4 @@
-pub use crate::rope::{AbsLine, RelLine};
+pub use crate::rope::{AbsChar, AbsLine, RelLine};
 
 use {
     crate::{
@@ -60,10 +60,6 @@ impl fmt::Display for BufferId {
         write!(f, "{}", self.0)
     }
 }
-
-/// Char index (zero indexed) within the buffer.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct AbsChar(pub usize);
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct LinePosition {
