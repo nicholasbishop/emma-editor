@@ -461,7 +461,7 @@ impl Buffer {
     pub fn insert_char(&mut self, c: char, pos: AbsChar) {
         self.maybe_store_history_item(ActionType::InsertChar);
 
-        self.text_mut().unwrap().insert(pos.0, &c.to_string());
+        self.text_mut().unwrap().insert(pos, &c.to_string());
 
         // Update the associated style span to account for the new
         // character.

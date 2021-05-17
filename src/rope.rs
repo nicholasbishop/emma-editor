@@ -67,8 +67,8 @@ impl Rope {
         Rope(ropey::Rope::from_str(text))
     }
 
-    pub fn insert(&mut self, char_idx: usize, text: &str) {
-        self.0.insert(char_idx, text);
+    pub fn insert(&mut self, char_idx: AbsChar, text: &str) {
+        self.0.insert(char_idx.0, text);
     }
 
     pub fn len_chars(&self) -> usize {
