@@ -59,9 +59,8 @@ impl Rope {
         ropey::Rope::from_reader(reader).map(Rope)
     }
 
-    // TODO: use AbsChar
-    pub fn char_to_line(&self, char_idx: usize) -> AbsLine {
-        AbsLine(self.0.char_to_line(char_idx))
+    pub fn char_to_line(&self, char_idx: AbsChar) -> AbsLine {
+        AbsLine(self.0.char_to_line(char_idx.0))
     }
 
     pub fn from_str(text: &str) -> Self {

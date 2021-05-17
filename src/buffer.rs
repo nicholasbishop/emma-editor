@@ -74,7 +74,7 @@ impl LinePosition {
     pub fn from_abs_char(pos: AbsChar, buf: &Buffer) -> LinePosition {
         let text = &buf.text();
 
-        let line = text.char_to_line(pos.0);
+        let line = text.char_to_line(pos);
         let line_offset = pos.0 - text.line_to_char(line);
 
         LinePosition {

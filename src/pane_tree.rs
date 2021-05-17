@@ -119,7 +119,7 @@ impl Pane {
         line_height: LineHeight,
     ) {
         let line_height = line_height.0;
-        let line_index = buf.text().char_to_line(pos.0);
+        let line_index = buf.text().char_to_line(pos);
 
         let top =
             (line_index.0 as f64 - self.top_line.0 as f64 + 1.0) * line_height;
