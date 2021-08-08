@@ -32,6 +32,10 @@ impl Add<RelLine> for AbsLine {
 }
 
 impl AbsLine {
+    pub fn zero() -> AbsLine {
+        AbsLine(0)
+    }
+
     pub fn offset_from(&self, val: usize) -> Option<RelLine> {
         Some(RelLine(self.0.checked_sub(val)?))
     }
