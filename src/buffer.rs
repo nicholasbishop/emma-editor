@@ -83,7 +83,7 @@ impl LinePosition {
         }
     }
 
-    pub fn to_abs_char(&self, buf: &Buffer) -> AbsChar {
+    pub fn to_abs_char(self, buf: &Buffer) -> AbsChar {
         AbsChar(buf.text().line_to_char(self.line) + self.offset)
     }
 
