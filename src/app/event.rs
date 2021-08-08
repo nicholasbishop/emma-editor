@@ -214,7 +214,7 @@ impl App {
                     .get_mut(pane.buffer_id())
                     .ok_or_else(invalid_active_buffer_error)?;
                 let pos = buf.cursor(pane);
-                let line_pos = pos.line_position(&buf);
+                let line_pos = pos.line_position(buf);
 
                 // Find the next match and move the cursor there.
                 if let Some(search) = buf.search_state() {

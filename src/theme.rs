@@ -106,6 +106,7 @@ impl YamlTheme {
 }
 
 #[throws]
+#[allow(clippy::many_single_char_names)]
 fn parse_color(s: &Option<String>) -> Option<Color> {
     if let Some(s) = s {
         if let Some(rest) = s.strip_prefix('#') {
@@ -176,7 +177,7 @@ pub struct Theme {
 impl Theme {
     #[throws]
     fn load(theme: &str) -> Theme {
-        let mut yaml: YamlTheme = serde_yaml::from_str(&theme)?;
+        let mut yaml: YamlTheme = serde_yaml::from_str(theme)?;
         yaml.expand_vars()?;
 
         let mut theme = SyntectTheme {

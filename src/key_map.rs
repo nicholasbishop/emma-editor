@@ -185,7 +185,7 @@ impl KeyMap {
         // TODO: should be able to make this more efficient by
         // starting the search at the appropriate place.
         for k in self.0.keys() {
-            if k.starts_with(&seq) {
+            if k.starts_with(seq) {
                 return true;
             }
         }

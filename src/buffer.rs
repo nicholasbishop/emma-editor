@@ -347,7 +347,7 @@ impl Buffer {
     pub fn remove_cursor(&mut self, pane: &Pane) {
         // Remove the cursor from all history items.
         for item in &mut self.history {
-            item.cursors.remove(&pane.id());
+            item.cursors.remove(pane.id());
         }
     }
 
@@ -466,7 +466,7 @@ impl Buffer {
 
         // Update all cursors in this buffer.
         for cursor in self.cursors_mut().values_mut() {
-            if range.contains(&cursor) {
+            if range.contains(cursor) {
                 *cursor = range.start;
             } else if *cursor >= range.end {
                 // TODO any way to impl len?

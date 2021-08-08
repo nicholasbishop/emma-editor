@@ -100,6 +100,8 @@ fn apply_match_style(
     // Override with match markers.
     let match_marker = usize::MAX;
     for match_span in &matches.spans {
+        // TODO
+        #[allow(clippy::needless_range_loop)]
         for index in match_span.start..match_span.end {
             scratch[index] = match_marker;
         }
@@ -120,7 +122,7 @@ fn apply_match_style(
             };
             output.push(StyleSpan {
                 len: span_len,
-                style: style.clone(),
+                style: *style,
             });
             span_len = 0;
         }
@@ -276,8 +278,8 @@ impl<'a> DrawPane<'a> {
                 |me: &mut DrawPane, range: Range<usize>, is_cursor| {
                     if !range.is_empty() {
                         output.push(StyledLayout {
-                            layout: me.layout_line_range(&line, range),
-                            style: span.style.clone(),
+                            layout: me.layout_line_range(line, range),
+                            style: span.style,
                             is_cursor,
                         });
                     }
@@ -293,7 +295,7 @@ impl<'a> DrawPane<'a> {
                 push(self, span_range.start..self.cursor.offset, false);
 
                 let cursor_end_char =
-                    next_grapheme_boundary(&line, self.cursor.offset);
+                    next_grapheme_boundary(line, self.cursor.offset);
 
                 push(self, self.cursor.offset..cursor_end_char, true);
                 push(self, cursor_end_char..span_range.end, false);

@@ -417,12 +417,10 @@ impl PaneTree {
             } else {
                 panic!("invalid active_id_before_minibuf");
             }
+        } else if let Some(Node::Leaf(pane)) = self.root.active() {
+            pane
         } else {
-            if let Some(Node::Leaf(pane)) = self.root.active() {
-                pane
-            } else {
-                panic!("no active pane");
-            }
+            panic!("no active pane");
         }
     }
 
