@@ -1,7 +1,9 @@
 use {
     super::App,
     crate::{
-        buffer::{AbsLine, Buffer, LineMatches, LinePosition, StyleSpan},
+        buffer::{
+            AbsLine, Buffer, LineMatches, LinePosition, RelLine, StyleSpan,
+        },
         grapheme::next_grapheme_boundary,
         pane_tree::Pane,
         rope::RopeSlice,
@@ -477,10 +479,10 @@ impl<'a> DrawPane<'a> {
 
         self.pos.y = rect.y + self.margin;
 
-        for (line_idx, line) in
+        for (line_offset, line) in
             self.buf.text().lines_at(self.pane.top_line()).enumerate()
         {
-            let line_idx = AbsLine(self.pane.top_line().0 + line_idx);
+            let line_idx = self.pane.top_line() + RelLine(line_offset);
             self.draw_line(&line, line_idx)?;
 
             // Stop if rendering past the bottom of the widget. TODO:
