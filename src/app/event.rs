@@ -2,7 +2,7 @@ use {
     super::{App, InteractiveState, APP},
     crate::{
         buffer::{
-            AbsLine, Boundary, Buffer, BufferId, Direction, LinePosition,
+            Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
         },
         key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
@@ -124,7 +124,7 @@ impl App {
                 cursor = buf.find_boundary(cursor, boundary, dir);
             }
             Move::Line | Move::Page => {
-                let offset = if step == Move::Line { 1 } else { 20 };
+                let offset = RelLine(if step == Move::Line { 1 } else { 20 });
 
                 let mut lp = LinePosition::from_abs_char(cursor, buf);
 
@@ -138,10 +138,8 @@ impl App {
                 if dir == Direction::Dec {
                     lp.line = lp.line.saturating_sub(offset);
                 } else {
-                    lp.line = AbsLine(std::cmp::min(
-                        lp.line.0 + offset,
-                        text.len_lines() - 1,
-                    ));
+                    lp.line =
+                        std::cmp::min(lp.line + offset, text.max_line_index());
                 }
                 lp.set_offset_in_graphemes(buf, num_graphemes);
                 cursor = lp.to_abs_char(buf);

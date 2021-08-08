@@ -1,7 +1,7 @@
 use {
     crate::{
         app::{BufferMap, LineHeight},
-        buffer::{AbsChar, Buffer, BufferId},
+        buffer::{AbsChar, Buffer, BufferId, RelLine},
         rope::AbsLine,
         util,
     },
@@ -129,7 +129,8 @@ impl Pane {
             let half_height = self.rect.height / 2.0;
             let half_height_in_lines =
                 (half_height / line_height).round() as usize;
-            self.top_line = line_index.saturating_sub(half_height_in_lines);
+            self.top_line =
+                line_index.saturating_sub(RelLine(half_height_in_lines));
         }
     }
 }

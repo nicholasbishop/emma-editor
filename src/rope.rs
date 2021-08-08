@@ -36,12 +36,12 @@ impl AbsLine {
         AbsLine(0)
     }
 
-    pub fn offset_from(&self, val: usize) -> Option<RelLine> {
-        Some(RelLine(self.0.checked_sub(val)?))
+    pub fn offset_from(&self, val: AbsLine) -> Option<RelLine> {
+        Some(RelLine(self.0.checked_sub(val.0)?))
     }
 
-    pub fn saturating_sub(&self, val: usize) -> AbsLine {
-        AbsLine(self.0.saturating_sub(val))
+    pub fn saturating_sub(&self, val: RelLine) -> AbsLine {
+        AbsLine(self.0.saturating_sub(val.0))
     }
 }
 
@@ -93,6 +93,10 @@ impl Rope {
 
     pub fn len_lines(&self) -> usize {
         self.0.len_lines()
+    }
+
+    pub fn max_line_index(&self) -> AbsLine {
+        AbsLine(self.0.len_lines() - 1)
     }
 
     pub fn line(&self, line_idx: AbsLine) -> RopeSlice {
