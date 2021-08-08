@@ -4,7 +4,7 @@ use {
     crate::{
         grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
         pane_tree::{Pane, PaneId},
-        rope::Rope,
+        rope::{LineDataVec, Rope},
         theme::Theme,
         util,
     },
@@ -160,8 +160,7 @@ pub struct LineMatches {
 
 pub struct SearchState {
     pane_id: PaneId,
-    start_line_index: AbsLine,
-    matches: Vec<LineMatches>,
+    matches: LineDataVec<LineMatches>,
 }
 
 impl SearchState {
@@ -174,27 +173,20 @@ impl SearchState {
             return None;
         }
 
-        if let Some(offset) = line_index.offset_from(pane.top_line()) {
-            self.matches.get(offset.0)
-        } else {
-            None
-        }
+        self.matches.get(line_index)
     }
 
     pub fn next_match(&self, line_pos: LinePosition) -> Option<LinePosition> {
-        let lm_base = line_pos.line.offset_from(self.start_line_index)?;
-        for (lm_offset, lm) in self.matches.iter().skip(lm_base.0).enumerate() {
-            let line = self.start_line_index + lm_base + RelLine(lm_offset);
-
-            for span in &lm.spans {
+        for lm in self.matches.starting_from(line_pos.line) {
+            for span in &lm.data.spans {
                 // Ignore matches on line_pos's line that are before
                 // the char offset.
-                if line == line_pos.line && span.start < line_pos.offset.0 {
+                if lm.index == line_pos.line && span.start < line_pos.offset.0 {
                     continue;
                 }
 
                 return Some(LinePosition {
-                    line,
+                    line: lm.index,
                     offset: RelChar(span.start),
                 });
             }
@@ -506,22 +498,20 @@ impl Buffer {
 
         let mut state = SearchState {
             pane_id: pane.id().clone(),
-            start_line_index: pane.top_line(),
-            matches: Vec::with_capacity(num_lines),
+            matches: LineDataVec::new(pane.top_line(), num_lines),
         };
-        state.matches.resize(num_lines, LineMatches::default());
 
         let ac = AhoCorasick::new(&[text]);
-        for (offset, line) in
-            self.text().lines_at(state.start_line_index).enumerate()
-        {
-            if offset > num_lines {
+        for line in self.text().lines_at(state.matches.start_line()) {
+            let lm = if let Some(lm) = state.matches.get_mut(line.index) {
+                lm
+            } else {
                 break;
-            }
+            };
 
             let line_str = line.slice.to_string();
             for m in ac.find_iter(&line_str) {
-                state.matches[offset].spans.push(m.start()..m.end());
+                lm.spans.push(m.start()..m.end());
             }
         }
 

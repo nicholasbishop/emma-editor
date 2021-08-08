@@ -23,6 +23,12 @@ pub struct RelLine(pub usize);
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AbsLine(pub usize);
 
+impl AddAssign<usize> for RelLine {
+    fn add_assign(&mut self, rhs: usize) {
+        self.0 += rhs
+    }
+}
+
 impl Add<RelLine> for AbsLine {
     type Output = AbsLine;
 
@@ -218,4 +224,74 @@ fn convert_abs_char_range_bounds<R: RangeBounds<AbsChar>>(
         convert_abs_char_bound(char_range.start_bound()),
         convert_abs_char_bound(char_range.end_bound()),
     )
+}
+
+/// Container for data associated with a contiguous range of lines.
+pub struct LineDataVec<T> {
+    lines: Vec<T>,
+    start_line: AbsLine,
+}
+
+pub struct LineDataIterItem<'a, T> {
+    pub data: &'a T,
+    pub index: AbsLine,
+}
+
+pub struct LineDataIter<'a, T> {
+    data: &'a LineDataVec<T>,
+    offset: RelLine,
+}
+
+impl<'a, T> Iterator for LineDataIter<'a, T> {
+    type Item = LineDataIterItem<'a, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.offset.0 >= self.data.lines.len() {
+            return None;
+        }
+
+        let item = LineDataIterItem {
+            data: &self.data.lines[self.offset.0],
+            index: self.data.start_line + self.offset,
+        };
+        self.offset += 1;
+
+        Some(item)
+    }
+}
+
+impl<T: Clone + Default> LineDataVec<T> {
+    pub fn new(start_line: AbsLine, len: usize) -> LineDataVec<T> {
+        LineDataVec {
+            lines: vec![T::default(); len],
+            start_line,
+        }
+    }
+}
+
+impl<T> LineDataVec<T> {
+    pub fn start_line(&self) -> AbsLine {
+        self.start_line
+    }
+
+    pub fn get(&self, abs_line: AbsLine) -> Option<&T> {
+        let offset = abs_line.offset_from(self.start_line)?;
+        self.lines.get(offset.0)
+    }
+
+    pub fn get_mut(&mut self, abs_line: AbsLine) -> Option<&mut T> {
+        let offset = abs_line.offset_from(self.start_line)?;
+        self.lines.get_mut(offset.0)
+    }
+
+    pub fn starting_from(&self, abs_line: AbsLine) -> LineDataIter<T> {
+        LineDataIter {
+            data: self,
+            // If input index is less than the start line, set the offset to
+            // the end of the data so that the iterator will return nothing.
+            offset: abs_line
+                .offset_from(self.start_line)
+                .unwrap_or_else(|| RelLine(self.lines.len())),
+        }
+    }
 }
