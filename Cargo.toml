@@ -13,7 +13,7 @@ thiserror = "1.0"
 
 # GUI
 gtk4 = { git = "https://github.com/gtk-rs/gtk4.git" }
-pangocairo = { git = "https://github.com/gtk-rs/gtk-rs" }
+pangocairo = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 
 # Logging
 tracing = "0.1"

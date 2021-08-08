@@ -7,6 +7,8 @@ use {
         rope::RopeSlice,
         theme::Theme,
     },
+    anyhow::Error,
+    fehler::throws,
     gtk4::{
         self as gtk, cairo,
         pango::{self, Layout},
@@ -14,7 +16,7 @@ use {
     },
     std::{fmt, ops::Range},
     syntect::highlighting::Style,
-    tracing::{debug, instrument},
+    tracing::{debug, error, instrument},
 };
 
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
@@ -325,6 +327,7 @@ impl<'a> DrawPane<'a> {
         output
     }
 
+    #[throws]
     fn draw_cursor(&mut self, styled_layout: &StyledLayout) {
         if !self.pane.is_cursor_visible() {
             debug!("cursor not visible");
@@ -359,12 +362,13 @@ impl<'a> DrawPane<'a> {
             self.line_height.0,
         );
         if self.pane.is_active() {
-            self.ctx.fill();
+            self.ctx.fill()?;
         } else {
-            self.ctx.stroke();
+            self.ctx.stroke()?;
         }
     }
 
+    #[throws]
     fn draw_line(&mut self, line: &RopeSlice, line_idx: AbsLine) {
         self.pos.x = self.pane.rect().x;
 
@@ -387,10 +391,10 @@ impl<'a> DrawPane<'a> {
                 pango_unscale(size.0),
                 pango_unscale(size.1),
             );
-            self.ctx.fill();
+            self.ctx.fill()?;
 
             if styled_layout.is_cursor {
-                self.draw_cursor(&styled_layout);
+                self.draw_cursor(&styled_layout)?;
 
                 if self.pane.is_active() {
                     // Set inverted text color. TODO: set from
@@ -409,6 +413,7 @@ impl<'a> DrawPane<'a> {
         self.pos.y += self.line_height.0;
     }
 
+    #[throws]
     fn draw_info_bar(&mut self) {
         if self.pane.is_active() {
             set_source_from_syntect_color(
@@ -428,7 +433,7 @@ impl<'a> DrawPane<'a> {
             rect.width,
             self.line_height.0,
         );
-        self.ctx.fill();
+        self.ctx.fill()?;
 
         if let Some(path) = self.buf.path() {
             let name = path.file_name().expect("path has no file name");
@@ -454,6 +459,7 @@ impl<'a> DrawPane<'a> {
     }
 
     #[instrument]
+    #[throws]
     fn draw(&mut self) {
         debug!("drawing pane with {} lines", self.buf.text().len_lines());
 
@@ -464,7 +470,7 @@ impl<'a> DrawPane<'a> {
         self.ctx
             .rectangle(rect.x, rect.y, rect.width - border, rect.height);
         set_source_rgb_from_u8(self.ctx, 63, 63, 63);
-        self.ctx.fill();
+        self.ctx.fill()?;
 
         self.cursor =
             LinePosition::from_abs_char(self.buf.cursor(self.pane), self.buf);
@@ -475,7 +481,7 @@ impl<'a> DrawPane<'a> {
             self.buf.text().lines_at(self.pane.top_line()).enumerate()
         {
             let line_idx = AbsLine(self.pane.top_line().0 + line_idx);
-            self.draw_line(&line, line_idx);
+            self.draw_line(&line, line_idx)?;
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
@@ -485,12 +491,13 @@ impl<'a> DrawPane<'a> {
         }
 
         if self.pane.show_info_bar() {
-            self.draw_info_bar();
+            self.draw_info_bar()?;
         }
     }
 }
 
 impl App {
+    // Errors here are logged but otherwise swallowed.
     pub(super) fn draw(
         &self,
         ctx: &cairo::Context,
@@ -505,7 +512,9 @@ impl App {
         let border = 1.0;
         ctx.rectangle(0.0, 0.0, width - border, height);
         set_source_rgb_from_u8(ctx, 220, 220, 204);
-        ctx.fill();
+        if let Err(err) = ctx.fill() {
+            error!("fill failed: {}", err);
+        }
 
         let mut panes = self.pane_tree.panes();
         panes.push(self.pane_tree.minibuf());
@@ -526,7 +535,9 @@ impl App {
                 len_lines: buf.text().len_lines(),
                 pos: Point::default(),
             };
-            dp.draw();
+            if let Err(err) = dp.draw() {
+                error!("failed to draw pane: {}", err);
+            }
         }
     }
 }
