@@ -1,9 +1,7 @@
 use {
     super::App,
     crate::{
-        buffer::{
-            AbsLine, Buffer, LineMatches, LinePosition, RelLine, StyleSpan,
-        },
+        buffer::{Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan},
         grapheme::next_grapheme_boundary,
         pane_tree::Pane,
         rope::RopeSlice,
@@ -251,8 +249,7 @@ impl<'a> DrawPane<'a> {
 
     fn styled_layouts_from_line(
         &mut self,
-        line: &RopeSlice,
-        line_idx: AbsLine,
+        line: &LinesIterItem,
     ) -> Vec<StyledLayout> {
         let mut output = Vec::new();
 
@@ -262,12 +259,12 @@ impl<'a> DrawPane<'a> {
             ..Style::default()
         };
 
-        let base_style_spans = &self.buf.style_spans()[line_idx.0];
+        let base_style_spans = &self.buf.style_spans()[line.index.0];
         let mut style_spans = base_style_spans;
         // TODO: share across iterations
         let modified_style_spans;
         if let Some(search) = self.buf.search_state() {
-            if let Some(matches) = search.line_matches(self.pane, line_idx) {
+            if let Some(matches) = search.line_matches(self.pane, line.index) {
                 modified_style_spans =
                     apply_match_style(base_style_spans, matches, &match_style);
 
@@ -282,7 +279,7 @@ impl<'a> DrawPane<'a> {
                 |me: &mut DrawPane, range: Range<usize>, is_cursor| {
                     if !range.is_empty() {
                         output.push(StyledLayout {
-                            layout: me.layout_line_range(line, range),
+                            layout: me.layout_line_range(&line.slice, range),
                             style: span.style,
                             is_cursor,
                         });
@@ -292,14 +289,14 @@ impl<'a> DrawPane<'a> {
             let span_range = span_offset..span_offset + span.len;
             span_offset += span.len;
 
-            if line_idx == self.cursor.line
+            if line.index == self.cursor.line
                 && span_range.contains(&self.cursor.offset.0)
             {
                 debug!("span contains cursor");
                 push(self, span_range.start..self.cursor.offset.0, false);
 
                 let cursor_end_char =
-                    next_grapheme_boundary(line, self.cursor.offset.0);
+                    next_grapheme_boundary(&line.slice, self.cursor.offset.0);
 
                 push(self, self.cursor.offset.0..cursor_end_char, true);
                 push(self, cursor_end_char..span_range.end, false);
@@ -313,9 +310,9 @@ impl<'a> DrawPane<'a> {
         // ropey's iterator produces an empty line at the end.) We
         // still need to draw the cursor in that case though, so
         // append it here.
-        if self.cursor.line == line_idx
-            && line_idx.0 + 1 == self.len_lines
-            && self.cursor.offset.0 == line.len_chars()
+        if self.cursor.line == line.index
+            && line.index.0 + 1 == self.len_lines
+            && self.cursor.offset.0 == line.slice.len_chars()
         {
             debug!("eof cursor");
             output.push(StyledLayout {
@@ -371,14 +368,14 @@ impl<'a> DrawPane<'a> {
     }
 
     #[throws]
-    fn draw_line(&mut self, line: &RopeSlice, line_idx: AbsLine) {
+    fn draw_line(&mut self, line: &LinesIterItem) {
         self.pos.x = self.pane.rect().x;
 
         self.ctx.move_to(self.margin, self.pos.y);
 
         set_source_rgb_from_u8(self.ctx, 220, 220, 204);
 
-        let styled_layouts = self.styled_layouts_from_line(line, line_idx);
+        let styled_layouts = self.styled_layouts_from_line(line);
 
         for styled_layout in styled_layouts {
             // Draw background
@@ -479,11 +476,8 @@ impl<'a> DrawPane<'a> {
 
         self.pos.y = rect.y + self.margin;
 
-        for (line_offset, line) in
-            self.buf.text().lines_at(self.pane.top_line()).enumerate()
-        {
-            let line_idx = self.pane.top_line() + RelLine(line_offset);
-            self.draw_line(&line, line_idx)?;
+        for line in self.buf.text().lines_at(self.pane.top_line()) {
+            self.draw_line(&line)?;
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?

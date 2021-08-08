@@ -2,7 +2,7 @@
 
 use std::{
     io::{self, Read},
-    ops::{Add, Bound, RangeBounds},
+    ops::{Add, AddAssign, Bound, RangeBounds},
 };
 
 // TODO: make `pub usize` below not `pub`.
@@ -31,6 +31,12 @@ impl Add<RelLine> for AbsLine {
     }
 }
 
+impl AddAssign<usize> for AbsLine {
+    fn add_assign(&mut self, rhs: usize) {
+        self.0 += rhs
+    }
+}
+
 impl AbsLine {
     pub fn zero() -> AbsLine {
         AbsLine(0)
@@ -50,13 +56,27 @@ pub struct Rope(ropey::Rope);
 
 pub struct RopeSlice<'a>(ropey::RopeSlice<'a>);
 
-pub struct Lines<'a>(ropey::iter::Lines<'a>);
+pub struct Lines<'a> {
+    iter: ropey::iter::Lines<'a>,
+    index: AbsLine,
+}
+
+pub struct LinesIterItem<'a> {
+    pub slice: RopeSlice<'a>,
+    pub index: AbsLine,
+}
 
 impl<'a> Iterator for Lines<'a> {
-    type Item = RopeSlice<'a>;
+    type Item = LinesIterItem<'a>;
 
-    fn next(&mut self) -> Option<RopeSlice<'a>> {
-        self.0.next().map(RopeSlice)
+    fn next(&mut self) -> Option<Self::Item> {
+        let slice = self.iter.next()?;
+        let item = Self::Item {
+            slice: RopeSlice(slice),
+            index: self.index,
+        };
+        self.index += 1;
+        Some(item)
     }
 }
 
@@ -104,7 +124,10 @@ impl Rope {
     }
 
     pub fn lines(&self) -> Lines {
-        Lines(self.0.lines())
+        Lines {
+            iter: self.0.lines(),
+            index: AbsLine::zero(),
+        }
     }
 
     // TODO: use AbsChar
@@ -113,7 +136,10 @@ impl Rope {
     }
 
     pub fn lines_at(&self, line_idx: AbsLine) -> Lines {
-        Lines(self.0.lines_at(line_idx.0))
+        Lines {
+            iter: self.0.lines_at(line_idx.0),
+            index: line_idx,
+        }
     }
 
     pub fn remove<R>(&mut self, char_range: R)

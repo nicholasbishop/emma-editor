@@ -1,4 +1,4 @@
-pub use crate::rope::{AbsChar, AbsLine, RelChar, RelLine};
+pub use crate::rope::{AbsChar, AbsLine, LinesIterItem, RelChar, RelLine};
 
 use {
     crate::{
@@ -519,7 +519,7 @@ impl Buffer {
                 break;
             }
 
-            let line_str = line.to_string();
+            let line_str = line.slice.to_string();
             for m in ac.find_iter(&line_str) {
                 state.matches[offset].spans.push(m.start()..m.end());
             }
@@ -567,7 +567,7 @@ impl Buffer {
             full_line.clear();
             // TODO: any way to avoid pulling the full line in? Should
             // at least limit the length probably.
-            for chunk in line.chunks() {
+            for chunk in line.slice.chunks() {
                 full_line.push_str(chunk);
             }
 
@@ -583,8 +583,8 @@ impl Buffer {
             self.style_spans.push(
                 iter.map(|(style, _text, range)| {
                     // Convert from byte range to char range.
-                    let start = line.byte_to_char(range.start);
-                    let end = line.byte_to_char(range.end);
+                    let start = line.slice.byte_to_char(range.start);
+                    let end = line.slice.byte_to_char(range.end);
                     StyleSpan {
                         len: end - start,
                         style,
