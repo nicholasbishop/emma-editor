@@ -289,15 +289,15 @@ impl<'a> DrawPane<'a> {
             span_offset += span.len;
 
             if line_idx == self.cursor.line
-                && span_range.contains(&self.cursor.offset)
+                && span_range.contains(&self.cursor.offset.0)
             {
                 debug!("span contains cursor");
-                push(self, span_range.start..self.cursor.offset, false);
+                push(self, span_range.start..self.cursor.offset.0, false);
 
                 let cursor_end_char =
-                    next_grapheme_boundary(line, self.cursor.offset);
+                    next_grapheme_boundary(line, self.cursor.offset.0);
 
-                push(self, self.cursor.offset..cursor_end_char, true);
+                push(self, self.cursor.offset.0..cursor_end_char, true);
                 push(self, cursor_end_char..span_range.end, false);
             } else {
                 push(self, span_range, false);
@@ -311,7 +311,7 @@ impl<'a> DrawPane<'a> {
         // append it here.
         if self.cursor.line == line_idx
             && line_idx.0 + 1 == self.len_lines
-            && self.cursor.offset == line.len_chars()
+            && self.cursor.offset.0 == line.len_chars()
         {
             debug!("eof cursor");
             output.push(StyledLayout {

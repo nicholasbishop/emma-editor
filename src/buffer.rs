@@ -66,7 +66,7 @@ pub struct LinePosition {
     /// Line index.
     pub line: AbsLine,
     /// Character offset from the start of the line.
-    pub offset: usize,
+    pub offset: RelChar,
 }
 
 impl LinePosition {
@@ -79,12 +79,12 @@ impl LinePosition {
 
         LinePosition {
             line,
-            offset: line_offset,
+            offset: RelChar(line_offset),
         }
     }
 
     pub fn to_abs_char(self, buf: &Buffer) -> AbsChar {
-        AbsChar(buf.text().line_to_char(self.line) + self.offset)
+        AbsChar(buf.text().line_to_char(self.line) + self.offset.0)
     }
 
     /// Count the number of graphemes between the start of the line
@@ -93,7 +93,7 @@ impl LinePosition {
         let line = buf.text().line(self.line);
         let mut num_graphemes = 0;
         let mut cur_offset = 0;
-        while cur_offset < self.offset {
+        while cur_offset < self.offset.0 {
             let new_offset = next_grapheme_boundary(&line, cur_offset);
             if cur_offset == new_offset {
                 break;
@@ -115,12 +115,12 @@ impl LinePosition {
     ) {
         let line = buf.text().line(self.line);
         let num_chars = line.len_chars();
-        self.offset = 0;
+        self.offset = RelChar(0);
         while num_graphemes > 0 {
-            self.offset = next_grapheme_boundary(&line, self.offset);
+            self.offset = RelChar(next_grapheme_boundary(&line, self.offset.0));
             num_graphemes -= 1;
-            if self.offset >= num_chars {
-                self.offset = num_chars;
+            if self.offset.0 >= num_chars {
+                self.offset = RelChar(num_chars);
                 break;
             }
         }
@@ -189,13 +189,13 @@ impl SearchState {
             for span in &lm.spans {
                 // Ignore matches on line_pos's line that are before
                 // the char offset.
-                if line == line_pos.line && span.start < line_pos.offset {
+                if line == line_pos.line && span.start < line_pos.offset.0 {
                     continue;
                 }
 
                 return Some(LinePosition {
                     line,
-                    offset: span.start,
+                    offset: RelChar(span.start),
                 });
             }
         }
@@ -428,9 +428,9 @@ impl Buffer {
                 if direction == Direction::Dec {
                     // TODO: add logic to initially move to
                     // first-non-whitespace char.
-                    lp.offset = 0;
+                    lp.offset = RelChar(0);
                 } else {
-                    lp.offset = text.line(lp.line).len_chars() - 1;
+                    lp.offset = RelChar(text.line(lp.line).len_chars() - 1);
                 }
                 lp.to_abs_char(self)
             }
@@ -469,7 +469,7 @@ impl Buffer {
         if let Some(spans) = self.style_spans.get_mut(lp.line.0) {
             let offset = 0;
             for span in spans {
-                if lp.offset >= offset && lp.offset < offset + span.len {
+                if lp.offset.0 >= offset && lp.offset.0 < offset + span.len {
                     span.len += 1;
                     break;
                 }
