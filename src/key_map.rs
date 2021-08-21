@@ -61,7 +61,7 @@ pub enum Action {
     Autocomplete,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum KeyMapLookup {
     Action(Action),
     Prefix,
@@ -80,6 +80,19 @@ impl KeyMap {
             name,
             map: BTreeMap::new(),
         }
+    }
+
+    // TODO: use this
+    #[throws]
+    pub fn from_pairs<'a, I: Iterator<Item = (&'a str, Action)>>(
+        name: &'static str,
+        iter: I,
+    ) -> KeyMap {
+        let mut map = KeyMap::new(name);
+        for (keys, action) in iter {
+            map.parse_and_insert(keys, action)?;
+        }
+        map
     }
 
     // TODO: move this to event.rs
@@ -234,7 +247,7 @@ impl KeyMapStack {
             // If the sequence either is in, or might be in the
             // current map, return that.
             if matches!(res, KeyMapLookup::Action(_) | KeyMapLookup::Prefix) {
-                debug!("match: {:?}", res);
+                debug!("map: {}, lookup: {:?}", map.name, res);
                 return res;
             }
 
@@ -255,4 +268,45 @@ impl KeyMapStack {
     }
 }
 
-// TODO: tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lookup() {
+        let mut stack = KeyMapStack::default();
+
+        stack.push(KeyMap::from_pairs(
+            "base",
+            vec![("<ctrl>a", Action::Exit), ("<ctrl>b", Action::OpenFile)]
+                .into_iter(),
+        ));
+
+        stack.push(KeyMap::from_pairs(
+            "overlay",
+            vec![
+                ("<ctrl>a", Action::SaveFile),
+                ("<ctrl>c", Action::PreviousPane),
+            ]
+            .into_iter(),
+        ));
+
+        // Overlay overrides base.
+        assert_eq!(
+            stack.lookup(&KeySequence::parse("<ctrl>a").unwrap()),
+            KeyMapLookup::Action(Action::SaveFile)
+        );
+
+        // Item only in overlay is used.
+        assert_eq!(
+            stack.lookup(&KeySequence::parse("<ctrl>c").unwrap()),
+            KeyMapLookup::Action(Action::PreviousPane)
+        );
+
+        // Item only in base is used.
+        assert_eq!(
+            stack.lookup(&KeySequence::parse("<ctrl>b").unwrap()),
+            KeyMapLookup::Action(Action::OpenFile)
+        );
+    }
+}
