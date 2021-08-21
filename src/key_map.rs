@@ -4,6 +4,8 @@ use {
         key_sequence::KeySequence,
         pane_tree,
     },
+    anyhow::Error,
+    fehler::throws,
     gtk4::gdk::{self, ModifierType},
     std::collections::BTreeMap,
     tracing::{debug, instrument},
@@ -84,9 +86,8 @@ impl KeyMap {
     pub fn base() -> KeyMap {
         let mut map = KeyMap::new("base");
 
-        let mut insert = |keys, action| {
-            map.insert(KeySequence::parse(keys).unwrap(), action)
-        };
+        let mut insert =
+            |keys, action| map.parse_and_insert(keys, action).unwrap();
 
         // TODO: for now make it easy to quit
         insert("<esc>", Action::Exit);
@@ -158,6 +159,11 @@ impl KeyMap {
 
     pub fn insert(&mut self, seq: KeySequence, action: Action) {
         self.map.insert(seq, action);
+    }
+
+    #[throws]
+    pub fn parse_and_insert(&mut self, s: &str, action: Action) {
+        self.insert(KeySequence::parse(s)?, action);
     }
 
     pub fn lookup(&self, seq: &KeySequence) -> KeyMapLookup {

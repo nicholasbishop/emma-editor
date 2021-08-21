@@ -375,9 +375,8 @@ impl App {
     fn get_minibuf_keymap(&self) -> KeyMap {
         let mut map = KeyMap::new("minibuf");
 
-        let mut insert = |keys, action| {
-            map.insert(KeySequence::parse(keys).unwrap(), action)
-        };
+        let mut insert =
+            |keys, action| map.parse_and_insert(keys, action).unwrap();
 
         insert("<ctrl>i", Action::Autocomplete);
         insert("<ret>", Action::Confirm);
@@ -389,9 +388,8 @@ impl App {
         let mut map = KeyMap::new("search");
 
         // TODO: dedup
-        let mut insert = |keys, action| {
-            map.insert(KeySequence::parse(keys).unwrap(), action)
-        };
+        let mut insert =
+            |keys, action| map.parse_and_insert(keys, action).unwrap();
 
         insert("<ctrl>s", Action::SearchNext);
         map
