@@ -8,7 +8,7 @@ edition = "2018"
 # Error handling
 anyhow = "1.0"
 fehler = "1.0"
-fs-err = "2.5"
+fs-err = "2.6"
 thiserror = "1.0"
 
 # GUI
