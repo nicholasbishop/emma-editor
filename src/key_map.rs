@@ -74,10 +74,15 @@ pub struct KeyMap {
 
 impl KeyMap {
     pub fn new(name: &'static str) -> KeyMap {
-        let mut map = KeyMap {
+        KeyMap {
             name,
             map: BTreeMap::new(),
-        };
+        }
+    }
+
+    // TODO: move this to event.rs
+    pub fn base() -> KeyMap {
+        let mut map = KeyMap::new("base");
 
         let mut insert = |keys, action| {
             map.insert(KeySequence::parse(keys).unwrap(), action)

@@ -36,7 +36,7 @@ pub(super) struct KeyHandler {
 impl KeyHandler {
     pub(super) fn new() -> KeyHandler {
         KeyHandler {
-            base_keymap: KeyMap::new("base"),
+            base_keymap: KeyMap::base(),
             cur_seq: KeySequence::default(),
         }
     }
