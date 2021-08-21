@@ -124,7 +124,8 @@ impl App {
                 cursor = buf.find_boundary(cursor, boundary, dir);
             }
             Move::Line | Move::Page => {
-                let offset = RelLine(if step == Move::Line { 1 } else { 20 });
+                let offset =
+                    RelLine::new(if step == Move::Line { 1 } else { 20 });
 
                 let mut lp = LinePosition::from_abs_char(cursor, buf);
 

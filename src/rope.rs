@@ -15,7 +15,7 @@ pub struct RelChar(pub usize);
 
 /// Relative line offset.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct RelLine(pub usize);
+pub struct RelLine(usize);
 
 /// Line index (zero indexed) within the rope.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
@@ -24,6 +24,12 @@ pub struct AbsLine(pub usize);
 impl RelChar {
     pub fn zero() -> RelChar {
         RelChar(0)
+    }
+}
+
+impl RelLine {
+    pub fn new(val: usize) -> RelLine {
+        RelLine(val)
     }
 }
 

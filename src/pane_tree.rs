@@ -126,7 +126,7 @@ impl Pane {
             let half_height_in_lines =
                 (half_height / line_height).round() as usize;
             self.top_line =
-                line_index.saturating_sub(RelLine(half_height_in_lines));
+                line_index.saturating_sub(RelLine::new(half_height_in_lines));
         }
     }
 }
