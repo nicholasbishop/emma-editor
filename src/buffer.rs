@@ -107,7 +107,7 @@ impl LinePosition {
     ) {
         let line = buf.text().line(self.line);
         let num_chars = line.len_chars();
-        self.offset = RelChar(0);
+        self.offset = RelChar::zero();
         while num_graphemes > 0 {
             self.offset = RelChar(next_grapheme_boundary(&line, self.offset.0));
             num_graphemes -= 1;
@@ -412,7 +412,7 @@ impl Buffer {
                 if direction == Direction::Dec {
                     // TODO: add logic to initially move to
                     // first-non-whitespace char.
-                    lp.offset = RelChar(0);
+                    lp.offset = RelChar::zero();
                 } else {
                     lp.offset = RelChar(text.line(lp.line).len_chars() - 1);
                 }

@@ -21,6 +21,12 @@ pub struct RelLine(pub usize);
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AbsLine(pub usize);
 
+impl RelChar {
+    pub fn zero() -> RelChar {
+        RelChar(0)
+    }
+}
+
 impl AddAssign<usize> for RelLine {
     fn add_assign(&mut self, rhs: usize) {
         self.0 += rhs
