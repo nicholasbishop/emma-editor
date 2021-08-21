@@ -95,8 +95,9 @@ impl KeyMap {
     }
 
     // TODO: move this to event.rs
+    #[throws]
     pub fn base() -> KeyMap {
-        let map = KeyMap::from_pairs(
+        KeyMap::from_pairs(
             "base",
             vec![
                 // TODO: for now make it easy to quit
@@ -179,9 +180,7 @@ impl KeyMap {
                 ("<ctrl>g", Action::Cancel),
             ]
             .into_iter(),
-        );
-        // TODO
-        map.unwrap()
+        )?
     }
 
     pub fn insert(&mut self, seq: KeySequence, action: Action) {

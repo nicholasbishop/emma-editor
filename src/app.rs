@@ -113,7 +113,7 @@ pub fn init(application: &gtk::Application) {
         window,
         widget,
 
-        key_handler: event::KeyHandler::new(),
+        key_handler: event::KeyHandler::new().unwrap(),
 
         buffers: HashMap::new(),
         pane_tree: PaneTree::new(&mut scratch_buffer, &mut minibuf),
