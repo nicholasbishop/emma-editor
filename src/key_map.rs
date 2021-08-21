@@ -21,6 +21,10 @@ pub enum Move {
 #[allow(dead_code)] // TODO
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Action {
+    // Used in tests.
+    #[cfg(test)]
+    Test(&'static str),
+
     // Insert text for a key press, e.g. pressing the 'a' key inserts
     // an 'a' character into the active buffer.
     Insert(gdk::keys::Key),
@@ -291,15 +295,18 @@ mod tests {
 
         stack.push(KeyMap::from_pairs(
             "base",
-            vec![("<ctrl>a", Action::Exit), ("<ctrl>b", Action::OpenFile)]
-                .into_iter(),
+            vec![
+                ("<ctrl>a", Action::Test("a base")),
+                ("<ctrl>b", Action::Test("b base")),
+            ]
+            .into_iter(),
         ));
 
         stack.push(KeyMap::from_pairs(
             "overlay",
             vec![
-                ("<ctrl>a", Action::SaveFile),
-                ("<ctrl>c", Action::PreviousPane),
+                ("<ctrl>a", Action::Test("a overlay")),
+                ("<ctrl>c", Action::Test("c overlay")),
             ]
             .into_iter(),
         ));
@@ -307,19 +314,19 @@ mod tests {
         // Overlay overrides base.
         assert_eq!(
             stack.lookup(&KeySequence::parse("<ctrl>a").unwrap()),
-            KeyMapLookup::Action(Action::SaveFile)
+            KeyMapLookup::Action(Action::Test("a overlay"))
         );
 
         // Item only in overlay is used.
         assert_eq!(
             stack.lookup(&KeySequence::parse("<ctrl>c").unwrap()),
-            KeyMapLookup::Action(Action::PreviousPane)
+            KeyMapLookup::Action(Action::Test("c overlay"))
         );
 
         // Item only in base is used.
         assert_eq!(
             stack.lookup(&KeySequence::parse("<ctrl>b").unwrap()),
-            KeyMapLookup::Action(Action::OpenFile)
+            KeyMapLookup::Action(Action::Test("b base"))
         );
     }
 }
