@@ -18,7 +18,6 @@ pub enum Move {
     Page,
 }
 
-#[allow(dead_code)] // TODO
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Action {
     // Used in tests.
