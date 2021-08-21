@@ -1,9 +1,7 @@
 //! Thin wrapper around `ropey`.
 
-use std::{
-    io::{self, Read},
-    ops::{Add, AddAssign, Bound, RangeBounds},
-};
+use std::io::{self, Read};
+use std::ops::{Add, AddAssign, Bound, RangeBounds};
 
 // TODO: make `pub usize` below not `pub`.
 

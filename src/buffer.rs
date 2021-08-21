@@ -1,29 +1,21 @@
 pub use crate::rope::{AbsChar, AbsLine, LinesIterItem, RelChar, RelLine};
 
-use {
-    crate::{
-        grapheme::{next_grapheme_boundary, prev_grapheme_boundary},
-        pane_tree::{Pane, PaneId},
-        rope::{LineDataVec, Rope},
-        theme::Theme,
-        util,
-    },
-    aho_corasick::AhoCorasick,
-    anyhow::Error,
-    fehler::throws,
-    std::{
-        collections::HashMap,
-        fmt, fs, io,
-        ops::Range,
-        path::{Path, PathBuf},
-    },
-    syntect::{
-        highlighting::{
-            HighlightState, Highlighter, RangedHighlightIterator, Style,
-        },
-        parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet},
-    },
+use crate::grapheme::{next_grapheme_boundary, prev_grapheme_boundary};
+use crate::pane_tree::{Pane, PaneId};
+use crate::rope::{LineDataVec, Rope};
+use crate::theme::Theme;
+use crate::util;
+use aho_corasick::AhoCorasick;
+use anyhow::Error;
+use fehler::throws;
+use std::collections::HashMap;
+use std::ops::Range;
+use std::path::{Path, PathBuf};
+use std::{fmt, fs, io};
+use syntect::highlighting::{
+    HighlightState, Highlighter, RangedHighlightIterator, Style,
 };
+use syntect::parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Direction {

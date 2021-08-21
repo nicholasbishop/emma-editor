@@ -3,17 +3,15 @@
 //!
 //! See `emma.theme.yml` for an example.
 
-use {
-    anyhow::{anyhow, bail, Error},
-    fehler::throws,
-    serde::Deserialize,
-    std::collections::HashMap,
-    syntect::highlighting::{
-        Color, ParseThemeError, ScopeSelectors, StyleModifier,
-        Theme as SyntectTheme, ThemeItem,
-    },
-    syntect::LoadingError,
+use anyhow::{anyhow, bail, Error};
+use fehler::throws;
+use serde::Deserialize;
+use std::collections::HashMap;
+use syntect::highlighting::{
+    Color, ParseThemeError, ScopeSelectors, StyleModifier,
+    Theme as SyntectTheme, ThemeItem,
 };
+use syntect::LoadingError;
 
 fn rgb(r: u8, g: u8, b: u8) -> Color {
     Color { r, g, b, a: 255 }

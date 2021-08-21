@@ -1,23 +1,20 @@
-use {
-    super::App,
-    crate::{
-        buffer::{Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan},
-        grapheme::next_grapheme_boundary,
-        pane_tree::Pane,
-        rope::RopeSlice,
-        theme::Theme,
-    },
-    anyhow::Error,
-    fehler::throws,
-    gtk4::{
-        self as gtk, cairo,
-        pango::{self, Layout},
-        prelude::*,
-    },
-    std::{fmt, ops::Range},
-    syntect::highlighting::Style,
-    tracing::{debug, error, instrument},
+use super::App;
+use crate::buffer::{
+    Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan,
 };
+use crate::grapheme::next_grapheme_boundary;
+use crate::pane_tree::Pane;
+use crate::rope::RopeSlice;
+use crate::theme::Theme;
+use anyhow::Error;
+use fehler::throws;
+use gtk4::pango::{self, Layout};
+use gtk4::prelude::*;
+use gtk4::{self as gtk, cairo};
+use std::fmt;
+use std::ops::Range;
+use syntect::highlighting::Style;
+use tracing::{debug, error, instrument};
 
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
     let r = (r as f64) / 255.0;

@@ -1,18 +1,17 @@
-use {
-    super::{App, InteractiveState, APP},
-    crate::{
-        buffer::{
-            Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
-        },
-        key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move},
-        key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
-        pane_tree::{Pane, PaneTree},
-    },
-    anyhow::{anyhow, bail, Error},
-    fehler::throws,
-    gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
-    std::{collections::HashMap, path::Path},
+use super::{App, InteractiveState, APP};
+use crate::buffer::{
+    Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
 };
+use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
+use crate::key_sequence::{is_modifier, KeySequence, KeySequenceAtom};
+use crate::pane_tree::{Pane, PaneTree};
+use anyhow::{anyhow, bail, Error};
+use fehler::throws;
+use gtk4::glib::signal::Inhibit;
+use gtk4::prelude::*;
+use gtk4::{self as gtk, gdk};
+use std::collections::HashMap;
+use std::path::Path;
 
 pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
     let key_controller = gtk::EventControllerKey::new();

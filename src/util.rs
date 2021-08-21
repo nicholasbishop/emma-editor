@@ -1,4 +1,5 @@
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 
 pub fn make_id(prefix: &str) -> String {
     let r: String = thread_rng()

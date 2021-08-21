@@ -9,7 +9,8 @@ mod rope;
 mod theme;
 mod util;
 
-use gtk4::{self as gtk, prelude::*};
+use gtk4 as gtk;
+use gtk4::prelude::*;
 
 fn main() {
     tracing_subscriber::fmt::init();

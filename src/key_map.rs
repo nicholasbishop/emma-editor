@@ -1,15 +1,11 @@
-use {
-    crate::{
-        buffer::{Boundary, Direction},
-        key_sequence::KeySequence,
-        pane_tree,
-    },
-    anyhow::Error,
-    fehler::throws,
-    gtk4::gdk::{self, ModifierType},
-    std::collections::BTreeMap,
-    tracing::{debug, error, instrument},
-};
+use crate::buffer::{Boundary, Direction};
+use crate::key_sequence::KeySequence;
+use crate::pane_tree;
+use anyhow::Error;
+use fehler::throws;
+use gtk4::gdk::{self, ModifierType};
+use std::collections::BTreeMap;
+use tracing::{debug, error, instrument};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Move {

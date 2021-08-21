@@ -1,12 +1,8 @@
-use {
-    crate::{
-        app::{BufferMap, LineHeight},
-        buffer::{AbsChar, Buffer, BufferId, RelLine},
-        rope::AbsLine,
-        util,
-    },
-    std::fmt,
-};
+use crate::app::{BufferMap, LineHeight};
+use crate::buffer::{AbsChar, Buffer, BufferId, RelLine};
+use crate::rope::AbsLine;
+use crate::util;
+use std::fmt;
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct PaneId(String);

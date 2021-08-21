@@ -1,11 +1,8 @@
-use {
-    fehler::{throw, throws},
-    gtk4::{
-        gdk::{self, keys::constants as keys, ModifierType},
-        glib::translate::FromGlib,
-    },
-    std::collections::HashMap,
-};
+use fehler::{throw, throws};
+use gtk4::gdk::keys::constants as keys;
+use gtk4::gdk::{self, ModifierType};
+use gtk4::glib::translate::FromGlib;
+use std::collections::HashMap;
 
 fn name_to_key_map() -> HashMap<&'static str, gdk::keys::Key> {
     // This map is the only place that needs to be updated to add a

@@ -3,17 +3,16 @@ mod event;
 
 pub use draw::LineHeight;
 
-use {
-    crate::{
-        buffer::{Buffer, BufferId},
-        config::Config,
-        pane_tree::PaneTree,
-        theme::Theme,
-    },
-    gtk4::{self as gtk, gdk, prelude::*},
-    std::{cell::RefCell, collections::HashMap, path::Path},
-    tracing::error,
-};
+use crate::buffer::{Buffer, BufferId};
+use crate::config::Config;
+use crate::pane_tree::PaneTree;
+use crate::theme::Theme;
+use gtk4::prelude::*;
+use gtk4::{self as gtk, gdk};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::path::Path;
+use tracing::error;
 
 // This global is needed for callbacks on the main thread. On other
 // threads it is None.

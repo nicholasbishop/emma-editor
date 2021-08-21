@@ -1,9 +1,7 @@
-use {
-    anyhow::{anyhow, Error},
-    fehler::throws,
-    fs_err as fs,
-    serde::Deserialize,
-};
+use anyhow::{anyhow, Error};
+use fehler::throws;
+use fs_err as fs;
+use serde::Deserialize;
 
 fn default_font_size() -> f64 {
     11.0

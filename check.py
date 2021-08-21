@@ -8,7 +8,8 @@ def run(*cmd):
 
 
 def main():
-    run('cargo', 'fmt', '--', '--check')
+    run('cargo', '+nightly', 'fmt', '--', '--check',
+        '--config', 'imports_granularity=module')
     run('cargo', 'clippy', '--', '-Dwarnings')
     run('cargo', 'test')
 
