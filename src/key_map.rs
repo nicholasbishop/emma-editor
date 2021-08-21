@@ -32,6 +32,7 @@ pub enum Action {
     Confirm,
     OpenShell,
     InteractiveSearch,
+    SearchNext,
 
     Undo,
     Redo,

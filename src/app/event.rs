@@ -8,7 +8,7 @@ use {
         key_sequence::{is_modifier, KeySequence, KeySequenceAtom},
         pane_tree::{Pane, PaneTree},
     },
-    anyhow::{anyhow, Error},
+    anyhow::{anyhow, bail, Error},
     fehler::throws,
     gtk4::{self as gtk, gdk, glib::signal::Inhibit, prelude::*},
     std::{collections::HashMap, path::Path},
@@ -208,21 +208,13 @@ impl App {
                 self.open_file()?;
             }
             InteractiveState::Search => {
+                self.search_next()?;
+
                 let pane = self.pane_tree.active_excluding_minibuf();
                 let buf = self
                     .buffers
                     .get_mut(pane.buffer_id())
                     .ok_or_else(invalid_active_buffer_error)?;
-                let pos = buf.cursor(pane);
-                let line_pos = LinePosition::from_abs_char(pos, buf);
-
-                // Find the next match and move the cursor there.
-                if let Some(search) = buf.search_state() {
-                    if let Some(m) = search.next_match(line_pos) {
-                        let ci = m.to_abs_char(buf);
-                        buf.set_cursor(pane, ci);
-                    }
-                }
 
                 buf.clear_search();
                 self.clear_interactive_state();
@@ -246,6 +238,25 @@ impl App {
             let num_lines =
                 (pane.rect().height / line_height.0).round() as usize;
             buf.search(&search_for, pane, num_lines);
+        }
+    }
+
+    #[throws]
+    fn search_next(&mut self) {
+        let pane = self.pane_tree.active_excluding_minibuf();
+        let buf = self
+            .buffers
+            .get_mut(pane.buffer_id())
+            .ok_or_else(invalid_active_buffer_error)?;
+        let pos = buf.cursor(pane);
+        let line_pos = LinePosition::from_abs_char(pos, buf);
+
+        // Find the next match and move the cursor there.
+        if let Some(search) = buf.search_state() {
+            if let Some(m) = search.next_match(line_pos) {
+                let ci = m.to_abs_char(buf);
+                buf.set_cursor(pane, ci);
+            }
         }
     }
 
@@ -274,6 +285,14 @@ impl App {
                 self.set_interactive_state(InteractiveState::Search);
                 // TODO: prompt
 
+                buffer_changed = false;
+            }
+            Action::SearchNext => {
+                if self.interactive_state != InteractiveState::Search {
+                    bail!("not searching");
+                }
+
+                self.search_next()?;
                 buffer_changed = false;
             }
             Action::Undo => {
@@ -366,6 +385,18 @@ impl App {
         map
     }
 
+    fn get_search_keymap(&self) -> KeyMap {
+        let mut map = KeyMap::new();
+
+        // TODO: dedup
+        let mut insert = |keys, action| {
+            map.insert(KeySequence::parse(keys).unwrap(), action)
+        };
+
+        insert("<ctrl>s", Action::SearchNext);
+        map
+    }
+
     pub(super) fn handle_key_press(
         &mut self,
         key: gdk::keys::Key,
@@ -377,6 +408,9 @@ impl App {
         // TODO: figure these customizations out better
         if self.interactive_state != InteractiveState::Initial {
             keymap_stack.push(self.get_minibuf_keymap());
+            if self.interactive_state == InteractiveState::Search {
+                keymap_stack.push(self.get_search_keymap());
+            }
         }
 
         // Ignore lone modifier presses.
