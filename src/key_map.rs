@@ -82,7 +82,6 @@ impl KeyMap {
         }
     }
 
-    // TODO: use this
     #[throws]
     pub fn from_pairs<'a, I: Iterator<Item = (&'a str, Action)>>(
         name: &'static str,
@@ -97,77 +96,92 @@ impl KeyMap {
 
     // TODO: move this to event.rs
     pub fn base() -> KeyMap {
-        let mut map = KeyMap::new("base");
-
-        let mut insert =
-            |keys, action| map.parse_and_insert(keys, action).unwrap();
-
-        // TODO: for now make it easy to quit
-        insert("<esc>", Action::Exit);
-
-        insert(
-            "<ctrl>b",
-            Action::Move(Move::Boundary(Boundary::Grapheme), Direction::Dec),
+        let map = KeyMap::from_pairs(
+            "base",
+            vec![
+                // TODO: for now make it easy to quit
+                ("<esc>", Action::Exit),
+                (
+                    "<ctrl>b",
+                    Action::Move(
+                        Move::Boundary(Boundary::Grapheme),
+                        Direction::Dec,
+                    ),
+                ),
+                (
+                    "<ctrl>f",
+                    Action::Move(
+                        Move::Boundary(Boundary::Grapheme),
+                        Direction::Inc,
+                    ),
+                ),
+                ("<ctrl>p", Action::Move(Move::Line, Direction::Dec)),
+                ("<ctrl>n", Action::Move(Move::Line, Direction::Inc)),
+                (
+                    "<ctrl>a",
+                    Action::Move(
+                        Move::Boundary(Boundary::LineEnd),
+                        Direction::Dec,
+                    ),
+                ),
+                (
+                    "<ctrl>e",
+                    Action::Move(
+                        Move::Boundary(Boundary::LineEnd),
+                        Direction::Inc,
+                    ),
+                ),
+                ("<alt>v", Action::Move(Move::Page, Direction::Dec)),
+                ("<ctrl>v", Action::Move(Move::Page, Direction::Inc)),
+                (
+                    "<alt><shift><less>",
+                    Action::Move(
+                        Move::Boundary(Boundary::BufferEnd),
+                        Direction::Dec,
+                    ),
+                ),
+                (
+                    "<alt><shift><greater>",
+                    Action::Move(
+                        Move::Boundary(Boundary::BufferEnd),
+                        Direction::Inc,
+                    ),
+                ),
+                (
+                    "<backspace>",
+                    Action::Delete(Boundary::Grapheme, Direction::Dec),
+                ),
+                (
+                    "<ctrl>d",
+                    Action::Delete(Boundary::Grapheme, Direction::Inc),
+                ),
+                ("<ctrl>s", Action::InteractiveSearch),
+                ("<ctrl>/", Action::Undo),
+                ("<ctrl><shift>?", Action::Redo),
+                ("<ctrl>x+k", Action::DeleteBuffer),
+                ("<ctrl>x+<ctrl>f", Action::OpenFile),
+                ("<ctrl>x+<ctrl>s", Action::SaveFile),
+                ("<ctrl><shift>j", Action::PreviousPane),
+                ("<ctrl><shift>k", Action::NextPane),
+                (
+                    "<ctrl>x+2",
+                    Action::SplitPane(pane_tree::Orientation::Vertical),
+                ),
+                (
+                    "<ctrl>x+3",
+                    Action::SplitPane(pane_tree::Orientation::Horizontal),
+                ),
+                ("<ctrl>x+0", Action::ClosePane),
+                ("<ctrl>c+<ctrl>s", Action::OpenShell),
+                ("<ctrl>x+b", Action::SwitchToBuffer),
+                // TODO: make this generic so that any key sequence can be
+                // canceled with ctrl+g.
+                ("<ctrl>g", Action::Cancel),
+            ]
+            .into_iter(),
         );
-        insert(
-            "<ctrl>f",
-            Action::Move(Move::Boundary(Boundary::Grapheme), Direction::Inc),
-        );
-        insert("<ctrl>p", Action::Move(Move::Line, Direction::Dec));
-        insert("<ctrl>n", Action::Move(Move::Line, Direction::Inc));
-        insert(
-            "<ctrl>a",
-            Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Dec),
-        );
-        insert(
-            "<ctrl>e",
-            Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Inc),
-        );
-        insert("<alt>v", Action::Move(Move::Page, Direction::Dec));
-        insert("<ctrl>v", Action::Move(Move::Page, Direction::Inc));
-        insert(
-            "<alt><shift><less>",
-            Action::Move(Move::Boundary(Boundary::BufferEnd), Direction::Dec),
-        );
-        insert(
-            "<alt><shift><greater>",
-            Action::Move(Move::Boundary(Boundary::BufferEnd), Direction::Inc),
-        );
-
-        insert(
-            "<backspace>",
-            Action::Delete(Boundary::Grapheme, Direction::Dec),
-        );
-        insert(
-            "<ctrl>d",
-            Action::Delete(Boundary::Grapheme, Direction::Inc),
-        );
-
-        insert("<ctrl>s", Action::InteractiveSearch);
-
-        insert("<ctrl>/", Action::Undo);
-        insert("<ctrl><shift>?", Action::Redo);
-
-        insert("<ctrl>x+k", Action::DeleteBuffer);
-        insert("<ctrl>x+<ctrl>f", Action::OpenFile);
-        insert("<ctrl>x+<ctrl>s", Action::SaveFile);
-        insert("<ctrl><shift>j", Action::PreviousPane);
-        insert("<ctrl><shift>k", Action::NextPane);
-        insert(
-            "<ctrl>x+2",
-            Action::SplitPane(pane_tree::Orientation::Vertical),
-        );
-        insert(
-            "<ctrl>x+3",
-            Action::SplitPane(pane_tree::Orientation::Horizontal),
-        );
-        insert("<ctrl>x+0", Action::ClosePane);
-        insert("<ctrl>c+<ctrl>s", Action::OpenShell);
-        insert("<ctrl>x+b", Action::SwitchToBuffer);
-        // TODO: make this generic so that any key sequence can be
-        // canceled with ctrl+g.
-        insert("<ctrl>g", Action::Cancel);
-        map
+        // TODO
+        map.unwrap()
     }
 
     pub fn insert(&mut self, seq: KeySequence, action: Action) {

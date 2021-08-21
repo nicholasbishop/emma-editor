@@ -374,20 +374,23 @@ impl App {
 
     #[throws]
     fn get_minibuf_keymap(&self) -> KeyMap {
-        let mut map = KeyMap::new("minibuf");
-
-        map.parse_and_insert("<ctrl>i", Action::Autocomplete)?;
-        map.parse_and_insert("<ret>", Action::Confirm)?;
-        map.parse_and_insert("<ctrl>m", Action::Confirm)?;
-        map
+        KeyMap::from_pairs(
+            "minibuf",
+            vec![
+                ("<ctrl>i", Action::Autocomplete),
+                ("<ret>", Action::Confirm),
+                ("<ctrl>m", Action::Confirm),
+            ]
+            .into_iter(),
+        )?
     }
 
     #[throws]
     fn get_search_keymap(&self) -> KeyMap {
-        let mut map = KeyMap::new("search");
-
-        map.parse_and_insert("<ctrl>s", Action::SearchNext)?;
-        map
+        KeyMap::from_pairs(
+            "search",
+            vec![("<ctrl>s", Action::SearchNext)].into_iter(),
+        )?
     }
 
     pub(super) fn handle_key_press(
