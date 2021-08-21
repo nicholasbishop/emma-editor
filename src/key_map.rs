@@ -210,21 +210,6 @@ impl KeyMap {
 
         // At this point we know the sequence is not in the map.
 
-        // If the sequence's length is 1 and it doesn't have any
-        // modifiers (other than shift) then just pass it along; this
-        // handles things like pressing the letter 'a' where we just
-        // want the default insertion action to occur.
-        if seq.0.len() == 1 {
-            let atom = &seq.0[0];
-            if atom.modifiers.is_empty() {
-                return KeyMapLookup::Action(Action::Insert(atom.key.clone()));
-            } else if atom.modifiers == ModifierType::SHIFT_MASK {
-                return KeyMapLookup::Action(Action::Insert(
-                    atom.key.to_upper(),
-                ));
-            }
-        }
-
         // TODO: special "<ctrl>g" type thing to kill any sequence
 
         KeyMapLookup::BadSequence
@@ -249,17 +234,10 @@ pub struct KeyMapStack(Vec<KeyMap>);
 impl KeyMapStack {
     #[instrument(skip(self))]
     pub fn lookup(&self, seq: &KeySequence) -> KeyMapLookup {
-        // TODO rustify this loop
-        for (i, map) in self.0.iter().enumerate().rev() {
+        for map in self.0.iter().rev() {
             debug!("map: {}", map.name);
 
             let res = map.lookup(seq);
-
-            // At the bottom of the stack just return the result.
-            if i == 0 {
-                debug!("bottom of the stack");
-                return res;
-            }
 
             // If the sequence either is in, or might be in the
             // current map, return that.
@@ -271,7 +249,24 @@ impl KeyMapStack {
             // Otherwise, continue up the stack.
         }
 
-        panic!("empty KeyMapStack");
+        // None of the keymaps had an explicit match.
+
+        // If the sequence's length is 1 and it doesn't have any
+        // modifiers (other than shift) then just pass it along; this
+        // handles things like pressing the letter 'a' where we just
+        // want the default insertion action to occur.
+        if seq.0.len() == 1 {
+            let atom = &seq.0[0];
+            if atom.modifiers.is_empty() {
+                return KeyMapLookup::Action(Action::Insert(atom.key.clone()));
+            } else if atom.modifiers == ModifierType::SHIFT_MASK {
+                return KeyMapLookup::Action(Action::Insert(
+                    atom.key.to_upper(),
+                ));
+            }
+        }
+
+        KeyMapLookup::BadSequence
     }
 
     pub fn push(&mut self, map: Result<KeyMap, Error>) {
@@ -298,6 +293,7 @@ mod tests {
             vec![
                 ("<ctrl>a", Action::Test("a base")),
                 ("<ctrl>b", Action::Test("b base")),
+                ("x", Action::Test("x base")),
             ]
             .into_iter(),
         ));
@@ -327,6 +323,27 @@ mod tests {
         assert_eq!(
             stack.lookup(&KeySequence::parse("<ctrl>b").unwrap()),
             KeyMapLookup::Action(Action::Test("b base"))
+        );
+
+        // Single-character sequence properly falls through the overlay
+        // keymap and is found in the base keymap.
+        assert_eq!(
+            stack.lookup(&KeySequence::parse("x").unwrap()),
+            KeyMapLookup::Action(Action::Test("x base"))
+        );
+
+        // Simple sequence not in any keymap.
+        assert_eq!(
+            stack.lookup(&KeySequence::parse("y").unwrap()),
+            KeyMapLookup::Action(Action::Insert(gdk::keys::Key::from_name(
+                "y"
+            )))
+        );
+
+        // Sequence not in any keymap.
+        assert_eq!(
+            stack.lookup(&KeySequence::parse("<ctrl>x").unwrap()),
+            KeyMapLookup::BadSequence,
         );
     }
 }
