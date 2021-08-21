@@ -8,7 +8,7 @@ use {
     fehler::throws,
     gtk4::gdk::{self, ModifierType},
     std::collections::BTreeMap,
-    tracing::{debug, instrument},
+    tracing::{debug, error, instrument},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -244,8 +244,14 @@ impl KeyMapStack {
         panic!("empty KeyMapStack");
     }
 
-    pub fn push(&mut self, map: KeyMap) {
-        self.0.push(map);
+    pub fn push(&mut self, map: Result<KeyMap, Error>) {
+        match map {
+            Ok(map) => self.0.push(map),
+            Err(err) => {
+                // TODO: display in UI
+                error!("invalid map: {}", err)
+            }
+        }
     }
 }
 

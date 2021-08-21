@@ -372,26 +372,21 @@ impl App {
         }
     }
 
+    #[throws]
     fn get_minibuf_keymap(&self) -> KeyMap {
         let mut map = KeyMap::new("minibuf");
 
-        let mut insert =
-            |keys, action| map.parse_and_insert(keys, action).unwrap();
-
-        insert("<ctrl>i", Action::Autocomplete);
-        insert("<ret>", Action::Confirm);
-        insert("<ctrl>m", Action::Confirm);
+        map.parse_and_insert("<ctrl>i", Action::Autocomplete)?;
+        map.parse_and_insert("<ret>", Action::Confirm)?;
+        map.parse_and_insert("<ctrl>m", Action::Confirm)?;
         map
     }
 
+    #[throws]
     fn get_search_keymap(&self) -> KeyMap {
         let mut map = KeyMap::new("search");
 
-        // TODO: dedup
-        let mut insert =
-            |keys, action| map.parse_and_insert(keys, action).unwrap();
-
-        insert("<ctrl>s", Action::SearchNext);
+        map.parse_and_insert("<ctrl>s", Action::SearchNext)?;
         map
     }
 
@@ -401,7 +396,7 @@ impl App {
         state: gdk::ModifierType,
     ) -> Inhibit {
         let mut keymap_stack = KeyMapStack::default();
-        keymap_stack.push(self.key_handler.base_keymap.clone());
+        keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
 
         // TODO: figure these customizations out better
         if self.interactive_state != InteractiveState::Initial {
