@@ -36,7 +36,7 @@ pub(super) struct KeyHandler {
 impl KeyHandler {
     pub(super) fn new() -> KeyHandler {
         KeyHandler {
-            base_keymap: KeyMap::new(),
+            base_keymap: KeyMap::new("base"),
             cur_seq: KeySequence::default(),
         }
     }
@@ -373,7 +373,7 @@ impl App {
     }
 
     fn get_minibuf_keymap(&self) -> KeyMap {
-        let mut map = KeyMap::new();
+        let mut map = KeyMap::new("minibuf");
 
         let mut insert = |keys, action| {
             map.insert(KeySequence::parse(keys).unwrap(), action)
@@ -386,7 +386,7 @@ impl App {
     }
 
     fn get_search_keymap(&self) -> KeyMap {
-        let mut map = KeyMap::new();
+        let mut map = KeyMap::new("search");
 
         // TODO: dedup
         let mut insert = |keys, action| {

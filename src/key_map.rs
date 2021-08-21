@@ -6,6 +6,7 @@ use {
     },
     gtk4::gdk::{self, ModifierType},
     std::collections::BTreeMap,
+    tracing::{debug, instrument},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -58,18 +59,25 @@ pub enum Action {
     Autocomplete,
 }
 
+#[derive(Debug)]
 pub enum KeyMapLookup {
     Action(Action),
     Prefix,
     BadSequence,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct KeyMap(BTreeMap<KeySequence, Action>);
+#[derive(Clone, Debug)]
+pub struct KeyMap {
+    name: &'static str,
+    map: BTreeMap<KeySequence, Action>,
+}
 
 impl KeyMap {
-    pub fn new() -> KeyMap {
-        let mut map = KeyMap::default();
+    pub fn new(name: &'static str) -> KeyMap {
+        let mut map = KeyMap {
+            name,
+            map: BTreeMap::new(),
+        };
 
         let mut insert = |keys, action| {
             map.insert(KeySequence::parse(keys).unwrap(), action)
@@ -144,12 +152,12 @@ impl KeyMap {
     }
 
     pub fn insert(&mut self, seq: KeySequence, action: Action) {
-        self.0.insert(seq, action);
+        self.map.insert(seq, action);
     }
 
     pub fn lookup(&self, seq: &KeySequence) -> KeyMapLookup {
         // First check for the exact sequence
-        if let Some(action) = self.0.get(seq) {
+        if let Some(action) = self.map.get(seq) {
             return KeyMapLookup::Action(action.clone());
         }
 
@@ -185,7 +193,7 @@ impl KeyMap {
     fn contains_prefix(&self, seq: &KeySequence) -> bool {
         // TODO: should be able to make this more efficient by
         // starting the search at the appropriate place.
-        for k in self.0.keys() {
+        for k in self.map.keys() {
             if k.starts_with(seq) {
                 return true;
             }
@@ -194,23 +202,28 @@ impl KeyMap {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct KeyMapStack(Vec<KeyMap>);
 
 impl KeyMapStack {
+    #[instrument(skip(self))]
     pub fn lookup(&self, seq: &KeySequence) -> KeyMapLookup {
         // TODO rustify this loop
         for (i, map) in self.0.iter().enumerate().rev() {
+            debug!("map: {}", map.name);
+
             let res = map.lookup(seq);
 
             // At the bottom of the stack just return the result.
             if i == 0 {
+                debug!("bottom of the stack");
                 return res;
             }
 
             // If the sequence either is in, or might be in the
             // current map, return that.
             if matches!(res, KeyMapLookup::Action(_) | KeyMapLookup::Prefix) {
+                debug!("match: {:?}", res);
                 return res;
             }
 
