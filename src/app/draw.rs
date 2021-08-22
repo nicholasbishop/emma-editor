@@ -1,6 +1,6 @@
 use super::App;
 use crate::buffer::{
-    Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan,
+    Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan, StyledLine,
 };
 use crate::grapheme::next_grapheme_boundary;
 use crate::pane_tree::Pane;
@@ -75,22 +75,22 @@ struct StyledLayout {
 }
 
 fn apply_match_style(
-    base_spans: &[StyleSpan],
+    base_spans: &StyledLine,
     matches: &LineMatches,
     match_style: &Style,
-) -> Vec<StyleSpan> {
+) -> StyledLine {
     // TODO: the way this is implemented is almost certainly not the
     // best way to do it, but seems reasonably easy to verify.
 
     // TODO: share between outer iterations
-    let mut output = Vec::with_capacity(base_spans.len());
+    let mut output = Vec::with_capacity(base_spans.0.len());
 
     // TODO: share between outer iterations
     let mut scratch =
-        Vec::with_capacity(base_spans.iter().map(|s| s.len).sum());
+        Vec::with_capacity(base_spans.0.iter().map(|s| s.len).sum());
 
     // Fill in the base indices.
-    for (base_index, base_span) in base_spans.iter().enumerate() {
+    for (base_index, base_span) in base_spans.0.iter().enumerate() {
         for _ in 0..base_span.len {
             scratch.push(base_index);
         }
@@ -117,7 +117,7 @@ fn apply_match_style(
             let style = if cur == match_marker {
                 match_style
             } else {
-                &base_spans[cur].style
+                &base_spans.0[cur].style
             };
             output.push(StyleSpan {
                 len: span_len,
@@ -127,7 +127,7 @@ fn apply_match_style(
         }
     }
 
-    output
+    StyledLine(output)
 }
 
 #[cfg(test)]
@@ -146,14 +146,15 @@ mod tests {
 
     #[test]
     fn test_apply_match_style() {
-        let base_spans = vec![StyleSpan {
+        let base_spans = StyledLine(vec![StyleSpan {
             len: 5,
             style: style1(),
-        }];
+        }]);
         let mut matches = LineMatches { spans: vec![] };
 
-        fn label(style_spans: &[StyleSpan]) -> Vec<(&'static str, usize)> {
-            style_spans
+        fn label(styled_line: &StyledLine) -> Vec<(&'static str, usize)> {
+            styled_line
+                .0
                 .iter()
                 .map(|span| {
                     let name = if span.style == match_style() {
@@ -169,7 +170,7 @@ mod tests {
         }
 
         fn check(
-            base_spans: &[StyleSpan],
+            base_spans: &StyledLine,
             matches: &LineMatches,
             expected: &[(&str, usize)],
         ) {
@@ -270,7 +271,7 @@ impl<'a> DrawPane<'a> {
         }
 
         let mut span_offset = 0;
-        for span in style_spans {
+        for span in &style_spans.0 {
             debug!("span: {} chars", span.len);
             let mut push =
                 |me: &mut DrawPane, range: Range<usize>, is_cursor| {

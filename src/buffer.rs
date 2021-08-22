@@ -125,6 +125,10 @@ pub struct StyleSpan {
     pub style: Style,
 }
 
+/// Style for a contiguous group of chars, covers the whole line.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StyledLine(pub Vec<StyleSpan>);
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ActionType {
     None,
@@ -201,11 +205,9 @@ pub struct Buffer {
     theme: Theme,
 
     // Outer vec: per line
-    // Inner vec: style for a contiguous group of chars, covers the
-    // whole line.
     // TODO: think about a smarter structure
     // TODO: put in arc for async update
-    style_spans: Vec<Vec<StyleSpan>>,
+    style_spans: Vec<StyledLine>,
 
     search: Option<SearchState>,
 }
@@ -280,7 +282,7 @@ impl Buffer {
         self.path.as_deref()
     }
 
-    pub fn style_spans(&self) -> &Vec<Vec<StyleSpan>> {
+    pub fn style_spans(&self) -> &Vec<StyledLine> {
         &self.style_spans
     }
 
@@ -452,7 +454,7 @@ impl Buffer {
         let lp = LinePosition::from_abs_char(pos, self);
         if let Some(spans) = self.style_spans.get_mut(lp.line.0) {
             let offset = 0;
-            for span in spans {
+            for span in &mut spans.0 {
                 if lp.offset.0 >= offset && lp.offset.0 < offset + span.len {
                     span.len += 1;
                     break;
@@ -562,7 +564,7 @@ impl Buffer {
                 &highlighter,
             );
 
-            self.style_spans.push(
+            self.style_spans.push(StyledLine(
                 iter.map(|(style, _text, range)| {
                     // Convert from byte range to char range.
                     let start = line.slice.byte_to_char(range.start);
@@ -573,7 +575,7 @@ impl Buffer {
                     }
                 })
                 .collect(),
-            );
+            ));
         }
     }
 }
