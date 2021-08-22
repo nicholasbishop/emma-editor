@@ -492,7 +492,7 @@ impl Buffer {
 
         let mut state = SearchState {
             pane_id: pane.id().clone(),
-            matches: LineDataVec::new(pane.top_line(), num_lines),
+            matches: LineDataVec::with_size(pane.top_line(), num_lines),
         };
 
         let ac = AhoCorasick::new(&[text]);

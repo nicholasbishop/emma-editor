@@ -271,7 +271,7 @@ impl<'a, T> Iterator for LineDataIter<'a, T> {
 }
 
 impl<T: Clone + Default> LineDataVec<T> {
-    pub fn new(start_line: AbsLine, len: usize) -> LineDataVec<T> {
+    pub fn with_size(start_line: AbsLine, len: usize) -> LineDataVec<T> {
         LineDataVec {
             lines: vec![T::default(); len],
             start_line,
