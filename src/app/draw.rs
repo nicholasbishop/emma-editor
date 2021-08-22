@@ -4,7 +4,7 @@ use crate::buffer::{
 };
 use crate::grapheme::next_grapheme_boundary;
 use crate::pane_tree::Pane;
-use crate::rope::RopeSlice;
+use crate::rope::{LineDataVec, RopeSlice};
 use crate::theme::Theme;
 use anyhow::Error;
 use fehler::throws;
@@ -248,8 +248,8 @@ impl<'a> DrawPane<'a> {
     fn styled_layouts_from_line(
         &mut self,
         line: &LinesIterItem,
-    ) -> Vec<StyledLayout> {
-        let mut output = Vec::new();
+    ) -> LineDataVec<StyledLayout> {
+        let mut output = LineDataVec::new(line.index);
 
         let match_style = Style {
             background: self.theme.search_match.background,
@@ -257,7 +257,7 @@ impl<'a> DrawPane<'a> {
             ..Style::default()
         };
 
-        let base_style_spans = &self.buf.style_spans()[line.index.0];
+        let base_style_spans = self.buf.style_spans().get(line.index).unwrap();
         let mut style_spans = base_style_spans;
         // TODO: share across iterations
         let modified_style_spans;
@@ -375,7 +375,9 @@ impl<'a> DrawPane<'a> {
 
         let styled_layouts = self.styled_layouts_from_line(line);
 
-        for styled_layout in styled_layouts {
+        for styled_layout in styled_layouts.iter() {
+            let styled_layout = &styled_layout.data;
+
             // Draw background
             set_source_from_syntect_color(
                 self.ctx,

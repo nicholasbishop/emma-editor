@@ -280,6 +280,13 @@ impl<T: Clone + Default> LineDataVec<T> {
 }
 
 impl<T> LineDataVec<T> {
+    pub fn new(start_line: AbsLine) -> LineDataVec<T> {
+        LineDataVec {
+            lines: Vec::new(),
+            start_line,
+        }
+    }
+
     pub fn start_line(&self) -> AbsLine {
         self.start_line
     }
@@ -294,6 +301,10 @@ impl<T> LineDataVec<T> {
         self.lines.get_mut(offset.0)
     }
 
+    pub fn iter(&self) -> LineDataIter<T> {
+        self.starting_from(self.start_line())
+    }
+
     pub fn starting_from(&self, abs_line: AbsLine) -> LineDataIter<T> {
         LineDataIter {
             data: self,
@@ -303,5 +314,13 @@ impl<T> LineDataVec<T> {
                 .offset_from(self.start_line)
                 .unwrap_or_else(|| RelLine(self.lines.len())),
         }
+    }
+
+    pub fn push(&mut self, elem: T) {
+        self.lines.push(elem);
+    }
+
+    pub fn clear(&mut self) {
+        self.lines.clear();
     }
 }

@@ -126,7 +126,7 @@ pub struct StyleSpan {
 }
 
 /// Style for a contiguous group of chars, covers the whole line.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct StyledLine(pub Vec<StyleSpan>);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -204,10 +204,9 @@ pub struct Buffer {
     // theme.
     theme: Theme,
 
-    // Outer vec: per line
     // TODO: think about a smarter structure
     // TODO: put in arc for async update
-    style_spans: Vec<StyledLine>,
+    style_spans: LineDataVec<StyledLine>,
 
     search: Option<SearchState>,
 }
@@ -238,7 +237,7 @@ impl Buffer {
             last_action_type: ActionType::None,
             path,
             theme: theme.clone(),
-            style_spans: Vec::new(),
+            style_spans: LineDataVec::new(AbsLine::zero()),
             search: None,
         };
 
@@ -282,7 +281,7 @@ impl Buffer {
         self.path.as_deref()
     }
 
-    pub fn style_spans(&self) -> &Vec<StyledLine> {
+    pub fn style_spans(&self) -> &LineDataVec<StyledLine> {
         &self.style_spans
     }
 
@@ -452,7 +451,7 @@ impl Buffer {
         // Update the associated style span to account for the new
         // character.
         let lp = LinePosition::from_abs_char(pos, self);
-        if let Some(spans) = self.style_spans.get_mut(lp.line.0) {
+        if let Some(spans) = self.style_spans.get_mut(lp.line) {
             let offset = 0;
             for span in &mut spans.0 {
                 if lp.offset.0 >= offset && lp.offset.0 < offset + span.len {
