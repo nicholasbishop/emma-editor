@@ -393,7 +393,7 @@ impl<'a> DrawPane<'a> {
             self.ctx.fill()?;
 
             if styled_layout.is_cursor {
-                self.draw_cursor(&styled_layout)?;
+                self.draw_cursor(styled_layout)?;
 
                 if self.pane.is_active() {
                     // Set inverted text color. TODO: set from
