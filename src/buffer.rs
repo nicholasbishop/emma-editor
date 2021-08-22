@@ -87,11 +87,11 @@ impl LinePosition {
         let mut cur_offset = 0;
         while cur_offset < self.offset.0 {
             let new_offset = next_grapheme_boundary(&line, cur_offset);
-            if cur_offset == new_offset {
+            if cur_offset == new_offset.0 {
                 break;
             } else {
                 num_graphemes += 1;
-                cur_offset = new_offset;
+                cur_offset = new_offset.0;
             }
         }
         num_graphemes
@@ -109,7 +109,7 @@ impl LinePosition {
         let num_chars = line.len_chars();
         self.offset = RelChar::zero();
         while num_graphemes > 0 {
-            self.offset = RelChar(next_grapheme_boundary(&line, self.offset.0));
+            self.offset = next_grapheme_boundary(&line, self.offset.0);
             num_graphemes -= 1;
             if self.offset.0 >= num_chars {
                 self.offset = RelChar(num_chars);
@@ -403,10 +403,10 @@ impl Buffer {
         let text = self.text();
         match (boundary, direction) {
             (Boundary::Grapheme, Direction::Dec) => {
-                AbsChar(prev_grapheme_boundary(&text.slice(..), pos.0))
+                AbsChar(prev_grapheme_boundary(&text.slice(..), pos.0).0)
             }
             (Boundary::Grapheme, Direction::Inc) => {
-                AbsChar(next_grapheme_boundary(&text.slice(..), pos.0))
+                AbsChar(next_grapheme_boundary(&text.slice(..), pos.0).0)
             }
             (Boundary::LineEnd, direction) => {
                 let mut lp = LinePosition::from_abs_char(pos, self);

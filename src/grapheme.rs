@@ -4,12 +4,12 @@
 
 // TODO: unify this better with crate::rope
 
-use crate::rope::RopeSlice;
+use crate::rope::{RelChar, RopeSlice};
 use ropey::str_utils::byte_to_char_idx;
 use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete};
 
 /// Finds the previous grapheme boundary before the given char position.
-pub fn prev_grapheme_boundary(slice: &RopeSlice, char_idx: usize) -> usize {
+pub fn prev_grapheme_boundary(slice: &RopeSlice, char_idx: usize) -> RelChar {
     // Bounds check
     debug_assert!(char_idx <= slice.len_chars());
 
@@ -26,10 +26,10 @@ pub fn prev_grapheme_boundary(slice: &RopeSlice, char_idx: usize) -> usize {
     // Find the previous grapheme cluster boundary.
     loop {
         match gc.prev_boundary(chunk, chunk_byte_idx) {
-            Ok(None) => return 0,
+            Ok(None) => return RelChar(0),
             Ok(Some(n)) => {
                 let tmp = byte_to_char_idx(chunk, n - chunk_byte_idx);
-                return chunk_char_idx + tmp;
+                return RelChar(chunk_char_idx + tmp);
             }
             Err(GraphemeIncomplete::PrevChunk) => {
                 let (a, b, c, _) = slice.chunk_at_byte(chunk_byte_idx - 1);
@@ -47,7 +47,7 @@ pub fn prev_grapheme_boundary(slice: &RopeSlice, char_idx: usize) -> usize {
 }
 
 /// Finds the next grapheme boundary after the given char position.
-pub fn next_grapheme_boundary(slice: &RopeSlice, char_idx: usize) -> usize {
+pub fn next_grapheme_boundary(slice: &RopeSlice, char_idx: usize) -> RelChar {
     // Bounds check
     debug_assert!(char_idx <= slice.len_chars());
 
@@ -64,10 +64,10 @@ pub fn next_grapheme_boundary(slice: &RopeSlice, char_idx: usize) -> usize {
     // Find the next grapheme cluster boundary.
     loop {
         match gc.next_boundary(chunk, chunk_byte_idx) {
-            Ok(None) => return slice.len_chars(),
+            Ok(None) => return RelChar(slice.len_chars()),
             Ok(Some(n)) => {
                 let tmp = byte_to_char_idx(chunk, n - chunk_byte_idx);
-                return chunk_char_idx + tmp;
+                return RelChar(chunk_char_idx + tmp);
             }
             Err(GraphemeIncomplete::NextChunk) => {
                 chunk_byte_idx += chunk.len();

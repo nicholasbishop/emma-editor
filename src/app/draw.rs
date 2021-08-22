@@ -296,8 +296,8 @@ impl<'a> DrawPane<'a> {
                 let cursor_end_char =
                     next_grapheme_boundary(&line.slice, self.cursor.offset.0);
 
-                push(self, self.cursor.offset.0..cursor_end_char, true);
-                push(self, cursor_end_char..span_range.end, false);
+                push(self, self.cursor.offset.0..cursor_end_char.0, true);
+                push(self, cursor_end_char.0..span_range.end, false);
             } else {
                 push(self, span_range, false);
             }
