@@ -2,6 +2,8 @@
 
 Emma is a text editor.
 
+It is currently just a side project and not what you might call "functional". :)
+
 ## Code layout
 
 - [main.rs](src/main.rs): basic gtk4 setup
