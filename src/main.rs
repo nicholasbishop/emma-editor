@@ -18,7 +18,7 @@ fn main() {
     let application =
         gtk::Application::new(Some("org.emma.Emma"), Default::default());
 
-    application.connect_activate(|app| app::init(app));
+    application.connect_activate(app::init);
 
     application.run();
 }
