@@ -1,0 +1,5 @@
+# Put this in `.cargo/config.toml` to speed up linker.
+# May require installing an `lld` package on the host.
+
+[build]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
