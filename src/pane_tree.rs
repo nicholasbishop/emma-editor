@@ -8,12 +8,12 @@ use std::fmt;
 pub struct PaneId(String);
 
 impl PaneId {
-    fn new() -> PaneId {
-        PaneId(util::make_id("pane"))
+    fn new() -> Self {
+        Self(util::make_id("pane"))
     }
 
-    fn minibuf() -> PaneId {
-        PaneId("pane-minibuf".into())
+    fn minibuf() -> Self {
+        Self("pane-minibuf".into())
     }
 }
 
@@ -155,19 +155,19 @@ impl Node {
         }
     }
 
-    fn find_leaf<F>(&self, f: F) -> Option<&Node>
+    fn find_leaf<F>(&self, f: F) -> Option<&Self>
     where
         F: Fn(&Pane) -> bool,
     {
         match self {
-            Node::Leaf(leaf) => {
+            Self::Leaf(leaf) => {
                 if f(leaf) {
                     Some(self)
                 } else {
                     None
                 }
             }
-            Node::Internal(internal) => {
+            Self::Internal(internal) => {
                 for child in &internal.children {
                     if let Some(active) = Self::active(child) {
                         return Some(active);
@@ -178,20 +178,20 @@ impl Node {
         }
     }
 
-    fn active(&self) -> Option<&Node> {
+    fn active(&self) -> Option<&Self> {
         self.find_leaf(|leaf| leaf.is_active())
     }
 
-    fn active_mut(&mut self) -> Option<&mut Node> {
+    fn active_mut(&mut self) -> Option<&mut Self> {
         match self {
-            Node::Leaf(leaf) => {
+            Self::Leaf(leaf) => {
                 if leaf.is_active() {
                     Some(self)
                 } else {
                     None
                 }
             }
-            Node::Internal(internal) => {
+            Self::Internal(internal) => {
                 for child in &mut internal.children {
                     if let Some(active) = Self::active_mut(child) {
                         return Some(active);
@@ -265,11 +265,11 @@ impl Node {
         new_pane: Pane,
     ) -> SplitResult {
         if self.leaf().map(|pane| &pane.id) == Some(active_pane_id) {
-            return SplitResult::Split([self, Node::Leaf(new_pane)]);
+            return SplitResult::Split([self, Self::Leaf(new_pane)]);
         }
 
         if let Node::Internal(mut internal) = self {
-            let mut new_children: Vec<Node> = Vec::new();
+            let mut new_children: Vec<Self> = Vec::new();
             let mut new_orientation = internal.orientation;
             let num_children = internal.children.len();
             for child in internal.children {
@@ -291,7 +291,7 @@ impl Node {
                         } else {
                             // Orientation doesn't match so a new
                             // internal node is needed.
-                            new_children.push(Node::Internal(Internal {
+                            new_children.push(Self::Internal(Internal {
                                 orientation,
                                 children: vec![child1, child2],
                             }));
@@ -302,7 +302,7 @@ impl Node {
             }
             internal.children = new_children;
             internal.orientation = new_orientation;
-            SplitResult::Single(Node::Internal(internal))
+            SplitResult::Single(Self::Internal(internal))
         } else {
             SplitResult::Single(self)
         }
@@ -320,7 +320,7 @@ impl PaneTree {
     pub fn new(
         initial_buffer: &mut Buffer,
         minibuf_buffer: &mut Buffer,
-    ) -> PaneTree {
+    ) -> Self {
         let initial_pane = Pane {
             id: PaneId::new(),
             buffer_id: initial_buffer.id().clone(),
@@ -341,7 +341,7 @@ impl PaneTree {
         };
         initial_buffer.set_cursor(&initial_pane, AbsChar::default());
         minibuf_buffer.set_cursor(&minibuf_pane, AbsChar::default());
-        PaneTree {
+        Self {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,
             is_minibuf_interactive: true,

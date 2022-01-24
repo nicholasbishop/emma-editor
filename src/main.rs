@@ -1,3 +1,5 @@
+#![warn(clippy::use_self)]
+
 mod app;
 mod buffer;
 mod config;

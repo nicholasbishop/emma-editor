@@ -55,14 +55,14 @@ impl fmt::Display for Point {
 }
 
 impl LineHeight {
-    pub fn calculate(widget: &gtk::DrawingArea) -> LineHeight {
+    pub fn calculate(widget: &gtk::DrawingArea) -> Self {
         let pctx = widget.pango_context();
         let font_desc = pctx.font_description();
 
         let language = None;
         let metrics = pctx.metrics(font_desc.as_ref(), language).unwrap();
 
-        LineHeight(pango_unscale(metrics.height()))
+        Self(pango_unscale(metrics.height()))
     }
 }
 

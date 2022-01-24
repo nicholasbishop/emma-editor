@@ -38,12 +38,12 @@ pub enum Boundary {
 pub struct BufferId(String);
 
 impl BufferId {
-    fn new() -> BufferId {
-        BufferId(util::make_id("buffer"))
+    fn new() -> Self {
+        Self(util::make_id("buffer"))
     }
 
-    fn minibuf() -> BufferId {
-        BufferId("buffer-minibuf".into())
+    fn minibuf() -> Self {
+        Self("buffer-minibuf".into())
     }
 }
 
@@ -63,13 +63,13 @@ pub struct LinePosition {
 
 impl LinePosition {
     /// Convert the AbsChar to a LinePosition.
-    pub fn from_abs_char(pos: AbsChar, buf: &Buffer) -> LinePosition {
+    pub fn from_abs_char(pos: AbsChar, buf: &Buffer) -> Self {
         let text = &buf.text();
 
         let line = text.char_to_line(pos);
         let line_offset = pos.0 - text.line_to_char(line);
 
-        LinePosition {
+        Self {
             line,
             offset: RelChar(line_offset),
         }
@@ -226,8 +226,8 @@ impl Buffer {
         text: Rope,
         path: Option<PathBuf>,
         theme: &Theme,
-    ) -> Buffer {
-        let mut buf = Buffer {
+    ) -> Self {
+        let mut buf = Self {
             id,
             history: vec![HistoryItem {
                 text,
@@ -247,15 +247,15 @@ impl Buffer {
         buf
     }
 
-    pub fn create_minibuf(theme: &Theme) -> Buffer {
-        Buffer::new(BufferId::minibuf(), Rope::new(), None, theme)
+    pub fn create_minibuf(theme: &Theme) -> Self {
+        Self::new(BufferId::minibuf(), Rope::new(), None, theme)
     }
 
     #[throws]
-    pub fn from_path(path: &Path, theme: &Theme) -> Buffer {
+    pub fn from_path(path: &Path, theme: &Theme) -> Self {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
-        Buffer::new(BufferId::new(), text, Some(path.into()), theme)
+        Self::new(BufferId::new(), text, Some(path.into()), theme)
     }
 
     pub fn id(&self) -> &BufferId {

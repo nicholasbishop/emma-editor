@@ -74,8 +74,8 @@ pub struct KeyMap {
 }
 
 impl KeyMap {
-    pub fn new(name: &'static str) -> KeyMap {
-        KeyMap {
+    pub fn new(name: &'static str) -> Self {
+        Self {
             name,
             map: BTreeMap::new(),
         }
@@ -85,8 +85,8 @@ impl KeyMap {
     pub fn from_pairs<'a, I: Iterator<Item = (&'a str, Action)>>(
         name: &'static str,
         iter: I,
-    ) -> KeyMap {
-        let mut map = KeyMap::new(name);
+    ) -> Self {
+        let mut map = Self::new(name);
         for (keys, action) in iter {
             map.parse_and_insert(keys, action)?;
         }
@@ -95,8 +95,8 @@ impl KeyMap {
 
     // TODO: move this to event.rs
     #[throws]
-    pub fn base() -> KeyMap {
-        KeyMap::from_pairs(
+    pub fn base() -> Self {
+        Self::from_pairs(
             "base",
             vec![
                 // TODO: for now make it easy to quit

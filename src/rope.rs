@@ -22,14 +22,14 @@ pub struct RelLine(usize);
 pub struct AbsLine(pub usize);
 
 impl RelChar {
-    pub fn zero() -> RelChar {
-        RelChar(0)
+    pub fn zero() -> Self {
+        Self(0)
     }
 }
 
 impl RelLine {
-    pub fn new(val: usize) -> RelLine {
-        RelLine(val)
+    pub fn new(val: usize) -> Self {
+        Self(val)
     }
 }
 
@@ -40,10 +40,10 @@ impl AddAssign<usize> for RelLine {
 }
 
 impl Add<RelLine> for AbsLine {
-    type Output = AbsLine;
+    type Output = Self;
 
-    fn add(self, rhs: RelLine) -> AbsLine {
-        AbsLine(self.0 + rhs.0)
+    fn add(self, rhs: RelLine) -> Self {
+        Self(self.0 + rhs.0)
     }
 }
 
@@ -54,16 +54,16 @@ impl AddAssign<usize> for AbsLine {
 }
 
 impl AbsLine {
-    pub fn zero() -> AbsLine {
-        AbsLine(0)
+    pub fn zero() -> Self {
+        Self(0)
     }
 
-    pub fn offset_from(&self, val: AbsLine) -> Option<RelLine> {
+    pub fn offset_from(&self, val: Self) -> Option<RelLine> {
         Some(RelLine(self.0.checked_sub(val.0)?))
     }
 
-    pub fn saturating_sub(&self, val: RelLine) -> AbsLine {
-        AbsLine(self.0.saturating_sub(val.0))
+    pub fn saturating_sub(&self, val: RelLine) -> Self {
+        Self(self.0.saturating_sub(val.0))
     }
 }
 
@@ -103,8 +103,8 @@ impl ToString for Rope {
 }
 
 impl Rope {
-    pub fn new() -> Rope {
-        Rope(ropey::Rope::new())
+    pub fn new() -> Self {
+        Self(ropey::Rope::new())
     }
 
     pub fn from_reader<T: Read>(reader: T) -> io::Result<Self> {
@@ -116,7 +116,7 @@ impl Rope {
     }
 
     pub fn from_str(text: &str) -> Self {
-        Rope(ropey::Rope::from_str(text))
+        Self(ropey::Rope::from_str(text))
     }
 
     pub fn insert(&mut self, char_idx: AbsChar, text: &str) {
@@ -271,8 +271,8 @@ impl<'a, T> Iterator for LineDataIter<'a, T> {
 }
 
 impl<T: Clone + Default> LineDataVec<T> {
-    pub fn with_size(start_line: AbsLine, len: usize) -> LineDataVec<T> {
-        LineDataVec {
+    pub fn with_size(start_line: AbsLine, len: usize) -> Self {
+        Self {
             lines: vec![T::default(); len],
             start_line,
         }
@@ -280,8 +280,8 @@ impl<T: Clone + Default> LineDataVec<T> {
 }
 
 impl<T> LineDataVec<T> {
-    pub fn new(start_line: AbsLine) -> LineDataVec<T> {
-        LineDataVec {
+    pub fn new(start_line: AbsLine) -> Self {
+        Self {
             lines: Vec::new(),
             start_line,
         }

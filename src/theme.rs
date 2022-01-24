@@ -149,14 +149,14 @@ impl ForeAndBack {
         background: Color,
     ) -> ForeAndBack {
         if let Some(item) = item {
-            ForeAndBack {
+            Self {
                 foreground: parse_color(&item.foreground)?
                     .unwrap_or(foreground),
                 background: parse_color(&item.background)?
                     .unwrap_or(background),
             }
         } else {
-            ForeAndBack {
+            Self {
                 foreground,
                 background,
             }
@@ -198,7 +198,7 @@ impl Theme {
             });
         }
 
-        Theme {
+        Self {
             syntect: theme,
             info_bar_active: ForeAndBack::parse_with_default(
                 &yaml.settings.info_bar_active,
@@ -219,8 +219,8 @@ impl Theme {
     }
 
     #[throws]
-    pub fn load_default() -> Theme {
+    pub fn load_default() -> Self {
         let theme = include_str!("emma.theme.yml");
-        Theme::load(theme)?
+        Self::load(theme)?
     }
 }

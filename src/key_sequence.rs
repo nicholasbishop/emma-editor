@@ -37,11 +37,8 @@ pub struct KeySequenceAtom {
 }
 
 impl KeySequenceAtom {
-    pub fn from_event(
-        key: gdk::keys::Key,
-        state: ModifierType,
-    ) -> KeySequenceAtom {
-        KeySequenceAtom {
+    pub fn from_event(key: gdk::keys::Key, state: ModifierType) -> Self {
+        Self {
             modifiers: state,
             // Convert the key to lowercase as a way to
             // normalize. This is far from perfect, for example "?"
@@ -212,16 +209,16 @@ impl KeySequence {
             }
         }
 
-        KeySequence(seq)
+        Self(seq)
     }
 
     #[throws]
-    pub fn parse(s: &str) -> KeySequence {
+    pub fn parse(s: &str) -> Self {
         let items = parse_key_sequence_as_items(s)?;
         Self::from_items(&items)?
     }
 
-    pub fn starts_with(&self, other: &KeySequence) -> bool {
+    pub fn starts_with(&self, other: &Self) -> bool {
         self.0.starts_with(&other.0)
     }
 }

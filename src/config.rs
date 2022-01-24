@@ -17,7 +17,7 @@ pub struct Config {
 }
 
 impl Default for Config {
-    fn default() -> Config {
+    fn default() -> Self {
         // TODO: for some reason an empty string doesn't work here.
         serde_yaml::from_str("x: y").unwrap()
     }
@@ -25,7 +25,7 @@ impl Default for Config {
 
 impl Config {
     #[throws]
-    pub fn load() -> Config {
+    pub fn load() -> Self {
         let dir = dirs::config_dir()
             .ok_or_else(|| anyhow!("config dir unknown"))?
             .join("emma");
@@ -34,7 +34,7 @@ impl Config {
     }
 
     #[throws]
-    fn load_from_dir(dir: &Path) -> Config {
+    fn load_from_dir(dir: &Path) -> Self {
         // Try to create the directory. Ignore the error, it might
         // already exist.
         let _ = fs::create_dir_all(&dir);
@@ -48,7 +48,7 @@ impl Config {
             .create_new(true)
             .open(&config_path)
         {
-            let default_config = Config::default();
+            let default_config = Self::default();
             let default_config_str = serde_yaml::to_string(&default_config)?;
             file.write_all(default_config_str.as_bytes())?;
         }
