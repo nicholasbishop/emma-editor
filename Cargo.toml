@@ -35,5 +35,8 @@ rand = "0.8.4"
 serde = { version = "1.0.135", features = ["derive"] }
 serde_yaml = "0.8.23"
 
+[dev-dependencies]
+tempfile = "3.3.0"
+
 [profile.dev.package."*"]
 opt-level = 3

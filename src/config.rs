@@ -1,13 +1,15 @@
 use anyhow::{anyhow, Error};
 use fehler::throws;
 use fs_err as fs;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::io::Write;
+use std::path::Path;
 
 fn default_font_size() -> f64 {
     11.0
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     #[serde(default = "default_font_size")]
@@ -24,11 +26,35 @@ impl Default for Config {
 impl Config {
     #[throws]
     pub fn load() -> Config {
-        let path = dirs::config_dir()
+        let dir = dirs::config_dir()
             .ok_or_else(|| anyhow!("config dir unknown"))?
-            .join("emma/emma.yml");
-        let raw = fs::read_to_string(path)?;
+            .join("emma");
 
+        Self::load_from_dir(&dir)?
+    }
+
+    #[throws]
+    fn load_from_dir(dir: &Path) -> Config {
+        // Try to create the directory. Ignore the error, it might
+        // already exist.
+        let _ = fs::create_dir_all(&dir);
+
+        let config_path = dir.join("emma.yml");
+
+        // Write out a default config, but only if no config already
+        // exists.
+        if let Ok(mut file) = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&config_path)
+        {
+            let default_config = Config::default();
+            let default_config_str = serde_yaml::to_string(&default_config)?;
+            file.write_all(default_config_str.as_bytes())?;
+        }
+
+        // Read and parse the config.
+        let raw = fs::read_to_string(config_path)?;
         serde_yaml::from_str(&raw)?
     }
 }
@@ -36,6 +62,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::TempDir;
 
     #[test]
     fn test_default() {
@@ -45,5 +72,24 @@ mod tests {
         // is checked to verify that it isn't zero.
         let config = Config::default();
         assert_eq!(config.font_size, 11.0);
+    }
+
+    #[test]
+    #[throws]
+    fn test_load() {
+        let tmp_dir = TempDir::new()?;
+        let tmp_dir = tmp_dir.path();
+
+        // Test that the dir and default config get created.
+        let dir = tmp_dir.join("emma");
+        let _config = Config::load_from_dir(&dir)?;
+        assert!(dir.exists());
+        let config_path = dir.join("emma.yml");
+        assert!(config_path.exists());
+
+        // Modify the config, verify it doesn't get overwritten on load.
+        fs::write(&config_path, "x: y")?;
+        let _config = Config::load_from_dir(&dir)?;
+        assert_eq!(fs::read_to_string(&config_path)?, "x: y");
     }
 }
