@@ -200,6 +200,9 @@ pub struct Buffer {
     active_history_index: usize,
     last_action_type: ActionType,
 
+    parser: tree_sitter::Parser,
+    tree: tree_sitter::Tree,
+
     // TODO: consider using a reference instead of always cloning
     // theme.
     theme: Theme,
@@ -227,6 +230,24 @@ impl Buffer {
         path: Option<PathBuf>,
         theme: &Theme,
     ) -> Self {
+        let mut parser = tree_sitter::Parser::new();
+        // Very TODO
+        parser
+            .set_language(tree_sitter_rust::language())
+            .expect("Error loading Rust grammar");
+        let tree = parser
+            .parse_with(
+                &mut |byte_offset, _position| {
+                    if byte_offset >= text.0.len_bytes() {
+                        return "";
+                    }
+                    let (chunk, _, _, _) = text.0.chunk_at_byte(byte_offset);
+                    chunk
+                },
+                None,
+            )
+            .unwrap();
+
         let mut buf = Self {
             id,
             history: vec![HistoryItem {
@@ -236,6 +257,8 @@ impl Buffer {
             active_history_index: 0,
             last_action_type: ActionType::None,
             path,
+            parser,
+            tree,
             theme: theme.clone(),
             style_spans: LineDataVec::new(AbsLine::zero()),
             search: None,
