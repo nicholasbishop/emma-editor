@@ -103,7 +103,7 @@ impl App {
     }
 
     #[throws]
-    fn insert_char(&mut self, key: gdk::keys::Key) {
+    fn insert_char(&mut self, key: gdk::Key) {
         // Insert a character into the active pane.
         if let Some(c) = key.to_unicode() {
             let (pane, buf) = self.active_pane_buffer_mut()?;
@@ -396,7 +396,7 @@ impl App {
 
     pub(super) fn handle_key_press(
         &mut self,
-        key: gdk::keys::Key,
+        key: gdk::Key,
         state: gdk::ModifierType,
     ) -> Inhibit {
         let mut keymap_stack = KeyMapStack::default();

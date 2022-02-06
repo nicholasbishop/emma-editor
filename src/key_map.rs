@@ -22,7 +22,7 @@ pub enum Action {
 
     // Insert text for a key press, e.g. pressing the 'a' key inserts
     // an 'a' character into the active buffer.
-    Insert(gdk::keys::Key),
+    Insert(gdk::Key),
 
     Exit,
     OpenFile,
@@ -253,7 +253,7 @@ impl KeyMapStack {
         if seq.0.len() == 1 {
             let atom = &seq.0[0];
             if atom.modifiers.is_empty() {
-                return KeyMapLookup::Action(Action::Insert(atom.key.clone()));
+                return KeyMapLookup::Action(Action::Insert(atom.key));
             } else if atom.modifiers == ModifierType::SHIFT_MASK {
                 return KeyMapLookup::Action(Action::Insert(
                     atom.key.to_upper(),
@@ -330,9 +330,9 @@ mod tests {
         // Simple sequence not in any keymap.
         assert_eq!(
             stack.lookup(&KeySequence::parse("y").unwrap()),
-            KeyMapLookup::Action(Action::Insert(gdk::keys::Key::from_name(
-                "y"
-            )))
+            KeyMapLookup::Action(Action::Insert(
+                gdk::Key::from_name("y").unwrap()
+            ))
         );
 
         // Sequence not in any keymap.
