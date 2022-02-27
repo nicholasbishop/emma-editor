@@ -157,7 +157,7 @@ pub struct KeySequence(pub Vec<KeySequenceAtom>);
 
 impl KeySequence {
     #[throws]
-    fn from_items(items: &[ParseItem]) -> KeySequence {
+    fn from_items(items: &[ParseItem]) -> Self {
         enum State {
             ModOrKeyRequired,
             AppendRequired,

@@ -312,7 +312,7 @@ impl<T> LineDataVec<T> {
             // the end of the data so that the iterator will return nothing.
             offset: abs_line
                 .offset_from(self.start_line)
-                .unwrap_or_else(|| RelLine(self.lines.len())),
+                .unwrap_or(RelLine(self.lines.len())),
         }
     }
 

@@ -147,7 +147,7 @@ impl ForeAndBack {
         item: &Option<YamlThemeItem>,
         foreground: Color,
         background: Color,
-    ) -> ForeAndBack {
+    ) -> Self {
         if let Some(item) = item {
             Self {
                 foreground: parse_color(&item.foreground)?
@@ -174,7 +174,7 @@ pub struct Theme {
 
 impl Theme {
     #[throws]
-    fn load(theme: &str) -> Theme {
+    fn load(theme: &str) -> Self {
         let mut yaml: YamlTheme = serde_yaml::from_str(theme)?;
         yaml.expand_vars()?;
 
