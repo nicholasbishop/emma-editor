@@ -4,6 +4,7 @@ mod app;
 mod buffer;
 mod config;
 mod grapheme;
+mod highlight;
 mod key_map;
 mod key_sequence;
 mod pane_tree;

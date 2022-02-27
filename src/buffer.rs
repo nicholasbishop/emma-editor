@@ -12,10 +12,8 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::{fmt, fs, io};
-use syntect::highlighting::{
-    HighlightState, Highlighter, RangedHighlightIterator, Style,
-};
-use syntect::parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet};
+use syntect::highlighting::Style;
+use syntect::parsing::{SyntaxReference, SyntaxSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Direction {
@@ -553,51 +551,54 @@ impl Buffer {
 
     // TODO: simple for now
     fn recalc_style_spans(&mut self) {
-        self.style_spans.clear();
-
-        // TODO: cache
-        let syntax_set = SyntaxSet::load_defaults_newlines();
-
-        let syntax = self.get_syntax(&syntax_set);
-
-        let mut parse_state = ParseState::new(syntax);
-        let highlighter = Highlighter::new(&self.theme.syntect);
-        let mut highlight_state =
-            HighlightState::new(&highlighter, ScopeStack::new());
-
-        // Duplicate text() method to avoid borrowing issue.
+        // TODO: duplicated from text() method to appease borrowchk.
         let text = &self.history[self.active_history_index].text;
 
-        let mut full_line = String::new();
-        for line in text.lines() {
-            full_line.clear();
-            // TODO: any way to avoid pulling the full line in? Should
-            // at least limit the length probably.
-            for chunk in line.slice.chunks() {
-                full_line.push_str(chunk);
-            }
+        crate::highlight::recalc_style_spans(&mut self.style_spans, text);
 
-            let changes = parse_state.parse_line(&full_line, &syntax_set);
+        // // TODO: cache
+        // let syntax_set = SyntaxSet::load_defaults_newlines();
 
-            let iter = RangedHighlightIterator::new(
-                &mut highlight_state,
-                &changes,
-                &full_line,
-                &highlighter,
-            );
+        // let syntax = self.get_syntax(&syntax_set);
 
-            self.style_spans.push(StyledLine(
-                iter.map(|(style, _text, range)| {
-                    // Convert from byte range to char range.
-                    let start = line.slice.byte_to_char(range.start);
-                    let end = line.slice.byte_to_char(range.end);
-                    StyleSpan {
-                        len: end - start,
-                        style,
-                    }
-                })
-                .collect(),
-            ));
-        }
+        // let mut parse_state = ParseState::new(syntax);
+        // let highlighter = Highlighter::new(&self.theme.syntect);
+        // let mut highlight_state =
+        //     HighlightState::new(&highlighter, ScopeStack::new());
+
+        // // Duplicate text() method to avoid borrowing issue.
+        // let text = &self.history[self.active_history_index].text;
+
+        // let mut full_line = String::new();
+        // for line in text.lines() {
+        //     full_line.clear();
+        //     // TODO: any way to avoid pulling the full line in? Should
+        //     // at least limit the length probably.
+        //     for chunk in line.slice.chunks() {
+        //         full_line.push_str(chunk);
+        //     }
+
+        //     let changes = parse_state.parse_line(&full_line, &syntax_set);
+
+        //     let iter = RangedHighlightIterator::new(
+        //         &mut highlight_state,
+        //         &changes,
+        //         &full_line,
+        //         &highlighter,
+        //     );
+
+        //     self.style_spans.push(StyledLine(
+        //         iter.map(|(style, _text, range)| {
+        //             // Convert from byte range to char range.
+        //             let start = line.slice.byte_to_char(range.start);
+        //             let end = line.slice.byte_to_char(range.end);
+        //             StyleSpan {
+        //                 len: end - start,
+        //                 style,
+        //             }
+        //         })
+        //         .collect(),
+        //     ));
+        //  }
     }
 }
