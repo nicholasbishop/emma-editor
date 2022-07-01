@@ -4,6 +4,12 @@ Emma is a text editor.
 
 It is currently just a side project and not what you might call "functional". :)
 
+## Dependencies
+
+See the [gtk-rs book] for the necessary system libraries.
+
+[gtk-rs book]: https://gtk-rs.org/gtk4-rs/stable/latest/book/installation_linux.html
+
 ## Code layout
 
 - [main.rs](src/main.rs): basic gtk4 setup
