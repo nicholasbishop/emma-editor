@@ -554,7 +554,8 @@ impl Buffer {
                 full_line.push_str(chunk);
             }
 
-            let changes = parse_state.parse_line(&full_line, &syntax_set);
+            let changes =
+                parse_state.parse_line(&full_line, &syntax_set).unwrap();
 
             let iter = RangedHighlightIterator::new(
                 &mut highlight_state,
