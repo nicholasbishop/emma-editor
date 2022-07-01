@@ -26,7 +26,7 @@ parking_lot = "0.12.1"
 # Text
 aho-corasick = "0.7.18"
 ropey = "1.5.0"
-syntect = "4.6.0"
+syntect = "5.0.0"
 unicode-segmentation = "1.9.0"
 
 # Other
