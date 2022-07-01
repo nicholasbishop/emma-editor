@@ -7,33 +7,33 @@ resolver = "2"
 
 [dependencies]
 # Error handling
-anyhow = "1.0.53"
+anyhow = "1.0.58"
 fehler = "1.0.0"
-fs-err = "2.6.0"
-thiserror = "1.0.30"
+fs-err = "2.7.0"
+thiserror = "1.0.31"
 
 # GUI
 gtk4 = { git = "https://github.com/gtk-rs/gtk4.git" }
 pangocairo = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 
 # Logging
-tracing = "0.1.30"
-tracing-subscriber = { version = "0.3.8", default-features = false, features = ["env-filter", "fmt"] }
+tracing = "0.1.35"
+tracing-subscriber = { version = "0.3.14", default-features = false, features = ["env-filter", "fmt"] }
 
 # Sync
-parking_lot = "0.12.0"
+parking_lot = "0.12.1"
 
 # Text
 aho-corasick = "0.7.18"
-ropey = "1.3.2"
-syntect = "4.6.0"
-unicode-segmentation = "1.8.0"
+ropey = "1.5.0"
+syntect = "5.0.0"
+unicode-segmentation = "1.9.0"
 
 # Other
 dirs = "4.0.0"
-rand = "0.8.4"
-serde = { version = "1.0.136", features = ["derive"] }
-serde_yaml = "0.8.23"
+rand = "0.8.5"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_yaml = "0.8.24"
 
 [dev-dependencies]
 tempfile = "3.3.0"
