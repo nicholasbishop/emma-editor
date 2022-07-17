@@ -370,16 +370,24 @@ impl PaneTree {
         });
     }
 
-    pub fn panes(&self) -> Vec<&Pane> {
-        self.root.panes()
-    }
-
     pub fn minibuf(&self) -> &Pane {
         &self.minibuf
     }
 
+    pub fn panes(&self) -> Vec<&Pane> {
+        let mut vec = self.root.panes();
+        if self.is_minibuf_interactive {
+            vec.push(&self.minibuf);
+        }
+        vec
+    }
+
     pub fn panes_mut(&mut self) -> Vec<&mut Pane> {
-        self.root.panes_mut()
+        let mut vec = self.root.panes_mut();
+        if self.is_minibuf_interactive {
+            vec.push(&mut self.minibuf);
+        }
+        vec
     }
 
     pub fn active(&self) -> &Pane {
