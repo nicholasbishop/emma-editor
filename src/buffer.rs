@@ -142,6 +142,9 @@ type CursorMap = HashMap<PaneId, AbsChar>;
 #[derive(Clone)]
 struct HistoryItem {
     text: Rope,
+
+    markers: HashMap<String, AbsChar>,
+
     // TODO: style_spans?
 
     // Each pane showing this buffer has its own cursor.
@@ -231,6 +234,7 @@ impl Buffer {
             id,
             history: vec![HistoryItem {
                 text,
+                markers: HashMap::new(),
                 cursors: CursorMap::new(),
             }],
             active_history_index: 0,
@@ -289,6 +293,16 @@ impl Buffer {
         &self.search
     }
 
+    pub fn get_marker(&self, name: &str) -> Option<AbsChar> {
+        self.active_history_item().markers.get(name).copied()
+    }
+
+    pub fn set_marker<S: Into<String>>(&mut self, name: S, pos: AbsChar) {
+        self.active_history_item_mut()
+            .markers
+            .insert(name.into(), pos);
+    }
+
     pub fn cursor(&self, pane: &Pane) -> AbsChar {
         *self
             .active_history_item()
@@ -335,6 +349,10 @@ impl Buffer {
 
     fn active_history_item(&self) -> &HistoryItem {
         &self.history[self.active_history_index]
+    }
+
+    fn active_history_item_mut(&mut self) -> &mut HistoryItem {
+        &mut self.history[self.active_history_index]
     }
 
     fn cursors_mut(&mut self) -> &mut CursorMap {

@@ -183,6 +183,7 @@ impl App {
                 .expect("missing minibuf buffer");
             minibuf.set_text(prompt);
             minibuf.set_cursor(minibuf_pane, AbsChar(prompt.len()));
+            minibuf.set_marker("prompt_end", AbsChar(prompt.len()));
         }
     }
 
@@ -200,7 +201,11 @@ impl App {
     #[throws]
     fn open_file(&mut self) {
         // Get the path to open.
-        let text = self.minibuf().text().to_string();
+        let minibuf = self.minibuf();
+        let text = minibuf
+            .text()
+            .slice(minibuf.get_marker("prompt_end").unwrap()..)
+            .to_string();
         let path = Path::new(&text);
 
         // Reset the minibuf, which also reselects the previous active
