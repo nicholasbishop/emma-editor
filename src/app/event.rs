@@ -5,6 +5,7 @@ use crate::buffer::{
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{is_modifier, KeySequence, KeySequenceAtom};
 use crate::pane_tree::{Pane, PaneTree};
+use crate::rope::AbsChar;
 use anyhow::{anyhow, bail, Error};
 use fehler::throws;
 use gtk4::glib::signal::Inhibit;
@@ -169,6 +170,20 @@ impl App {
         self.interactive_state = state;
         self.pane_tree.set_minibuf_interactive(is_interactive);
         self.minibuf_mut().clear();
+        let prompt = match state {
+            InteractiveState::OpenFile => Some("Open file: "),
+            InteractiveState::Search => Some("Search: "),
+            InteractiveState::Initial => None,
+        };
+        if let Some(prompt) = prompt {
+            let minibuf_pane = self.pane_tree.minibuf();
+            let minibuf = self
+                .buffers
+                .get_mut(minibuf_pane.buffer_id())
+                .expect("missing minibuf buffer");
+            minibuf.set_text(prompt);
+            minibuf.set_cursor(minibuf_pane, AbsChar(prompt.len()));
+        }
     }
 
     fn clear_interactive_state(&mut self) {
