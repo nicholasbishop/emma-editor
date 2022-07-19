@@ -8,6 +8,7 @@ use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
 use anyhow::{anyhow, bail, Error};
 use fehler::throws;
+use fs_err as fs;
 use gtk4::glib::signal::Inhibit;
 use gtk4::prelude::*;
 use gtk4::{self as gtk, gdk};
@@ -191,11 +192,20 @@ impl App {
         self.set_interactive_state(InteractiveState::Initial);
     }
 
+    /// Display an error message in the minibuf.
     fn display_error(&mut self, error: Error) {
         self.clear_interactive_state();
         // TODO: think about how this error will get unset. On next
         // key press, like emacs? Hide or fade after a timeout?
         self.minibuf_mut().set_text(&format!("{}", error));
+    }
+
+    /// Display an informational message in the minibuf.
+    fn display_message(&mut self, msg: &str) {
+        self.clear_interactive_state();
+        // TODO: think about how this error will get unset. On next
+        // key press, like emacs? Hide or fade after a timeout?
+        self.minibuf_mut().set_text(msg);
     }
 
     #[throws]
@@ -372,6 +382,17 @@ impl App {
                 self.set_interactive_state(InteractiveState::OpenFile);
                 // TODO: prompt
 
+                buffer_changed = false;
+            }
+            Action::SaveFile => {
+                let buf = self.active_buffer_mut()?;
+                if let Some(path) = buf.path() {
+                    fs::write(path, buf.text().to_string())?;
+                    let msg = format!("Saved {}", path.display());
+                    self.display_message(&msg);
+                } else {
+                    todo!("attempted to save a buffer with no path");
+                }
                 buffer_changed = false;
             }
             Action::Confirm => {
