@@ -30,8 +30,8 @@ unicode-segmentation = "1.9.0"
 # Other
 dirs = "4.0.0"
 rand = "0.8.5"
-serde = { version = "1.0.137", features = ["derive"] }
-serde_yaml = "0.8.24"
+serde = { version = "1.0.139", features = ["derive"] }
+serde_yaml = "0.8.26"
 
 [dev-dependencies]
 tempfile = "3.3.0"
