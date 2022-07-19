@@ -412,6 +412,8 @@ impl App {
         if buffer_changed {
             self.handle_buffer_changed()?;
         }
+
+        self.persistence_store()?;
     }
 
     #[throws]

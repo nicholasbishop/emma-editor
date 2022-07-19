@@ -1,5 +1,6 @@
 mod draw;
 mod event;
+mod persistence;
 
 pub use draw::LineHeight;
 
