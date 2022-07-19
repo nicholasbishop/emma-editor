@@ -8,6 +8,7 @@ use crate::util;
 use aho_corasick::AhoCorasick;
 use anyhow::Error;
 use fehler::throws;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
@@ -34,7 +35,7 @@ pub enum Boundary {
     // LineEndExcludingWhitespace,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Deserialize, Serialize)]
 pub struct BufferId(String);
 
 impl BufferId {

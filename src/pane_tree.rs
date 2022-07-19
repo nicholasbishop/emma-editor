@@ -2,9 +2,10 @@ use crate::app::{BufferMap, LineHeight};
 use crate::buffer::{AbsChar, Buffer, BufferId, RelLine};
 use crate::rope::AbsLine;
 use crate::util;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq, Deserialize, Serialize)]
 pub struct PaneId(String);
 
 impl PaneId {
@@ -23,13 +24,13 @@ impl fmt::Display for PaneId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Orientation {
     Horizontal,
     Vertical,
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Rect {
     pub x: f64,
     pub y: f64,
@@ -43,7 +44,7 @@ impl Rect {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Pane {
     id: PaneId,
 
@@ -136,11 +137,13 @@ enum SplitResult {
     Single(Node),
 }
 
+#[derive(Deserialize, Serialize)]
 struct Internal {
     orientation: Orientation,
     children: Vec<Node>,
 }
 
+#[derive(Deserialize, Serialize)]
 enum Node {
     Internal(Internal),
     Leaf(Pane),
@@ -309,6 +312,7 @@ impl Node {
     }
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct PaneTree {
     root: Node,
     minibuf: Pane,

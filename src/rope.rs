@@ -1,5 +1,6 @@
 //! Thin wrapper around `ropey`.
 
+use serde::{Deserialize, Serialize};
 use std::io::{self, Read};
 use std::ops::{Add, AddAssign, Bound, RangeBounds};
 
@@ -18,7 +19,18 @@ pub struct RelChar(pub usize);
 pub struct RelLine(usize);
 
 /// Line index (zero indexed) within the rope.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Deserialize,
+    Serialize,
+)]
 pub struct AbsLine(pub usize);
 
 impl RelChar {
