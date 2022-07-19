@@ -40,14 +40,24 @@ impl App {
 
         let json = serde_json::to_string(&self.pane_tree)?;
         conn.execute(
-            "INSERT INTO kv (key, value) VALUES (?1, ?2)",
-            ("pane_tree", &json),
+            "INSERT INTO kv (key, value) VALUES ('pane_tree', ?1)",
+            (&json,),
         )?;
 
         Ok(())
     }
 
     pub fn persistence_load(&mut self) -> Result<()> {
-        todo!()
+        let cache_dir = cache_dir()?;
+        let db_path = cache_dir.join(DB_NAME);
+        let conn = Connection::open(db_path)?;
+
+        let mut stmt =
+            conn.prepare("SELECT value FROM kv WHERE key = 'pane_tree'")?;
+        let pane_tree_json: String = stmt.query_row([], |row| row.get(0))?;
+
+        // TODO self.pane_tree = serde_json::from_str(&pane_tree_json)?;
+
+        Ok(())
     }
 }

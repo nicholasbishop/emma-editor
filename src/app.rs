@@ -128,6 +128,10 @@ pub fn init(application: &gtk::Application) {
     buffers.insert(minibuf.id().clone(), minibuf);
     app.buffers = buffers;
 
+    if let Err(err) = app.persistence_load() {
+        error!("failed to load persistent data: {}", err);
+    }
+
     // Store app in global.
     APP.with(|cell| {
         *cell.borrow_mut() = Some(app);
