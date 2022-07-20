@@ -223,7 +223,7 @@ impl App {
         self.clear_interactive_state();
 
         // Load the file in a new buffer.
-        let buf = Buffer::from_path(path, &self.theme)?;
+        let buf = Buffer::from_path(path)?;
         let buf_id = buf.id().clone();
         self.buffers.insert(buf_id.clone(), buf);
         self.pane_tree

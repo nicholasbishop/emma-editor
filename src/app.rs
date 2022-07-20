@@ -39,7 +39,6 @@ struct App {
     buffers: HashMap<BufferId, Buffer>,
     pane_tree: PaneTree,
 
-    theme: Theme,
     interactive_state: InteractiveState,
     line_height: LineHeight,
 }
@@ -57,7 +56,7 @@ pub fn init(application: &gtk::Application) {
             let app = app.as_mut().unwrap();
 
             app.pane_tree.recalc_layout(width, height, app.line_height);
-            app.draw(ctx, width, height, app.line_height, &app.theme);
+            app.draw(ctx, width, height, app.line_height, &Theme::current());
         })
     });
 
@@ -98,14 +97,16 @@ pub fn init(application: &gtk::Application) {
     window.show();
     event::create_gtk_key_handler(&window);
 
-    let theme = Theme::load_default().expect("failed to load built-in theme");
+    Theme::set_current(
+        Theme::load_default().expect("failed to load built-in theme"),
+    );
 
     // TODO: load a temporary buffer
     let mut scratch_buffer =
-        Buffer::from_path(Path::new("src/app.rs"), &theme).unwrap();
+        Buffer::from_path(Path::new("src/app.rs")).unwrap();
 
     // Create the minibuf buffer
-    let mut minibuf = Buffer::create_minibuf(&theme);
+    let mut minibuf = Buffer::create_minibuf();
 
     let line_height = LineHeight::calculate(&widget);
 
@@ -118,7 +119,6 @@ pub fn init(application: &gtk::Application) {
         buffers: HashMap::new(),
         pane_tree: PaneTree::new(&mut scratch_buffer, &mut minibuf),
 
-        theme,
         interactive_state: InteractiveState::Initial,
         line_height,
     };

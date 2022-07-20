@@ -216,10 +216,6 @@ pub struct Buffer {
     active_history_index: usize,
     last_action_type: ActionType,
 
-    // TODO: consider using a reference instead of always cloning
-    // theme.
-    theme: Theme,
-
     // TODO: think about a smarter structure
     // TODO: put in arc for async update
     style_spans: LineDataVec<StyledLine>,
@@ -237,12 +233,7 @@ impl fmt::Debug for Buffer {
 }
 
 impl Buffer {
-    fn new(
-        id: BufferId,
-        text: Rope,
-        path: Option<PathBuf>,
-        theme: &Theme,
-    ) -> Self {
+    fn new(id: BufferId, text: Rope, path: Option<PathBuf>) -> Self {
         let mut buf = Self {
             id,
             history: vec![HistoryItem {
@@ -253,7 +244,6 @@ impl Buffer {
             active_history_index: 0,
             last_action_type: ActionType::None,
             path,
-            theme: theme.clone(),
             style_spans: LineDataVec::new(AbsLine::zero()),
             search: None,
         };
@@ -265,19 +255,19 @@ impl Buffer {
     }
 
     /// Create an empty buffer with no associated path.
-    pub fn create_empty(theme: &Theme) -> Self {
-        Self::new(BufferId::new(), Rope::new(), None, theme)
+    pub fn create_empty() -> Self {
+        Self::new(BufferId::new(), Rope::new(), None)
     }
 
-    pub fn create_minibuf(theme: &Theme) -> Self {
-        Self::new(BufferId::minibuf(), Rope::new(), None, theme)
+    pub fn create_minibuf() -> Self {
+        Self::new(BufferId::minibuf(), Rope::new(), None)
     }
 
     #[throws]
-    pub fn from_path(path: &Path, theme: &Theme) -> Self {
+    pub fn from_path(path: &Path) -> Self {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
-        Self::new(BufferId::new(), text, Some(path.into()), theme)
+        Self::new(BufferId::new(), text, Some(path.into()))
     }
 
     pub fn id(&self) -> &BufferId {
@@ -574,7 +564,8 @@ impl Buffer {
         let syntax = self.get_syntax(&syntax_set);
 
         let mut parse_state = ParseState::new(syntax);
-        let highlighter = Highlighter::new(&self.theme.syntect);
+        let theme = Theme::current();
+        let highlighter = Highlighter::new(&theme.syntect);
         let mut highlight_state =
             HighlightState::new(&highlighter, ScopeStack::new());
 

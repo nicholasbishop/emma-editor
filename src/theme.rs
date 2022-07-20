@@ -5,13 +5,18 @@
 
 use anyhow::{anyhow, bail, Error};
 use fehler::throws;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use syntect::highlighting::{
     Color, ParseThemeError, ScopeSelectors, StyleModifier,
     Theme as SyntectTheme, ThemeItem,
 };
 use syntect::LoadingError;
+
+static THEME: Lazy<Arc<Mutex<Option<Theme>>>> =
+    Lazy::new(|| Arc::new(Mutex::new(None)));
 
 fn rgb(r: u8, g: u8, b: u8) -> Color {
     Color { r, g, b, a: 255 }
@@ -173,6 +178,15 @@ pub struct Theme {
 }
 
 impl Theme {
+    pub fn set_current(theme: Self) {
+        let mut guard = THEME.lock().unwrap();
+        *guard = Some(theme);
+    }
+
+    pub fn current() -> Self {
+        THEME.lock().unwrap().clone().unwrap()
+    }
+
     #[throws]
     fn load(theme: &str) -> Self {
         let mut yaml: YamlTheme = serde_yaml::from_str(theme)?;
