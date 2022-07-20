@@ -46,6 +46,18 @@ impl BufferId {
     fn minibuf() -> Self {
         Self("buffer-minibuf".into())
     }
+
+    pub fn is_minibuf(&self) -> bool {
+        *self == Self::minibuf()
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn from_string(s: String) -> Self {
+        Self(s)
+    }
 }
 
 impl fmt::Display for BufferId {
@@ -250,6 +262,11 @@ impl Buffer {
         buf.recalc_style_spans();
 
         buf
+    }
+
+    /// Create an empty buffer with no associated path.
+    pub fn create_empty(theme: &Theme) -> Self {
+        Self::new(BufferId::new(), Rope::new(), None, theme)
     }
 
     pub fn create_minibuf(theme: &Theme) -> Self {
