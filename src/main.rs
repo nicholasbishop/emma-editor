@@ -17,10 +17,14 @@ use gtk4::prelude::*;
 fn main() {
     tracing_subscriber::fmt::init();
 
-    let application =
-        gtk::Application::new(Some("org.emma.Emma"), Default::default());
+    let application = gtk::Application::builder()
+        .application_id("org.emma.Emma")
+        .register_session(true)
+        .build();
+    // let application =
+    //     gtk::Application::new(Some("org.emma.Emma"), Default::default());
 
-    application.connect_activate(app::init);
+    application.connect_startup(app::init);
 
     application.run();
 }
