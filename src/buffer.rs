@@ -316,7 +316,7 @@ impl Buffer {
             .active_history_item()
             .cursors
             .get(pane.id())
-            .expect(&format!("no cursor for {}", pane.id()))
+            .unwrap_or_else(|| panic!("no cursor for {}", pane.id()))
     }
 
     pub fn set_cursor(&mut self, pane: &Pane, cursor: AbsChar) {
