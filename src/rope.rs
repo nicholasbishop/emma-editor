@@ -7,7 +7,18 @@ use std::ops::{Add, AddAssign, Bound, RangeBounds};
 // TODO: make `pub usize` below not `pub`.
 
 /// Char index (zero indexed) within the rope.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Deserialize,
+    Serialize,
+)]
 pub struct AbsChar(pub usize);
 
 /// Relative char offset.

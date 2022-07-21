@@ -150,7 +150,7 @@ enum ActionType {
     Deletion,
 }
 
-type CursorMap = HashMap<PaneId, AbsChar>;
+pub type CursorMap = HashMap<PaneId, AbsChar>;
 
 #[derive(Clone)]
 struct HistoryItem {
@@ -338,6 +338,10 @@ impl Buffer {
         for item in &mut self.history {
             item.cursors.remove(pane.id());
         }
+    }
+
+    pub fn cursors(&self) -> &CursorMap {
+        &self.active_history_item().cursors
     }
 
     /// Remove all text from the buffer.

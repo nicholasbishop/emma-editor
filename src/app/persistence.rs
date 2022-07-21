@@ -1,5 +1,5 @@
 use super::App;
-use crate::buffer::BufferId;
+use crate::buffer::{BufferId, CursorMap};
 use crate::pane_tree::PaneTree;
 use anyhow::{anyhow, Result};
 use fs_err as fs;
@@ -7,6 +7,7 @@ use rusqlite::Connection;
 use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
+use tracing::error;
 
 /// Name of the sqlite3 database file used to store cached data. This
 /// data is separate from the config data (see config.rs). It can be
@@ -25,6 +26,7 @@ fn cache_dir() -> Result<PathBuf> {
 pub struct PersistedBuffer {
     pub buffer_id: BufferId,
     pub path: Option<PathBuf>,
+    pub cursors: CursorMap,
 }
 
 impl App {
@@ -50,7 +52,8 @@ impl App {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS buffers (
                 buffer_id TEXT PRIMARY KEY,
-                path BLOB
+                path BLOB,
+                cursors TEXT
             )",
             (),
         )?;
@@ -67,11 +70,13 @@ impl App {
             if buffer_id.is_minibuf() {
                 continue;
             }
+            let cursors = serde_json::to_string(buffer.cursors())?;
             tx.execute(
-                "INSERT INTO buffers (buffer_id, path) VALUES (?1, ?2)",
+                "INSERT INTO buffers (buffer_id, path, cursors) VALUES (?1, ?2, ?3)",
                 (
                     buffer_id.as_str(),
                     buffer.path().map(|p| p.as_os_str().as_bytes()),
+                    cursors
                 ),
             )?;
         }
@@ -86,12 +91,22 @@ impl App {
         let db_path = cache_dir.join(DB_NAME);
         let conn = Connection::open(db_path)?;
 
-        let mut stmt = conn.prepare("SELECT buffer_id, path FROM buffers")?;
+        let mut stmt =
+            conn.prepare("SELECT buffer_id, path, cursors FROM buffers")?;
         let iter = stmt.query_map([], |row| {
             let path: Option<Vec<u8>> = row.get(1)?;
+            let cursors: String = row.get(2)?;
+            let cursors = match serde_json::from_str(&cursors) {
+                Ok(c) => c,
+                Err(err) => {
+                    error!("failed to deserialize buffer cursors: {err}");
+                    Default::default()
+                }
+            };
             Ok(PersistedBuffer {
                 buffer_id: BufferId::from_string(row.get(0)?),
                 path: path.map(|path| PathBuf::from(OsStr::from_bytes(&path))),
+                cursors,
             })
         })?;
         Ok(iter.collect::<Result<_, _>>()?)

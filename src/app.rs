@@ -108,10 +108,12 @@ pub fn init(application: &gtk::Application) {
     let mut scratch_buffer = Buffer::create_empty();
 
     let mut buffers = HashMap::new();
+    let mut cursors = HashMap::new();
     match App::load_persisted_buffers() {
         Ok(pb) => {
             for pb in pb {
                 info!("loading {:?}", pb);
+                cursors.insert(pb.buffer_id.clone(), pb.cursors);
                 // TODO; handle no path cases as well.
                 if let Some(path) = pb.path {
                     buffers.insert(
@@ -142,8 +144,14 @@ pub fn init(application: &gtk::Application) {
     // Ensure that all the panes are pointing to a valid buffer.
     for pane in pane_tree.panes_mut() {
         if let Some(buffer) = buffers.get_mut(pane.buffer_id()) {
-            // TODO: for now, just reset the cursor.
+            // Default the cursor to the top of the buffer, then try to
+            // restore the proper location from persisted data.
             buffer.set_cursor(pane, Default::default());
+            if let Some(cursors) = cursors.get(pane.buffer_id()) {
+                if let Some(pane_cursor) = cursors.get(pane.id()) {
+                    buffer.set_cursor(pane, *pane_cursor);
+                }
+            }
         } else {
             pane.switch_buffer(&mut buffers, &scratch_buffer_id);
         }
