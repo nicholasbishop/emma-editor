@@ -91,8 +91,11 @@ impl Pane {
         buffers: &mut BufferMap,
         new_buf_id: &BufferId,
     ) {
-        let old_buf = buffers.get_mut(&self.buffer_id).unwrap();
-        old_buf.remove_cursor(self);
+        // When loading persistent buffers, the "old buffer" might not
+        // actually exist, so make removing the cursor conditional.
+        if let Some(old_buf) = buffers.get_mut(&self.buffer_id) {
+            old_buf.remove_cursor(self);
+        }
 
         let new_buf = buffers.get_mut(new_buf_id).unwrap();
         new_buf.set_cursor(self, AbsChar::default());

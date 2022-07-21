@@ -12,8 +12,7 @@ use gtk4::prelude::*;
 use gtk4::{self as gtk, gdk};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::path::Path;
-use tracing::error;
+use tracing::{error, info};
 
 // This global is needed for callbacks on the main thread. On other
 // threads it is None.
@@ -101,36 +100,72 @@ pub fn init(application: &gtk::Application) {
         Theme::load_default().expect("failed to load built-in theme"),
     );
 
-    // TODO: load a temporary buffer
-    let mut scratch_buffer =
-        Buffer::from_path(Path::new("src/app.rs")).unwrap();
-
     // Create the minibuf buffer
     let mut minibuf = Buffer::create_minibuf();
 
+    // Always create an empty scratch buffer.
+    let mut scratch_buffer = Buffer::create_empty();
+
+    let mut buffers = HashMap::new();
+    match App::load_persisted_buffers() {
+        Ok(pb) => {
+            for pb in pb {
+                info!("loading {:?}", pb);
+                // TODO; handle no path cases as well.
+                if let Some(path) = pb.path {
+                    buffers.insert(
+                        pb.buffer_id,
+                        Buffer::from_path(&path).unwrap(),
+                    );
+                }
+            }
+        }
+        Err(err) => {
+            error!("failed to load persisted buffers: {}", err);
+        }
+    };
+
+    let mut pane_tree = match App::load_pane_tree() {
+        Ok(pt) => pt,
+        Err(err) => {
+            error!("failed to load persisted pane tree: {}", err);
+            PaneTree::new(&mut scratch_buffer, &mut minibuf)
+        }
+    };
+
+    let minibuf_id = minibuf.id().clone();
+    let scratch_buffer_id = scratch_buffer.id().clone();
+    buffers.insert(minibuf_id.clone(), minibuf);
+    buffers.insert(scratch_buffer_id.clone(), scratch_buffer);
+
+    // Ensure that all the panes are pointing to a valid buffer.
+    for pane in pane_tree.panes_mut() {
+        if let Some(buffer) = buffers.get_mut(pane.buffer_id()) {
+            // TODO: for now, just reset the cursor.
+            buffer.set_cursor(pane, Default::default());
+        } else {
+            pane.switch_buffer(&mut buffers, &scratch_buffer_id);
+        }
+    }
+    buffers
+        .get_mut(&minibuf_id)
+        .unwrap()
+        .set_cursor(pane_tree.minibuf(), Default::default());
+
     let line_height = LineHeight::calculate(&widget);
 
-    let mut app = App {
+    let app = App {
         window,
         widget,
 
         key_handler: event::KeyHandler::new().unwrap(),
 
-        buffers: HashMap::new(),
-        pane_tree: PaneTree::new(&mut scratch_buffer, &mut minibuf),
+        buffers,
+        pane_tree,
 
         interactive_state: InteractiveState::Initial,
         line_height,
     };
-
-    let mut buffers = HashMap::new();
-    buffers.insert(scratch_buffer.id().clone(), scratch_buffer);
-    buffers.insert(minibuf.id().clone(), minibuf);
-    app.buffers = buffers;
-
-    if let Err(err) = app.persistence_load() {
-        error!("failed to load persistent data: {}", err);
-    }
 
     // Store app in global.
     APP.with(|cell| {

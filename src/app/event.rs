@@ -14,6 +14,7 @@ use gtk4::prelude::*;
 use gtk4::{self as gtk, gdk};
 use std::collections::HashMap;
 use std::path::Path;
+use tracing::{error, info, instrument};
 
 pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
     let key_controller = gtk::EventControllerKey::new();
@@ -253,6 +254,7 @@ impl App {
         }
     }
 
+    #[instrument(skip(self))]
     #[throws]
     fn handle_buffer_changed(&mut self) {
         if self.interactive_state == InteractiveState::Search {
@@ -293,6 +295,8 @@ impl App {
 
     #[throws]
     fn handle_action(&mut self, action: Action) {
+        info!("handling action {:?}", action);
+
         let buffer_changed;
 
         match action {
@@ -413,7 +417,9 @@ impl App {
             self.handle_buffer_changed()?;
         }
 
-        self.persistence_store()?;
+        if let Err(err) = self.persistence_store() {
+            error!("failed to persist state: {err}");
+        }
     }
 
     #[throws]
@@ -479,6 +485,7 @@ impl App {
             }
             KeyMapLookup::Action(action) => {
                 if let Err(err) = self.handle_action(action) {
+                    error!("failed to handle action: {err}");
                     self.display_error(err);
                 }
             }

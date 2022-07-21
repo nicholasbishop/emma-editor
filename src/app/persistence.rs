@@ -1,7 +1,11 @@
 use super::App;
+use crate::buffer::BufferId;
+use crate::pane_tree::PaneTree;
 use anyhow::{anyhow, Result};
 use fs_err as fs;
 use rusqlite::Connection;
+use std::ffi::OsStr;
+use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 
 /// Name of the sqlite3 database file used to store cached data. This
@@ -17,6 +21,12 @@ fn cache_dir() -> Result<PathBuf> {
         .join("emma"))
 }
 
+#[derive(Debug)]
+pub struct PersistedBuffer {
+    pub buffer_id: BufferId,
+    pub path: Option<PathBuf>,
+}
+
 impl App {
     pub fn persistence_store(&self) -> Result<()> {
         let cache_dir = cache_dir()?;
@@ -27,7 +37,7 @@ impl App {
 
         // Open the database, creating it if necessary.
         let db_path = cache_dir.join(DB_NAME);
-        let conn = Connection::open(db_path)?;
+        let mut conn = Connection::open(db_path)?;
 
         // Create the tables if not already present.
         conn.execute(
@@ -37,17 +47,58 @@ impl App {
             )",
             (),
         )?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS buffers (
+                buffer_id TEXT PRIMARY KEY,
+                path BLOB
+            )",
+            (),
+        )?;
 
         let json = serde_json::to_string(&self.pane_tree)?;
         conn.execute(
-            "INSERT INTO kv (key, value) VALUES ('pane_tree', ?1)",
+            "REPLACE INTO kv (key, value) VALUES ('pane_tree', ?1)",
             (&json,),
         )?;
+
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM buffers", ())?;
+        for (buffer_id, buffer) in &self.buffers {
+            if buffer_id.is_minibuf() {
+                continue;
+            }
+            tx.execute(
+                "INSERT INTO buffers (buffer_id, path) VALUES (?1, ?2)",
+                (
+                    buffer_id.as_str(),
+                    buffer.path().map(|p| p.as_os_str().as_bytes()),
+                ),
+            )?;
+        }
+        tx.commit()?;
 
         Ok(())
     }
 
-    pub fn persistence_load(&mut self) -> Result<()> {
+    pub fn load_persisted_buffers() -> Result<Vec<PersistedBuffer>> {
+        // TODO: dedup
+        let cache_dir = cache_dir()?;
+        let db_path = cache_dir.join(DB_NAME);
+        let conn = Connection::open(db_path)?;
+
+        let mut stmt = conn.prepare("SELECT buffer_id, path FROM buffers")?;
+        let iter = stmt.query_map([], |row| {
+            let path: Option<Vec<u8>> = row.get(1)?;
+            Ok(PersistedBuffer {
+                buffer_id: BufferId::from_string(row.get(0)?),
+                path: path.map(|path| PathBuf::from(OsStr::from_bytes(&path))),
+            })
+        })?;
+        Ok(iter.collect::<Result<_, _>>()?)
+    }
+
+    pub fn load_pane_tree() -> Result<PaneTree> {
+        // TODO: dedup
         let cache_dir = cache_dir()?;
         let db_path = cache_dir.join(DB_NAME);
         let conn = Connection::open(db_path)?;
@@ -56,8 +107,6 @@ impl App {
             conn.prepare("SELECT value FROM kv WHERE key = 'pane_tree'")?;
         let pane_tree_json: String = stmt.query_row([], |row| row.get(0))?;
 
-        // TODO self.pane_tree = serde_json::from_str(&pane_tree_json)?;
-
-        Ok(())
+        Ok(serde_json::from_str(&pane_tree_json)?)
     }
 }
