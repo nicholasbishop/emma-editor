@@ -64,6 +64,7 @@ pub fn init(application: &gtk::Application) {
     window.set_title(Some("emma"));
     window.set_default_size(800, 800);
     window.set_child(Some(&widget));
+    window.maximize();
 
     let config = match Config::load() {
         Ok(config) => config,
