@@ -77,6 +77,10 @@ impl Pane {
         self.top_line
     }
 
+    pub fn set_top_line(&mut self, top_line: AbsLine) {
+        self.top_line = top_line;
+    }
+
     pub fn is_active(&self) -> bool {
         self.is_active
     }
