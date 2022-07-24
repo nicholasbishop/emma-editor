@@ -3,6 +3,7 @@ pub use crate::rope::{AbsChar, AbsLine, LinesIterItem, RelChar, RelLine};
 use crate::grapheme::{next_grapheme_boundary, prev_grapheme_boundary};
 use crate::pane_tree::{Pane, PaneId};
 use crate::rope::{LineDataVec, Rope};
+use crate::shell::Shell;
 use crate::theme::Theme;
 use crate::util;
 use aho_corasick::AhoCorasick;
@@ -221,6 +222,8 @@ pub struct Buffer {
     style_spans: LineDataVec<StyledLine>,
 
     search: Option<SearchState>,
+
+    shell: Option<Shell>,
 }
 
 impl fmt::Debug for Buffer {
@@ -246,6 +249,7 @@ impl Buffer {
             path,
             style_spans: LineDataVec::new(AbsLine::zero()),
             search: None,
+            shell: None,
         };
 
         // TODO, async
