@@ -7,6 +7,7 @@ pub use draw::LineHeight;
 use crate::buffer::{Buffer, BufferId};
 use crate::config::Config;
 use crate::pane_tree::PaneTree;
+use crate::rope::AbsLine;
 use crate::theme::Theme;
 use gtk4::prelude::*;
 use gtk4::{self as gtk, gdk};
@@ -154,6 +155,12 @@ pub fn init(application: &gtk::Application) {
             }
         } else {
             pane.switch_buffer(&mut buffers, &scratch_buffer_id);
+        }
+
+        // Ensure that the pane's top-line is valid.
+        let buffer = buffers.get(pane.buffer_id()).unwrap();
+        if pane.top_line() >= AbsLine(buffer.text().len_lines()) {
+            pane.set_top_line(AbsLine(0));
         }
     }
     buffers
