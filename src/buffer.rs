@@ -223,7 +223,7 @@ pub struct Buffer {
 
     search: Option<SearchState>,
 
-    shell: Option<Shell>,
+    _shell: Option<Shell>,
 }
 
 impl fmt::Debug for Buffer {
@@ -249,7 +249,7 @@ impl Buffer {
             path,
             style_spans: LineDataVec::new(AbsLine::zero()),
             search: None,
-            shell: None,
+            _shell: None,
         };
 
         // TODO, async

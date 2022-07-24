@@ -2,10 +2,11 @@ use anyhow::Result;
 use nix::pty::PtyMaster;
 
 pub struct Shell {
-    master: PtyMaster,
+    _master: PtyMaster,
 }
+
 impl Shell {
-    pub fn new() -> Result<Shell> {
+    pub fn _new() -> Result<Shell> {
         todo!();
     }
 }
