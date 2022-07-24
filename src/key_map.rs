@@ -24,6 +24,10 @@ pub enum Action {
     // an 'a' character into the active buffer.
     Insert(gdk::Key),
 
+    // Insert a new line after the cursor. The cursor position is left
+    // unchanged.
+    InsertLineAfter,
+
     Exit,
     OpenFile,
     SaveFile,
@@ -101,6 +105,7 @@ impl KeyMap {
             vec![
                 // TODO: for now make it easy to quit
                 ("<esc>", Action::Exit),
+                ("<ctrl>o", Action::InsertLineAfter),
                 (
                     "<ctrl>b",
                     Action::Move(
