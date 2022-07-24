@@ -6,7 +6,7 @@ pub struct Shell {
 }
 
 impl Shell {
-    pub fn _new() -> Result<Shell> {
+    pub fn _new() -> Result<Self> {
         todo!();
     }
 }
