@@ -8,7 +8,7 @@ aho-corasick = "0.7.18"
 anyhow = "1.0.58"
 dirs = "4.0.0"
 fehler = "1.0.0"
-fs-err = "2.7.0"
+fs-err = "3.0.0"
 gtk4 = { git = "https://github.com/gtk-rs/gtk4.git" }
 nix = "0.24.2"
 once_cell = "1.13.0"
