@@ -528,7 +528,8 @@ impl Buffer {
             matches: LineDataVec::with_size(pane.top_line(), num_lines),
         };
 
-        let ac = AhoCorasick::new(&[text]);
+        // TODO: unwrap
+        let ac = AhoCorasick::new(&[text]).unwrap();
         for line in self.text().lines_at(state.matches.start_line()) {
             let lm = if let Some(lm) = state.matches.get_mut(line.index) {
                 lm
