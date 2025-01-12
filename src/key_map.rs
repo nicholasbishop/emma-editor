@@ -1,8 +1,7 @@
 use crate::buffer::{Boundary, Direction};
 use crate::key_sequence::KeySequence;
 use crate::pane_tree;
-use anyhow::Error;
-use fehler::throws;
+use anyhow::Result;
 use gtk4::gdk::{self, ModifierType};
 use std::collections::BTreeMap;
 use tracing::{debug, error, instrument};
@@ -85,21 +84,19 @@ impl KeyMap {
         }
     }
 
-    #[throws]
     pub fn from_pairs<'a, I: Iterator<Item = (&'a str, Action)>>(
         name: &'static str,
         iter: I,
-    ) -> Self {
+    ) -> Result<Self> {
         let mut map = Self::new(name);
         for (keys, action) in iter {
             map.parse_and_insert(keys, action)?;
         }
-        map
+        Ok(map)
     }
 
     // TODO: move this to event.rs
-    #[throws]
-    pub fn base() -> Self {
+    pub fn base() -> Result<Self> {
         Self::from_pairs(
             "base",
             vec![
@@ -184,16 +181,16 @@ impl KeyMap {
                 ("<ctrl>g", Action::Cancel),
             ]
             .into_iter(),
-        )?
+        )
     }
 
     pub fn insert(&mut self, seq: KeySequence, action: Action) {
         self.map.insert(seq, action);
     }
 
-    #[throws]
-    pub fn parse_and_insert(&mut self, s: &str, action: Action) {
+    pub fn parse_and_insert(&mut self, s: &str, action: Action) -> Result<()> {
         self.insert(KeySequence::parse(s)?, action);
+        Ok(())
     }
 
     pub fn lookup(&self, seq: &KeySequence) -> KeyMapLookup {
@@ -269,7 +266,7 @@ impl KeyMapStack {
         KeyMapLookup::BadSequence
     }
 
-    pub fn push(&mut self, map: Result<KeyMap, Error>) {
+    pub fn push(&mut self, map: Result<KeyMap>) {
         match map {
             Ok(map) => self.0.push(map),
             Err(err) => {

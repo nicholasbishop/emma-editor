@@ -1,5 +1,4 @@
-use anyhow::{anyhow, Error};
-use fehler::throws;
+use anyhow::{anyhow, Result};
 use fs_err as fs;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
@@ -24,17 +23,15 @@ impl Default for Config {
 }
 
 impl Config {
-    #[throws]
-    pub fn load() -> Self {
+    pub fn load() -> Result<Self> {
         let dir = dirs::config_dir()
             .ok_or_else(|| anyhow!("config dir unknown"))?
             .join("emma");
 
-        Self::load_from_dir(&dir)?
+        Self::load_from_dir(&dir)
     }
 
-    #[throws]
-    fn load_from_dir(dir: &Path) -> Self {
+    fn load_from_dir(dir: &Path) -> Result<Self> {
         // Try to create the directory. Ignore the error, it might
         // already exist.
         let _ = fs::create_dir_all(&dir);
@@ -55,7 +52,7 @@ impl Config {
 
         // Read and parse the config.
         let raw = fs::read_to_string(config_path)?;
-        serde_yaml::from_str(&raw)?
+        Ok(serde_yaml::from_str(&raw)?)
     }
 }
 
@@ -75,8 +72,7 @@ mod tests {
     }
 
     #[test]
-    #[throws]
-    fn test_load() {
+    fn test_load() -> Result<()> {
         let tmp_dir = TempDir::new()?;
         let tmp_dir = tmp_dir.path();
 
@@ -91,5 +87,7 @@ mod tests {
         fs::write(&config_path, "x: y")?;
         let _config = Config::load_from_dir(&dir)?;
         assert_eq!(fs::read_to_string(&config_path)?, "x: y");
+
+        Ok(())
     }
 }

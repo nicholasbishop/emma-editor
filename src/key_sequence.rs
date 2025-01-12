@@ -1,4 +1,3 @@
-use fehler::{throw, throws};
 use gtk4::gdk::{self, Key, ModifierType};
 use gtk4::glib::translate::FromGlib;
 use std::collections::HashMap;
@@ -100,8 +99,7 @@ enum ParseItem {
     Append,
 }
 
-#[throws]
-fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
+fn parse_key_sequence_as_items(s: &str) -> Result<Vec<ParseItem>, Error> {
     enum State {
         Initial,
         InName,
@@ -138,7 +136,7 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
                     if let Some(val) = names.get(name.as_str()) {
                         items.push(val.clone());
                     } else {
-                        throw!(Error::InvalidName(name));
+                        return Err(Error::InvalidName(name));
                     }
                     name.clear();
                     state = State::Initial;
@@ -149,15 +147,14 @@ fn parse_key_sequence_as_items(s: &str) -> Vec<ParseItem> {
         }
     }
 
-    items
+    Ok(items)
 }
 
 #[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct KeySequence(pub Vec<KeySequenceAtom>);
 
 impl KeySequence {
-    #[throws]
-    fn from_items(items: &[ParseItem]) -> Self {
+    fn from_items(items: &[ParseItem]) -> Result<Self, Error> {
         enum State {
             ModOrKeyRequired,
             AppendRequired,
@@ -177,7 +174,7 @@ impl KeySequence {
                             state = State::ModOrKeyRequired;
                         }
                         State::AppendRequired => {
-                            throw!(Error::UnexpectedModifier(*m));
+                            return Err(Error::UnexpectedModifier(*m));
                         }
                     }
                 }
@@ -193,13 +190,13 @@ impl KeySequence {
                             state = State::AppendRequired;
                         }
                         State::AppendRequired => {
-                            throw!(Error::UnexpectedKey(*k));
+                            return Err(Error::UnexpectedKey(*k));
                         }
                     }
                 }
                 ParseItem::Append => match state {
                     State::ModOrKeyRequired => {
-                        throw!(Error::UnexpectedAppend);
+                        return Err(Error::UnexpectedAppend);
                     }
                     State::AppendRequired => {
                         state = State::ModOrKeyRequired;
@@ -208,13 +205,12 @@ impl KeySequence {
             }
         }
 
-        Self(seq)
+        Ok(Self(seq))
     }
 
-    #[throws]
-    pub fn parse(s: &str) -> Self {
+    pub fn parse(s: &str) -> Result<Self, Error> {
         let items = parse_key_sequence_as_items(s)?;
-        Self::from_items(&items)?
+        Self::from_items(&items)
     }
 
     pub fn starts_with(&self, other: &Self) -> bool {

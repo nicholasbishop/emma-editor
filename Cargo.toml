@@ -7,7 +7,6 @@ edition = "2021"
 aho-corasick = "1.1.0"
 anyhow = "1.0.58"
 dirs = "4.0.0"
-fehler = "1.0.0"
 fs-err = "3.0.0"
 gtk4 = { git = "https://github.com/gtk-rs/gtk4.git" }
 nix = "0.24.2"

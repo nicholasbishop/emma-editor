@@ -6,8 +6,7 @@ use crate::grapheme::next_grapheme_boundary;
 use crate::pane_tree::Pane;
 use crate::rope::{LineDataVec, RopeSlice};
 use crate::theme::Theme;
-use anyhow::Error;
-use fehler::throws;
+use anyhow::Result;
 use gtk4::pango::{self, Layout};
 use gtk4::prelude::*;
 use gtk4::{self as gtk, cairo};
@@ -324,11 +323,10 @@ impl<'a> DrawPane<'a> {
         output
     }
 
-    #[throws]
-    fn draw_cursor(&mut self, styled_layout: &StyledLayout) {
+    fn draw_cursor(&mut self, styled_layout: &StyledLayout) -> Result<()> {
         if !self.pane.is_cursor_visible() {
             debug!("cursor not visible");
-            return;
+            return Ok(());
         }
 
         set_source_from_syntect_color(
@@ -363,10 +361,11 @@ impl<'a> DrawPane<'a> {
         } else {
             self.ctx.stroke()?;
         }
+
+        Ok(())
     }
 
-    #[throws]
-    fn draw_line(&mut self, line: &LinesIterItem) {
+    fn draw_line(&mut self, line: &LinesIterItem) -> Result<()> {
         self.pos.x = self.pane.rect().x;
 
         self.ctx.move_to(self.margin, self.pos.y);
@@ -410,10 +409,10 @@ impl<'a> DrawPane<'a> {
         }
 
         self.pos.y += self.line_height.0;
+        Ok(())
     }
 
-    #[throws]
-    fn draw_info_bar(&mut self) {
+    fn draw_info_bar(&mut self) -> Result<()> {
         if self.pane.is_active() {
             set_source_from_syntect_color(
                 self.ctx,
@@ -455,11 +454,12 @@ impl<'a> DrawPane<'a> {
             self.pos.y = rect.y + rect.height - self.line_height.0;
             self.draw_layout(&layout);
         }
+
+        Ok(())
     }
 
     #[instrument]
-    #[throws]
-    fn draw(&mut self) {
+    fn draw(&mut self) -> Result<()> {
         debug!("drawing pane with {} lines", self.buf.text().len_lines());
 
         // Fill in the background. Subtract small amount from the
@@ -489,6 +489,8 @@ impl<'a> DrawPane<'a> {
         if self.pane.show_info_bar() {
             self.draw_info_bar()?;
         }
+
+        Ok(())
     }
 }
 

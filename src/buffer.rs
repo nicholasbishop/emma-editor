@@ -7,8 +7,7 @@ use crate::shell::Shell;
 use crate::theme::Theme;
 use crate::util;
 use aho_corasick::AhoCorasick;
-use anyhow::Error;
-use fehler::throws;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Range;
@@ -267,11 +266,10 @@ impl Buffer {
         Self::new(BufferId::minibuf(), Rope::new(), None)
     }
 
-    #[throws]
-    pub fn from_path(path: &Path) -> Self {
+    pub fn from_path(path: &Path) -> Result<Self> {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
-        Self::new(BufferId::new(), text, Some(path.into()))
+        Ok(Self::new(BufferId::new(), text, Some(path.into())))
     }
 
     pub fn id(&self) -> &BufferId {
