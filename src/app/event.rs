@@ -6,8 +6,7 @@ use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{is_modifier, KeySequence, KeySequenceAtom};
 use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
-use anyhow::{anyhow, bail, Error};
-use fehler::throws;
+use anyhow::{anyhow, bail, Error, Result};
 use fs_err as fs;
 use gtk4::glib::signal::Inhibit;
 use gtk4::prelude::*;
@@ -36,12 +35,11 @@ pub(super) struct KeyHandler {
 }
 
 impl KeyHandler {
-    #[throws]
-    pub(super) fn new() -> Self {
-        Self {
+    pub(super) fn new() -> Result<Self> {
+        Ok(Self {
             base_keymap: KeyMap::base()?,
             cur_seq: KeySequence::default(),
-        }
+        })
     }
 }
 
@@ -49,49 +47,50 @@ fn invalid_active_buffer_error() -> Error {
     anyhow!("internal error: active pane points to invalid buffer")
 }
 
-#[throws]
 fn active_buffer_mut<'a, 'b>(
     pane_tree: &'a PaneTree,
     buffers: &'b mut HashMap<BufferId, Buffer>,
-) -> &'b mut Buffer {
+) -> Result<&'b mut Buffer> {
     let pane = pane_tree.active();
     buffers
         .get_mut(pane.buffer_id())
-        .ok_or_else(invalid_active_buffer_error)?
+        .ok_or_else(invalid_active_buffer_error)
 }
 
 impl App {
-    #[throws]
-    fn active_buffer_mut(&mut self) -> &mut Buffer {
+    fn active_buffer_mut(&mut self) -> Result<&mut Buffer> {
         let pane = self.pane_tree.active();
         let buf = self
             .buffers
             .get_mut(pane.buffer_id())
             .ok_or_else(invalid_active_buffer_error)?;
-        buf
+        Ok(buf)
     }
 
-    #[throws]
-    fn active_pane_buffer_mut(&mut self) -> (&Pane, &mut Buffer) {
+    fn active_pane_buffer_mut(&mut self) -> Result<(&Pane, &mut Buffer)> {
         let pane = self.pane_tree.active();
         let buf = self
             .buffers
             .get_mut(pane.buffer_id())
             .ok_or_else(invalid_active_buffer_error)?;
-        (pane, buf)
+        Ok((pane, buf))
     }
 
-    #[throws]
-    fn active_pane_mut_buffer_mut(&mut self) -> (&mut Pane, &mut Buffer) {
+    fn active_pane_mut_buffer_mut(
+        &mut self,
+    ) -> Result<(&mut Pane, &mut Buffer)> {
         let pane = self.pane_tree.active_mut();
         let buf = self.buffers.get_mut(pane.buffer_id()).ok_or_else(|| {
             anyhow!("internal error: active pane points to invalid buffer")
         })?;
-        (pane, buf)
+        Ok((pane, buf))
     }
 
-    #[throws]
-    fn delete_text(&mut self, boundary: Boundary, direction: Direction) {
+    fn delete_text(
+        &mut self,
+        boundary: Boundary,
+        direction: Direction,
+    ) -> Result<()> {
         let (pane, buf) = self.active_pane_buffer_mut()?;
         let pos = buf.cursor(pane);
         let boundary = buf.find_boundary(pos, boundary, direction);
@@ -103,20 +102,20 @@ impl App {
             };
             buf.delete_text(range);
         }
+        Ok(())
     }
 
-    #[throws]
-    fn insert_char(&mut self, key: gdk::Key) {
+    fn insert_char(&mut self, key: gdk::Key) -> Result<()> {
         // Insert a character into the active pane.
         if let Some(c) = key.to_unicode() {
             let (pane, buf) = self.active_pane_buffer_mut()?;
             let pos = buf.cursor(pane);
             buf.insert_char(c, pos);
         }
+        Ok(())
     }
 
-    #[throws]
-    fn move_cursor(&mut self, step: Move, dir: Direction) {
+    fn move_cursor(&mut self, step: Move, dir: Direction) -> Result<()> {
         let line_height = self.line_height;
         let (pane, buf) = self.active_pane_mut_buffer_mut()?;
         let text = buf.text();
@@ -153,6 +152,8 @@ impl App {
         buf.set_cursor(pane, cursor);
 
         pane.maybe_rescroll(buf, cursor, line_height);
+
+        Ok(())
     }
 
     fn minibuf(&self) -> &Buffer {
@@ -209,8 +210,7 @@ impl App {
         self.minibuf_mut().set_text(msg);
     }
 
-    #[throws]
-    fn open_file(&mut self) {
+    fn open_file(&mut self) -> Result<()> {
         // Get the path to open.
         let minibuf = self.minibuf();
         let text = minibuf
@@ -230,10 +230,10 @@ impl App {
         self.pane_tree
             .active_mut()
             .switch_buffer(&mut self.buffers, &buf_id);
+        Ok(())
     }
 
-    #[throws]
-    fn handle_confirm(&mut self) {
+    fn handle_confirm(&mut self) -> Result<()> {
         match self.interactive_state {
             InteractiveState::Initial => {}
             InteractiveState::OpenFile => {
@@ -252,11 +252,11 @@ impl App {
                 self.clear_interactive_state();
             }
         }
+        Ok(())
     }
 
     #[instrument(skip(self))]
-    #[throws]
-    fn handle_buffer_changed(&mut self) {
+    fn handle_buffer_changed(&mut self) -> Result<()> {
         if self.interactive_state == InteractiveState::Search {
             let minibuf = self.minibuf();
             let search_for = minibuf.text().to_string();
@@ -272,10 +272,10 @@ impl App {
                 (pane.rect().height / line_height.0).round() as usize;
             buf.search(&search_for, pane, num_lines);
         }
+        Ok(())
     }
 
-    #[throws]
-    fn search_next(&mut self) {
+    fn search_next(&mut self) -> Result<()> {
         let pane = self.pane_tree.active_excluding_minibuf();
         let buf = self
             .buffers
@@ -291,10 +291,11 @@ impl App {
                 buf.set_cursor(pane, ci);
             }
         }
+
+        Ok(())
     }
 
-    #[throws]
-    fn handle_action(&mut self, action: Action) {
+    fn handle_action(&mut self, action: Action) -> Result<()> {
         info!("handling action {:?}", action);
 
         let buffer_changed;
@@ -420,10 +421,11 @@ impl App {
         if let Err(err) = self.persistence_store() {
             error!("failed to persist state: {err}");
         }
+
+        Ok(())
     }
 
-    #[throws]
-    fn get_minibuf_keymap(&self) -> KeyMap {
+    fn get_minibuf_keymap(&self) -> Result<KeyMap> {
         KeyMap::from_pairs(
             "minibuf",
             vec![
@@ -432,15 +434,14 @@ impl App {
                 ("<ctrl>m", Action::Confirm),
             ]
             .into_iter(),
-        )?
+        )
     }
 
-    #[throws]
-    fn get_search_keymap(&self) -> KeyMap {
+    fn get_search_keymap(&self) -> Result<KeyMap> {
         KeyMap::from_pairs(
             "search",
             vec![("<ctrl>s", Action::SearchNext)].into_iter(),
-        )?
+        )
     }
 
     pub(super) fn handle_key_press(

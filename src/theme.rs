@@ -3,8 +3,7 @@
 //!
 //! See `emma.theme.yml` for an example.
 
-use anyhow::{anyhow, bail, Error};
-use fehler::throws;
+use anyhow::{anyhow, bail, Error, Result};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -47,9 +46,8 @@ struct YamlThemeScope {
 }
 
 impl YamlThemeScope {
-    #[throws(ParseThemeError)]
-    fn scope_selectors(&self) -> ScopeSelectors {
-        self.scope.parse()?
+    fn scope_selectors(&self) -> Result<ScopeSelectors, ParseThemeError> {
+        Ok(self.scope.parse()?)
     }
 }
 
@@ -62,8 +60,7 @@ struct YamlTheme {
 }
 
 impl YamlTheme {
-    #[throws]
-    fn expand_vars(&mut self) {
+    fn expand_vars(&mut self) -> Result<()> {
         // For now variable expansion is very simple. It only works
         // for colors, and if a variable is used it must be the entire
         // string, e.g. you can have "$myvar" but not "foo$myvar".
@@ -105,12 +102,13 @@ impl YamlTheme {
         for scope in self.scopes.values_mut() {
             expand(&mut scope.foreground)?;
         }
+
+        Ok(())
     }
 }
 
-#[throws]
 #[allow(clippy::many_single_char_names)]
-fn parse_color(s: &Option<String>) -> Option<Color> {
+fn parse_color(s: &Option<String>) -> Result<Option<Color>> {
     if let Some(s) = s {
         if let Some(rest) = s.strip_prefix('#') {
             // TODO: support shorthand colors like "#555"?
@@ -127,7 +125,7 @@ fn parse_color(s: &Option<String>) -> Option<Color> {
                     bail!("color has invalid length: {}", s);
                 };
 
-                Some(Color { r, g, b, a })
+                Ok(Some(Color { r, g, b, a }))
             } else {
                 bail!("color is too short: {}", s);
             }
@@ -135,7 +133,7 @@ fn parse_color(s: &Option<String>) -> Option<Color> {
             bail!("color does not start with '#': {}", s);
         }
     } else {
-        None
+        Ok(None)
     }
 }
 
@@ -147,24 +145,23 @@ pub struct ForeAndBack {
 }
 
 impl ForeAndBack {
-    #[throws]
     fn parse_with_default(
         item: &Option<YamlThemeItem>,
         foreground: Color,
         background: Color,
-    ) -> Self {
+    ) -> Result<Self> {
         if let Some(item) = item {
-            Self {
+            Ok(Self {
                 foreground: parse_color(&item.foreground)?
                     .unwrap_or(foreground),
                 background: parse_color(&item.background)?
                     .unwrap_or(background),
-            }
+            })
         } else {
-            Self {
+            Ok(Self {
                 foreground,
                 background,
-            }
+            })
         }
     }
 }
@@ -187,8 +184,7 @@ impl Theme {
         THEME.lock().unwrap().clone().unwrap()
     }
 
-    #[throws]
-    fn load(theme: &str) -> Self {
+    fn load(theme: &str) -> Result<Self> {
         let mut yaml: YamlTheme = serde_yaml::from_str(theme)?;
         yaml.expand_vars()?;
 
@@ -212,7 +208,7 @@ impl Theme {
             });
         }
 
-        Self {
+        Ok(Self {
             syntect: theme,
             info_bar_active: ForeAndBack::parse_with_default(
                 &yaml.settings.info_bar_active,
@@ -229,12 +225,11 @@ impl Theme {
                 rgb(0, 0, 0),
                 rgb(255, 128, 128),
             )?,
-        }
+        })
     }
 
-    #[throws]
-    pub fn load_default() -> Self {
+    pub fn load_default() -> Result<Self> {
         let theme = include_str!("emma.theme.yml");
-        Self::load(theme)?
+        Self::load(theme)
     }
 }
