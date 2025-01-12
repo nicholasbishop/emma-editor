@@ -1,16 +1,16 @@
-mod draw;
+// TODO: mod draw;
 mod event;
 mod persistence;
 
-pub use draw::LineHeight;
+// TODO: pub use draw::LineHeight;
 
 use crate::buffer::{Buffer, BufferId};
 use crate::config::Config;
 use crate::pane_tree::PaneTree;
 use crate::rope::AbsLine;
 use crate::theme::Theme;
-use gtk4::prelude::*;
-use gtk4::{self as gtk, gdk};
+use iced::widget::{self, column, text, Column};
+use iced::{keyboard, window, Event, Fill, Subscription, Task};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use tracing::{error, info};
@@ -21,6 +21,9 @@ std::thread_local! {
     static APP: RefCell<Option<App>> = RefCell::new(None);
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct LineHeight(pub f64);
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum InteractiveState {
     Initial,
@@ -30,10 +33,15 @@ enum InteractiveState {
 
 pub type BufferMap = HashMap<BufferId, Buffer>;
 
-struct App {
-    window: gtk::ApplicationWindow,
-    widget: gtk::DrawingArea,
+#[derive(Clone, Debug)]
+#[expect(unused)] // TODO
+pub enum Message {
+    EventOccurred(Event),
+    Exit,
+    SetFullscreen,
+}
 
+pub struct App {
     key_handler: event::KeyHandler,
 
     buffers: HashMap<BufferId, Buffer>,
@@ -43,31 +51,77 @@ struct App {
     line_height: LineHeight,
 }
 
-pub fn init(application: &gtk::Application) {
+// TODO
+impl App {
+    pub fn new() -> (Self, Task<Message>) {
+        (
+            // TODO: unwrap
+            init(),
+            Task::batch([
+                // Task::done(Message::SetFullscreen),
+                widget::focus_next(),
+            ]),
+        )
+    }
+
+    pub fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::EventOccurred(event) => match event {
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key,
+                    modifiers,
+                    ..
+                }) => self.handle_key_press(key, modifiers),
+                _ => Task::none(),
+            },
+            Message::Exit => iced::exit(),
+            Message::SetFullscreen => {
+                window::get_latest().and_then(move |window| {
+                    window::change_mode(window, window::Mode::Fullscreen)
+                })
+            }
+        }
+    }
+
+    pub fn subscription(&self) -> Subscription<Message> {
+        iced::event::listen().map(Message::EventOccurred)
+    }
+
+    pub fn view(&self) -> Column<Message> {
+        column![
+            text("hello\nworld\n").height(Fill),
+            //text_editor(&self.command).on_action(Message::EditCommand),
+        ]
+        .into()
+    }
+}
+
+// Much TODO commented out code
+pub fn init() -> App {
     // Create single widget that is used for drawing the whole
     // application.
-    let widget = gtk::DrawingArea::new();
-    widget.set_draw_func(|_widget, ctx, width, height| {
-        APP.with(|app| {
-            let width = width as f64;
-            let height = height as f64;
+    // let widget = gtk::DrawingArea::new();
+    // widget.set_draw_func(|_widget, ctx, width, height| {
+    //     APP.with(|app| {
+    //         let width = width as f64;
+    //         let height = height as f64;
 
-            let mut app = app.borrow_mut();
-            let app = app.as_mut().unwrap();
+    //         let mut app = app.borrow_mut();
+    //         let app = app.as_mut().unwrap();
 
-            app.pane_tree.recalc_layout(width, height, app.line_height);
-            app.draw(ctx, width, height, app.line_height, &Theme::current());
-        })
-    });
+    //         app.pane_tree.recalc_layout(width, height, app.line_height);
+    //         app.draw(ctx, width, height, app.line_height, &Theme::current());
+    //     })
+    // });
 
     // Create top-level window.
-    let window = gtk::ApplicationWindow::new(application);
-    window.set_title(Some("emma"));
-    window.set_default_size(800, 800);
-    window.set_child(Some(&widget));
-    window.maximize();
+    // let window = gtk::ApplicationWindow::new(application);
+    // window.set_title(Some("emma"));
+    // window.set_default_size(800, 800);
+    // window.set_child(Some(&widget));
+    // window.maximize();
 
-    let config = match Config::load() {
+    let _config = match Config::load() {
         Ok(config) => config,
         Err(err) => {
             // TODO: would be good to show this error in the UI
@@ -76,27 +130,27 @@ pub fn init(application: &gtk::Application) {
         }
     };
 
-    let css = gtk::CssProvider::new();
-    css.load_from_data(
-        format!(
-            r#"
-        widget {{ 
-            font-family: monospace;
-            font-size: {font_size}pt;
-        }}
-    "#,
-            font_size = config.font_size
-        )
-        .as_bytes(),
-    );
-    gtk::StyleContext::add_provider_for_display(
-        &gdk::Display::default().unwrap(),
-        &css,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
+    // let css = gtk::CssProvider::new();
+    // css.load_from_data(
+    //     format!(
+    //         r#"
+    //     widget {{
+    //         font-family: monospace;
+    //         font-size: {font_size}pt;
+    //     }}
+    // "#,
+    //         font_size = config.font_size
+    //     )
+    //     .as_bytes(),
+    // );
+    // gtk::StyleContext::add_provider_for_display(
+    //     &gdk::Display::default().unwrap(),
+    //     &css,
+    //     gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    // );
 
-    window.show();
-    event::create_gtk_key_handler(&window);
+    // window.show();
+    // event::create_gtk_key_handler(&window);
 
     Theme::set_current(
         Theme::load_default().expect("failed to load built-in theme"),
@@ -168,12 +222,11 @@ pub fn init(application: &gtk::Application) {
         .unwrap()
         .set_cursor(pane_tree.minibuf(), Default::default());
 
-    let line_height = LineHeight::calculate(&widget);
+    // TODO
+    // let line_height = LineHeight::calculate(&widget);
+    let line_height = LineHeight(24.0);
 
     let app = App {
-        window,
-        widget,
-
         key_handler: event::KeyHandler::new().unwrap(),
 
         buffers,
@@ -183,18 +236,20 @@ pub fn init(application: &gtk::Application) {
         line_height,
     };
 
-    application.connect_activate(|_| {
-        APP.with(|app| {
-            let mut app = app.borrow_mut();
-            let app = app.as_mut().unwrap();
-            // TODO: the idea is to bring the app window to the front
-            // here, but it doesn't seem to work.
-            app.window.present();
-        })
-    });
+    // application.connect_activate(|_| {
+    //     APP.with(|app| {
+    //         let mut app = app.borrow_mut();
+    //         let app = app.as_mut().unwrap();
+    //         // TODO: the idea is to bring the app window to the front
+    //         // here, but it doesn't seem to work.
+    //         app.window.present();
+    //     })
+    // });
 
     // Store app in global.
-    APP.with(|cell| {
-        *cell.borrow_mut() = Some(app);
-    });
+    // APP.with(|cell| {
+    //     *cell.borrow_mut() = Some(app);
+    // });
+
+    app
 }

@@ -1,4 +1,6 @@
 #![warn(clippy::use_self)]
+// TODO
+#![expect(unused)]
 
 mod app;
 mod buffer;
@@ -12,20 +14,14 @@ mod shell;
 mod theme;
 mod util;
 
-use gtk4 as gtk;
-use gtk4::prelude::*;
+use app::App;
+use iced::Font;
 
-fn main() {
+fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    let application = gtk::Application::builder()
-        .application_id("org.emma.Emma")
-        .register_session(true)
-        .build();
-    // let application =
-    //     gtk::Application::new(Some("org.emma.Emma"), Default::default());
-
-    application.connect_startup(app::init);
-
-    application.run();
+    iced::application("emma", App::update, App::view)
+        .default_font(Font::MONOSPACE)
+        .subscription(App::subscription)
+        .run_with(App::new)
 }

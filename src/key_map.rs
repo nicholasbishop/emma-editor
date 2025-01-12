@@ -2,7 +2,7 @@ use crate::buffer::{Boundary, Direction};
 use crate::key_sequence::KeySequence;
 use crate::pane_tree;
 use anyhow::Result;
-use gtk4::gdk::{self, ModifierType};
+use iced::keyboard::{Key, Modifiers};
 use std::collections::BTreeMap;
 use tracing::{debug, error, instrument};
 
@@ -21,7 +21,7 @@ pub enum Action {
 
     // Insert text for a key press, e.g. pressing the 'a' key inserts
     // an 'a' character into the active buffer.
-    Insert(gdk::Key),
+    Insert(String),
 
     // Insert a new line after the cursor. The cursor position is left
     // unchanged.
@@ -254,12 +254,15 @@ impl KeyMapStack {
         // want the default insertion action to occur.
         if seq.0.len() == 1 {
             let atom = &seq.0[0];
-            if atom.modifiers.is_empty() {
-                return KeyMapLookup::Action(Action::Insert(atom.key));
-            } else if atom.modifiers == ModifierType::SHIFT_MASK {
-                return KeyMapLookup::Action(Action::Insert(
-                    atom.key.to_upper(),
-                ));
+            if let Key::Character(c) = &atom.key {
+                let mut c = c.to_string();
+                if atom.modifiers.is_empty() {
+                    return KeyMapLookup::Action(Action::Insert(c));
+                } else if atom.modifiers == Modifiers::SHIFT {
+                    return KeyMapLookup::Action(Action::Insert(
+                        c.to_uppercase(),
+                    ));
+                }
             }
         }
 
@@ -280,6 +283,7 @@ impl KeyMapStack {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::key_sequence::charkey;
 
     #[test]
     fn test_lookup() {
@@ -332,9 +336,7 @@ mod tests {
         // Simple sequence not in any keymap.
         assert_eq!(
             stack.lookup(&KeySequence::parse("y").unwrap()),
-            KeyMapLookup::Action(Action::Insert(
-                gdk::Key::from_name("y").unwrap()
-            ))
+            KeyMapLookup::Action(Action::Insert("y".to_owned()))
         );
 
         // Sequence not in any keymap.

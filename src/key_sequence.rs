@@ -1,58 +1,51 @@
-use gtk4::gdk::{self, Key, ModifierType};
-use gtk4::glib::translate::FromGlib;
+use iced::keyboard::key::Named;
+use iced::keyboard::{Key, Modifiers};
+use smol_str::SmolStr;
 use std::collections::HashMap;
 
-fn name_to_key_map() -> HashMap<&'static str, gdk::Key> {
+pub fn charkey(c: char) -> Key {
+    Key::Character(SmolStr::new(c.to_string()))
+}
+
+fn name_to_key_map() -> HashMap<&'static str, Key> {
     // This map is the only place that needs to be updated to add a
     // new named key.
     let mut map = HashMap::new();
-    map.insert("backspace", Key::BackSpace);
-    map.insert("esc", Key::Escape);
-    map.insert("space", Key::space);
-    map.insert("ret", Key::Return);
-    map.insert("plus", Key::plus);
-    map.insert("less", Key::less);
-    map.insert("greater", Key::greater);
+    map.insert("backspace", Key::Named(Named::Backspace));
+    map.insert("esc", Key::Named(Named::Escape));
+    map.insert("space", Key::Named(Named::Space));
+    map.insert("ret", Key::Named(Named::Enter));
+    map.insert("plus", charkey('+'));
+    map.insert("less", charkey('<'));
+    map.insert("greater", charkey('>'));
     map
 }
 
 pub fn is_modifier(key: &Key) -> bool {
-    matches!(
-        *key,
-        Key::Alt_L
-            | Key::Alt_R
-            | Key::Control_L
-            | Key::Control_R
-            | Key::Shift_L
-            | Key::Shift_R
-    )
+    matches!(key, Key::Named(Named::Control | Named::Alt | Named::Shift))
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct KeySequenceAtom {
-    pub modifiers: ModifierType,
+    pub modifiers: Modifiers,
     pub key: Key,
 }
 
 impl KeySequenceAtom {
-    pub fn from_event(key: Key, state: ModifierType) -> Self {
+    pub fn from_event(key: Key, state: Modifiers) -> Self {
         Self {
             modifiers: state,
-            // Convert the key to lowercase as a way to
-            // normalize. This is far from perfect, for example "?"
-            // should probably be the same thing as "<shift>/", but
-            // that's not handled well right now.
-            key: key.to_lower(),
+            key,
         }
     }
 }
 
-fn single_modifier_to_string(m: &ModifierType) -> &'static str {
-    if *m == ModifierType::CONTROL_MASK {
+fn single_modifier_to_string(m: &Modifiers) -> &'static str {
+    if *m == Modifiers::CTRL {
         "ctrl"
-    } else if *m == ModifierType::SHIFT_MASK {
+    } else if *m == Modifiers::SHIFT {
         "shift"
-    } else if *m == ModifierType::ALT_MASK {
+    } else if *m == Modifiers::ALT {
         "alt"
     } else {
         "unknown"
@@ -70,8 +63,8 @@ fn key_to_name_map() -> HashMap<Key, &'static str> {
 fn key_to_string(key: &Key) -> String {
     if let Some(name) = key_to_name_map().get(key) {
         format!("<{}>", name)
-    } else if let Some(c) = key.to_unicode() {
-        format!("\"{}\"", c)
+    } else if let Key::Character(c) = key {
+        format!("\"{}\"", c.as_str())
     } else {
         "unknown".into()
     }
@@ -86,7 +79,7 @@ pub enum Error {
     UnexpectedAppend,
 
     #[error("unexpected modifier {}", single_modifier_to_string(.0))]
-    UnexpectedModifier(ModifierType),
+    UnexpectedModifier(Modifiers),
 
     #[error("unexpected key {}", key_to_string(.0))]
     UnexpectedKey(Key),
@@ -94,7 +87,7 @@ pub enum Error {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ParseItem {
-    Modifier(ModifierType),
+    Modifier(Modifiers),
     Key(Key),
     Append,
 }
@@ -108,9 +101,9 @@ fn parse_key_sequence_as_items(s: &str) -> Result<Vec<ParseItem>, Error> {
     let mut state = State::Initial;
 
     let mut names = HashMap::new();
-    names.insert("ctrl", ParseItem::Modifier(ModifierType::CONTROL_MASK));
-    names.insert("shift", ParseItem::Modifier(ModifierType::SHIFT_MASK));
-    names.insert("alt", ParseItem::Modifier(ModifierType::ALT_MASK));
+    names.insert("ctrl", ParseItem::Modifier(Modifiers::CTRL));
+    names.insert("shift", ParseItem::Modifier(Modifiers::SHIFT));
+    names.insert("alt", ParseItem::Modifier(Modifiers::ALT));
     for (k, v) in name_to_key_map() {
         names.insert(k, ParseItem::Key(v));
     }
@@ -125,10 +118,7 @@ fn parse_key_sequence_as_items(s: &str) -> Result<Vec<ParseItem>, Error> {
                 } else if c == '+' {
                     items.push(ParseItem::Append);
                 } else {
-                    let keyval = gdk::unicode_to_keyval(c as u32);
-                    // TODO: any safe way to do this?
-                    let key = unsafe { Key::from_glib(keyval) };
-                    items.push(ParseItem::Key(key))
+                    items.push(ParseItem::Key(charkey(c)))
                 }
             }
             State::InName => {
@@ -162,7 +152,7 @@ impl KeySequence {
 
         let mut state = State::ModOrKeyRequired;
         let mut seq = Vec::new();
-        let mut cur_mods = ModifierType::empty();
+        let mut cur_mods = Modifiers::empty();
 
         for item in items {
             match item {
@@ -181,16 +171,16 @@ impl KeySequence {
                 ParseItem::Key(k) => {
                     seq.push(KeySequenceAtom {
                         modifiers: cur_mods,
-                        key: *k,
+                        key: k.clone(),
                     });
-                    cur_mods = ModifierType::empty();
+                    cur_mods = Modifiers::empty();
 
                     match state {
                         State::ModOrKeyRequired => {
                             state = State::AppendRequired;
                         }
                         State::AppendRequired => {
-                            return Err(Error::UnexpectedKey(*k));
+                            return Err(Error::UnexpectedKey(k.clone()));
                         }
                     }
                 }
@@ -225,25 +215,27 @@ mod tests {
     #[test]
     fn test_error_display() {
         assert_eq!(
-            format!(
-                "{}",
-                Error::UnexpectedModifier(ModifierType::CONTROL_MASK)
-            ),
+            format!("{}", Error::UnexpectedModifier(Modifiers::CTRL)),
             "unexpected modifier ctrl".to_string()
         );
 
         assert_eq!(
-            format!("{}", Error::UnexpectedKey(Key::a)),
+            format!(
+                "{}",
+                Error::UnexpectedKey(Key::Character(SmolStr::new(
+                    'a'.to_string()
+                )))
+            ),
             "unexpected key \"a\"".to_string()
         );
 
         assert_eq!(
-            format!("{}", Error::UnexpectedKey(Key::Escape)),
+            format!("{}", Error::UnexpectedKey(Key::Named(Named::Escape))),
             "unexpected key <esc>".to_string()
         );
 
         assert_eq!(
-            format!("{}", Error::UnexpectedKey(Key::BackSpace)),
+            format!("{}", Error::UnexpectedKey(Key::Named(Named::Backspace))),
             "unexpected key <backspace>".to_string()
         );
     }
@@ -252,14 +244,17 @@ mod tests {
     fn test_parse_key_sequence() {
         assert_eq!(
             parse_key_sequence_as_items("aa"),
-            Ok(vec![ParseItem::Key(Key::a), ParseItem::Key(Key::a)])
+            Ok(vec![
+                ParseItem::Key(charkey('a')),
+                ParseItem::Key(charkey('a'))
+            ])
         );
 
         assert_eq!(
             parse_key_sequence_as_items("<ctrl><shift>"),
             Ok(vec![
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Modifier(ModifierType::SHIFT_MASK),
+                ParseItem::Modifier(Modifiers::CTRL),
+                ParseItem::Modifier(Modifiers::SHIFT),
             ])
         );
 
@@ -274,59 +269,59 @@ mod tests {
     #[test]
     fn test_sequence_from_items() {
         assert_eq!(
-            KeySequence::from_items(&[ParseItem::Key(Key::a)]),
+            KeySequence::from_items(&[ParseItem::Key(charkey('a'))]),
             Ok(KeySequence(vec![KeySequenceAtom {
-                modifiers: ModifierType::empty(),
-                key: Key::a,
+                modifiers: Modifiers::empty(),
+                key: charkey('a'),
             }]))
         );
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Key(Key::a)
+                ParseItem::Modifier(Modifiers::CTRL),
+                ParseItem::Key(charkey('a'))
             ]),
             Ok(KeySequence(vec![KeySequenceAtom {
-                modifiers: ModifierType::CONTROL_MASK,
-                key: Key::a,
+                modifiers: Modifiers::CTRL,
+                key: charkey('a'),
             }]))
         );
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Key(Key::x),
+                ParseItem::Modifier(Modifiers::CTRL),
+                ParseItem::Key(charkey('x')),
                 ParseItem::Append,
-                ParseItem::Key(Key::a),
+                ParseItem::Key(charkey('a')),
             ]),
             Ok(KeySequence(vec![
                 KeySequenceAtom {
-                    modifiers: ModifierType::CONTROL_MASK,
-                    key: Key::x,
+                    modifiers: Modifiers::CTRL,
+                    key: charkey('x'),
                 },
                 KeySequenceAtom {
-                    modifiers: ModifierType::empty(),
-                    key: Key::a,
+                    modifiers: Modifiers::empty(),
+                    key: charkey('a'),
                 }
             ]))
         );
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Key(Key::x),
+                ParseItem::Modifier(Modifiers::CTRL),
+                ParseItem::Key(charkey('x')),
                 ParseItem::Append,
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Key(Key::a),
+                ParseItem::Modifier(Modifiers::CTRL),
+                ParseItem::Key(charkey('a')),
             ]),
             Ok(KeySequence(vec![
                 KeySequenceAtom {
-                    modifiers: ModifierType::CONTROL_MASK,
-                    key: Key::x,
+                    modifiers: Modifiers::CTRL,
+                    key: charkey('x'),
                 },
                 KeySequenceAtom {
-                    modifiers: ModifierType::CONTROL_MASK,
-                    key: Key::a,
+                    modifiers: Modifiers::CTRL,
+                    key: charkey('a'),
                 }
             ]))
         );
@@ -335,10 +330,10 @@ mod tests {
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Key(Key::a),
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
+                ParseItem::Key(charkey('a')),
+                ParseItem::Modifier(Modifiers::CTRL),
             ]),
-            Err(Error::UnexpectedModifier(ModifierType::CONTROL_MASK))
+            Err(Error::UnexpectedModifier(Modifiers::CTRL))
         );
 
         assert_eq!(
@@ -348,10 +343,10 @@ mod tests {
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Key(Key::a),
-                ParseItem::Key(Key::a),
+                ParseItem::Key(charkey('a')),
+                ParseItem::Key(charkey('a')),
             ]),
-            Err(Error::UnexpectedKey(Key::a))
+            Err(Error::UnexpectedKey(charkey('a')))
         );
     }
 }

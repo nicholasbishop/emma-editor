@@ -87,5 +87,6 @@ mod tests {
         fs::write(&config_path, "x: y")?;
         let _config = Config::load_from_dir(&dir)?;
         assert_eq!(fs::read_to_string(&config_path)?, "x: y");
+        Ok(())
     }
 }

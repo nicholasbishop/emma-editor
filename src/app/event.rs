@@ -1,4 +1,4 @@
-use super::{App, InteractiveState, APP};
+use super::{App, InteractiveState, Message};
 use crate::buffer::{
     Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
 };
@@ -8,26 +8,11 @@ use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
 use anyhow::{anyhow, bail, Error, Result};
 use fs_err as fs;
-use gtk4::glib::signal::Inhibit;
-use gtk4::prelude::*;
-use gtk4::{self as gtk, gdk};
+use iced::keyboard::{Key, Modifiers};
+use iced::Task;
 use std::collections::HashMap;
 use std::path::Path;
 use tracing::{error, info, instrument};
-
-pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
-    let key_controller = gtk::EventControllerKey::new();
-    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
-    key_controller.connect_key_pressed(|_self, keyval, _keycode, state| {
-        APP.with(|app| {
-            app.borrow_mut()
-                .as_mut()
-                .unwrap()
-                .handle_key_press(keyval, state)
-        })
-    });
-    window.add_controller(&key_controller);
-}
 
 pub(super) struct KeyHandler {
     base_keymap: KeyMap,
@@ -105,13 +90,11 @@ impl App {
         Ok(())
     }
 
-    fn insert_char(&mut self, key: gdk::Key) -> Result<()> {
+    fn insert_char(&mut self, c: char) -> Result<()> {
         // Insert a character into the active pane.
-        if let Some(c) = key.to_unicode() {
-            let (pane, buf) = self.active_pane_buffer_mut()?;
-            let pos = buf.cursor(pane);
-            buf.insert_char(c, pos);
-        }
+        let (pane, buf) = self.active_pane_buffer_mut()?;
+        let pos = buf.cursor(pane);
+        buf.insert_char(c, pos);
         Ok(())
     }
 
@@ -295,18 +278,22 @@ impl App {
         Ok(())
     }
 
-    fn handle_action(&mut self, action: Action) -> Result<()> {
+    fn handle_action(&mut self, action: Action) -> Result<Task<Message>> {
         info!("handling action {:?}", action);
 
         let buffer_changed;
+        let mut task = Task::none();
 
         match action {
             Action::Exit => {
-                self.window.close();
+                task = Task::done(Message::Exit);
                 buffer_changed = false;
             }
             Action::Insert(key) => {
-                self.insert_char(key)?;
+                // TODO, don't do char at a time
+                for c in key.chars() {
+                    self.insert_char(c)?;
+                }
                 buffer_changed = true;
             }
             Action::Move(step, dir) => {
@@ -422,7 +409,7 @@ impl App {
             error!("failed to persist state: {err}");
         }
 
-        Ok(())
+        Ok(task)
     }
 
     fn get_minibuf_keymap(&self) -> Result<KeyMap> {
@@ -446,9 +433,9 @@ impl App {
 
     pub(super) fn handle_key_press(
         &mut self,
-        key: gdk::Key,
-        state: gdk::ModifierType,
-    ) -> Inhibit {
+        key: Key,
+        state: Modifiers,
+    ) -> Task<Message> {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
 
@@ -462,7 +449,7 @@ impl App {
 
         // Ignore lone modifier presses.
         if is_modifier(&key) {
-            return Inhibit(false);
+            return Task::none();
         }
 
         // TODO: we want to ignore combo modifier presses too if no
@@ -473,33 +460,28 @@ impl App {
         let atom = KeySequenceAtom::from_event(key, state);
         self.key_handler.cur_seq.0.push(atom);
 
-        let mut clear_seq = true;
-        let inhibit = Inhibit(true);
         match keymap_stack.lookup(&self.key_handler.cur_seq) {
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
                 dbg!("bad seq", &self.key_handler.cur_seq);
+                self.key_handler.cur_seq.0.clear();
+                Task::none()
             }
             KeyMapLookup::Prefix => {
-                clear_seq = false;
                 // Waiting for the sequence to be completed.
+                Task::none()
             }
             KeyMapLookup::Action(action) => {
-                if let Err(err) = self.handle_action(action) {
-                    error!("failed to handle action: {err}");
-                    self.display_error(err);
+                self.key_handler.cur_seq.0.clear();
+                match self.handle_action(action) {
+                    Ok(task) => task,
+                    Err(err) => {
+                        error!("failed to handle action: {err}");
+                        self.display_error(err);
+                        Task::none()
+                    }
                 }
             }
         }
-
-        if clear_seq {
-            self.key_handler.cur_seq.0.clear();
-        }
-
-        // Not every action requires redraw, but most do, no harm
-        // occasionally redrawing when not needed.
-        self.widget.queue_draw();
-
-        inhibit
     }
 }

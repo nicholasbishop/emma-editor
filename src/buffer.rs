@@ -1,4 +1,4 @@
-pub use crate::rope::{AbsChar, AbsLine, LinesIterItem, RelChar, RelLine};
+pub use crate::rope::{AbsChar, AbsLine, RelChar, RelLine};
 
 use crate::grapheme::{next_grapheme_boundary, prev_grapheme_boundary};
 use crate::pane_tree::{Pane, PaneId};
