@@ -1,8 +1,8 @@
-// TODO: mod draw;
+mod draw;
 mod event;
 mod persistence;
 
-// TODO: pub use draw::LineHeight;
+pub use draw::LineHeight;
 
 use crate::buffer::{Buffer, BufferId};
 use crate::config::Config;
@@ -20,9 +20,6 @@ use tracing::{error, info};
 std::thread_local! {
     static APP: RefCell<Option<App>> = RefCell::new(None);
 }
-
-#[derive(Clone, Copy, Debug)]
-pub struct LineHeight(pub f64);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum InteractiveState {

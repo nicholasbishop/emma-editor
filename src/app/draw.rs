@@ -12,6 +12,7 @@ use std::ops::Range;
 use syntect::highlighting::Style;
 use tracing::{debug, error, instrument};
 
+#[cfg(any())]
 fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
     let r = (r as f64) / 255.0;
     let g = (g as f64) / 255.0;
@@ -20,10 +21,12 @@ fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
     ctx.set_source_rgba(r, g, b, a);
 }
 
+#[cfg(any())]
 fn set_source_rgb_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8) {
     set_source_rgba_from_u8(ctx, r, g, b, 255);
 }
 
+#[cfg(any())]
 fn set_source_from_syntect_color(
     ctx: &cairo::Context,
     color: &syntect::highlighting::Color,
@@ -31,6 +34,7 @@ fn set_source_from_syntect_color(
     set_source_rgba_from_u8(ctx, color.r, color.g, color.b, color.a);
 }
 
+#[cfg(any())]
 fn pango_unscale(i: i32) -> f64 {
     i as f64 / pango::SCALE as f64
 }
@@ -51,6 +55,7 @@ impl fmt::Display for Point {
 }
 
 impl LineHeight {
+    #[cfg(any())]
     pub fn calculate(widget: &gtk::DrawingArea) -> Self {
         let pctx = widget.pango_context();
         let font_desc = pctx.font_description();
@@ -62,6 +67,7 @@ impl LineHeight {
     }
 }
 
+#[cfg(any())]
 struct StyledLayout {
     layout: Layout,
     // TODO: this should be a reference but then things get *really*
@@ -191,6 +197,7 @@ mod tests {
     }
 }
 
+#[cfg(any())]
 struct DrawPane<'a> {
     ctx: &'a cairo::Context,
     widget: &'a gtk::DrawingArea,
@@ -205,6 +212,7 @@ struct DrawPane<'a> {
     pos: Point,
 }
 
+#[cfg(any())]
 impl<'a> fmt::Debug for DrawPane<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(
@@ -217,6 +225,7 @@ impl<'a> fmt::Debug for DrawPane<'a> {
     }
 }
 
+#[cfg(any())]
 impl<'a> DrawPane<'a> {
     fn create_layout(&self, text: &str) -> Layout {
         self.widget.create_pango_layout(Some(text))
@@ -491,6 +500,7 @@ impl<'a> DrawPane<'a> {
     }
 }
 
+#[cfg(any())]
 impl App {
     // Errors here are logged but otherwise swallowed.
     pub(super) fn draw(
