@@ -85,11 +85,7 @@ impl App {
     }
 
     pub fn view(&self) -> Column<Message> {
-        column![
-            text("hello\nworld\n").height(Fill),
-            //text_editor(&self.command).on_action(Message::EditCommand),
-        ]
-        .into()
+        self.pane_tree.view()
     }
 }
 

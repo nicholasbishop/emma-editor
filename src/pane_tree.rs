@@ -1,10 +1,12 @@
 // TODO: clippy bug? Triggering on Orientation enum.
 #![allow(clippy::use_self)]
 
-use crate::app::{BufferMap, LineHeight};
+use crate::app::{BufferMap, LineHeight, Message};
 use crate::buffer::{AbsChar, Buffer, BufferId, RelLine};
 use crate::rope::AbsLine;
 use crate::util;
+use iced::widget::{column, text, Column, Row, Text};
+use iced::{Element, Fill};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -91,6 +93,10 @@ impl Pane {
 
     pub fn is_cursor_visible(&self) -> bool {
         self.is_cursor_visible
+    }
+
+    pub fn view(&self) -> Text {
+        Text::new("pane").height(Fill)
     }
 
     pub fn switch_buffer(
@@ -320,6 +326,19 @@ impl Node {
             SplitResult::Single(self)
         }
     }
+
+    fn view(&self) -> Element<Message> {
+        match self {
+            Self::Internal(internal) => {
+                let iter = internal.children.iter().map(|c| c.view());
+                match internal.orientation {
+                    Orientation::Horizontal => Row::with_children(iter).into(),
+                    Orientation::Vertical => Column::with_children(iter).into(),
+                }
+            }
+            Self::Leaf(leaf) => leaf.view().into(),
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -507,5 +526,9 @@ impl PaneTree {
                 self.set_active(&id);
             }
         }
+    }
+
+    pub fn view(&self) -> Column<Message> {
+        column![self.root.view(), text("minibuf"),].into()
     }
 }
