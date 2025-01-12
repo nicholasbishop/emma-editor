@@ -96,7 +96,7 @@ impl Pane {
     }
 
     pub fn view(&self) -> Text {
-        Text::new("pane").height(Fill)
+        Text::new("pane").height(Fill).width(Fill)
     }
 
     pub fn switch_buffer(
@@ -499,7 +499,7 @@ impl PaneTree {
                 orientation,
                 children: vec![child1, child2],
             }),
-        }
+        };
     }
 
     pub fn set_active(&mut self, id: &PaneId) {
