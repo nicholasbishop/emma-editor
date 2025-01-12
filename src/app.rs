@@ -15,12 +15,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use tracing::{error, info};
 
-// This global is needed for callbacks on the main thread. On other
-// threads it is None.
-std::thread_local! {
-    static APP: RefCell<Option<App>> = RefCell::new(None);
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum InteractiveState {
     Initial,
