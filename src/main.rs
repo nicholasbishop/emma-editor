@@ -22,8 +22,6 @@ fn main() {
         .application_id("org.emma.Emma")
         .register_session(true)
         .build();
-    // let application =
-    //     gtk::Application::new(Some("org.emma.Emma"), Default::default());
 
     application.connect_startup(app::init);
 
