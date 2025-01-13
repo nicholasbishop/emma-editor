@@ -28,7 +28,7 @@ pub fn is_modifier(key: &Key) -> bool {
     )
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct KeySequenceAtom {
     pub modifiers: ModifierType,
     pub key: Key,
@@ -150,7 +150,7 @@ fn parse_key_sequence_as_items(s: &str) -> Result<Vec<ParseItem>, Error> {
     Ok(items)
 }
 
-#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub struct KeySequence(pub Vec<KeySequenceAtom>);
 
 impl KeySequence {

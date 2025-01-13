@@ -77,19 +77,16 @@ pub fn init(application: &gtk::Application) {
     };
 
     let css = gtk::CssProvider::new();
-    css.load_from_data(
-        format!(
-            r#"
+    css.load_from_data(&format!(
+        r#"
         widget {{ 
             font-family: monospace;
             font-size: {font_size}pt;
         }}
     "#,
-            font_size = config.font_size
-        )
-        .as_bytes(),
-    );
-    gtk::StyleContext::add_provider_for_display(
+        font_size = config.font_size
+    ));
+    gtk::style_context_add_provider_for_display(
         &gdk::Display::default().unwrap(),
         &css,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,

@@ -59,7 +59,7 @@ impl LineHeight {
         let font_desc = pctx.font_description();
 
         let language = None;
-        let metrics = pctx.metrics(font_desc.as_ref(), language).unwrap();
+        let metrics = pctx.metrics(font_desc.as_ref(), language);
 
         Self(pango_unscale(metrics.height()))
     }
@@ -240,7 +240,7 @@ impl<'a> DrawPane<'a> {
 
     fn draw_layout(&mut self, layout: &Layout) {
         self.ctx.move_to(self.pos.x, self.pos.y);
-        pangocairo::show_layout(self.ctx, layout);
+        pangocairo::functions::show_layout(self.ctx, layout);
         self.pos.x += pango_unscale(layout.size().0);
     }
 

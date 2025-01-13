@@ -8,7 +8,7 @@ use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
 use anyhow::{anyhow, bail, Error, Result};
 use fs_err as fs;
-use gtk4::glib::signal::Inhibit;
+use gtk4::glib::signal::Propagation;
 use gtk4::prelude::*;
 use gtk4::{self as gtk, gdk};
 use std::collections::HashMap;
@@ -26,7 +26,7 @@ pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
                 .handle_key_press(keyval, state)
         })
     });
-    window.add_controller(&key_controller);
+    window.add_controller(key_controller);
 }
 
 pub(super) struct KeyHandler {
@@ -448,7 +448,7 @@ impl App {
         &mut self,
         key: gdk::Key,
         state: gdk::ModifierType,
-    ) -> Inhibit {
+    ) -> Propagation {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
 
@@ -462,7 +462,7 @@ impl App {
 
         // Ignore lone modifier presses.
         if is_modifier(&key) {
-            return Inhibit(false);
+            return Propagation::Proceed;
         }
 
         // TODO: we want to ignore combo modifier presses too if no
@@ -474,7 +474,6 @@ impl App {
         self.key_handler.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
-        let inhibit = Inhibit(true);
         match keymap_stack.lookup(&self.key_handler.cur_seq) {
             KeyMapLookup::BadSequence => {
                 // TODO: display some kind of non-blocking error
@@ -500,6 +499,6 @@ impl App {
         // occasionally redrawing when not needed.
         self.widget.queue_draw();
 
-        inhibit
+        return Propagation::Stop;
     }
 }

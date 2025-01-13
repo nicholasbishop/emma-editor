@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::Path;
 
 fn default_font_size() -> f64 {
-    11.0
+    12.0
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]

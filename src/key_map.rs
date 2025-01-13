@@ -3,7 +3,7 @@ use crate::key_sequence::KeySequence;
 use crate::pane_tree;
 use anyhow::Result;
 use gtk4::gdk::{self, ModifierType};
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use tracing::{debug, error, instrument};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -73,14 +73,14 @@ pub enum KeyMapLookup {
 #[derive(Clone, Debug)]
 pub struct KeyMap {
     name: &'static str,
-    map: BTreeMap<KeySequence, Action>,
+    map: HashMap<KeySequence, Action>,
 }
 
 impl KeyMap {
     pub fn new(name: &'static str) -> Self {
         Self {
             name,
-            map: BTreeMap::new(),
+            map: HashMap::new(),
         }
     }
 
