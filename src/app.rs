@@ -181,16 +181,6 @@ pub fn init(application: &gtk::Application) {
         line_height,
     };
 
-    application.connect_activate(|_| {
-        APP.with(|app| {
-            let mut app = app.borrow_mut();
-            let app = app.as_mut().unwrap();
-            // TODO: the idea is to bring the app window to the front
-            // here, but it doesn't seem to work.
-            app.window.present();
-        })
-    });
-
     // Store app in global.
     APP.with(|cell| {
         *cell.borrow_mut() = Some(app);
