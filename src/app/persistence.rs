@@ -1,4 +1,4 @@
-use super::App;
+use super::AppState;
 use crate::buffer::{BufferId, CursorMap};
 use crate::pane_tree::PaneTree;
 use anyhow::{anyhow, Result};
@@ -29,7 +29,7 @@ pub struct PersistedBuffer {
     pub cursors: CursorMap,
 }
 
-impl App {
+impl AppState {
     pub fn persistence_store(&self) -> Result<()> {
         let cache_dir = cache_dir()?;
 

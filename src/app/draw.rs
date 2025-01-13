@@ -1,4 +1,4 @@
-use super::App;
+use super::AppState;
 use crate::buffer::{
     Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan, StyledLine,
 };
@@ -494,10 +494,11 @@ impl<'a> DrawPane<'a> {
     }
 }
 
-impl App {
+impl AppState {
     // Errors here are logged but otherwise swallowed.
     pub(super) fn draw(
         &self,
+        widget: &gtk::DrawingArea,
         ctx: &cairo::Context,
         width: f64,
         height: f64,
@@ -522,7 +523,7 @@ impl App {
 
             let mut dp = DrawPane {
                 ctx,
-                widget: &self.widget,
+                widget,
                 pane,
                 buf,
                 line_height,

@@ -1,4 +1,4 @@
-use super::{App, InteractiveState, APP};
+use super::{AppState, InteractiveState, APP};
 use crate::buffer::{
     Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
 };
@@ -20,10 +20,11 @@ pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
     key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
     key_controller.connect_key_pressed(|_self, keyval, _keycode, state| {
         APP.with(|app| {
-            app.borrow_mut()
-                .as_mut()
-                .unwrap()
-                .handle_key_press(keyval, state)
+            let mut app = app.borrow_mut();
+            let app = app.as_mut().unwrap();
+            let window = app.window.clone();
+            let widget = app.widget.clone();
+            app.state.handle_key_press(window, widget, keyval, state)
         })
     });
     window.add_controller(key_controller);
@@ -57,7 +58,7 @@ fn active_buffer_mut<'a, 'b>(
         .ok_or_else(invalid_active_buffer_error)
 }
 
-impl App {
+impl AppState {
     fn active_buffer_mut(&mut self) -> Result<&mut Buffer> {
         let pane = self.pane_tree.active();
         let buf = self
@@ -295,14 +296,18 @@ impl App {
         Ok(())
     }
 
-    fn handle_action(&mut self, action: Action) -> Result<()> {
+    fn handle_action(
+        &mut self,
+        window: gtk::ApplicationWindow,
+        action: Action,
+    ) -> Result<()> {
         info!("handling action {:?}", action);
 
         let buffer_changed;
 
         match action {
             Action::Exit => {
-                self.window.close();
+                window.close();
                 buffer_changed = false;
             }
             Action::Insert(key) => {
@@ -446,6 +451,8 @@ impl App {
 
     pub(super) fn handle_key_press(
         &mut self,
+        window: gtk::ApplicationWindow,
+        widget: gtk::DrawingArea,
         key: gdk::Key,
         state: gdk::ModifierType,
     ) -> Propagation {
@@ -484,7 +491,7 @@ impl App {
                 // Waiting for the sequence to be completed.
             }
             KeyMapLookup::Action(action) => {
-                if let Err(err) = self.handle_action(action) {
+                if let Err(err) = self.handle_action(window, action) {
                     error!("failed to handle action: {err}");
                     self.display_error(err);
                 }
@@ -497,7 +504,7 @@ impl App {
 
         // Not every action requires redraw, but most do, no harm
         // occasionally redrawing when not needed.
-        self.widget.queue_draw();
+        widget.queue_draw();
 
         return Propagation::Stop;
     }

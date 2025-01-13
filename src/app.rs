@@ -30,10 +30,8 @@ enum InteractiveState {
 
 pub type BufferMap = HashMap<BufferId, Buffer>;
 
-struct App {
-    window: gtk::ApplicationWindow,
-    widget: gtk::DrawingArea,
-
+// Pure state, no GTK stuff goes here.
+struct AppState {
     key_handler: event::KeyHandler,
 
     buffers: HashMap<BufferId, Buffer>,
@@ -41,6 +39,13 @@ struct App {
 
     interactive_state: InteractiveState,
     line_height: LineHeight,
+}
+
+struct App {
+    window: gtk::ApplicationWindow,
+    widget: gtk::DrawingArea,
+
+    state: AppState,
 }
 
 pub fn init(application: &gtk::Application) {
@@ -55,8 +60,19 @@ pub fn init(application: &gtk::Application) {
             let mut app = app.borrow_mut();
             let app = app.as_mut().unwrap();
 
-            app.pane_tree.recalc_layout(width, height, app.line_height);
-            app.draw(ctx, width, height, app.line_height, &Theme::current());
+            app.state.pane_tree.recalc_layout(
+                width,
+                height,
+                app.state.line_height,
+            );
+            app.state.draw(
+                &app.widget,
+                ctx,
+                width,
+                height,
+                app.state.line_height,
+                &Theme::current(),
+            );
         })
     });
 
@@ -107,7 +123,7 @@ pub fn init(application: &gtk::Application) {
 
     let mut buffers = HashMap::new();
     let mut cursors = HashMap::new();
-    match App::load_persisted_buffers() {
+    match AppState::load_persisted_buffers() {
         Ok(pb) => {
             for pb in pb {
                 info!("loading {:?}", pb);
@@ -126,7 +142,7 @@ pub fn init(application: &gtk::Application) {
         }
     };
 
-    let mut pane_tree = match App::load_pane_tree() {
+    let mut pane_tree = match AppState::load_pane_tree() {
         Ok(pt) => pt,
         Err(err) => {
             error!("failed to load persisted pane tree: {}", err);
@@ -172,13 +188,15 @@ pub fn init(application: &gtk::Application) {
         window,
         widget,
 
-        key_handler: event::KeyHandler::new().unwrap(),
+        state: AppState {
+            key_handler: event::KeyHandler::new().unwrap(),
 
-        buffers,
-        pane_tree,
+            buffers,
+            pane_tree,
 
-        interactive_state: InteractiveState::Initial,
-        line_height,
+            interactive_state: InteractiveState::Initial,
+            line_height,
+        },
     };
 
     // Gtk warns if there's no handler for this signal, so add an empty
