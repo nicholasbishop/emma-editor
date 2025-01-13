@@ -102,6 +102,8 @@ impl KeyMap {
             vec![
                 // TODO: for now make it easy to quit
                 ("<esc>", Action::Exit),
+                ("<ctrl>q", Action::Exit),
+                ("<ctrl>x+<ctrl>c", Action::Exit),
                 ("<ctrl>o", Action::InsertLineAfter),
                 (
                     "<ctrl>b",
