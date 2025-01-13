@@ -133,6 +133,7 @@ pub fn init(application: &gtk::Application) {
             PaneTree::new(&mut scratch_buffer, &mut minibuf)
         }
     };
+    pane_tree.cleanup_after_load();
 
     let minibuf_id = minibuf.id().clone();
     let scratch_buffer_id = scratch_buffer.id().clone();
