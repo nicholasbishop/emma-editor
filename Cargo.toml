@@ -21,7 +21,6 @@ serde_yaml = "0.9.34"
 syntect = "5.0.0"
 thiserror = "2.0.0"
 tracing = "0.1.35"
-smol_str = "0.2.0"
 tracing-subscriber = { version = "0.3.14", default-features = false, features = ["env-filter", "fmt"] }
 unicode-segmentation = "1.9.0"
 
