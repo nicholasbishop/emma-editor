@@ -68,7 +68,7 @@ mod tests {
         // input string doesn't panic. So only one field of the result
         // is checked to verify that it isn't zero.
         let config = Config::default();
-        assert_eq!(config.font_size, 11.0);
+        assert_eq!(config.font_size, 12.0);
     }
 
     #[test]
