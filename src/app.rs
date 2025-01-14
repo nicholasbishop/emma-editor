@@ -9,8 +9,10 @@ use crate::config::Config;
 use crate::pane_tree::PaneTree;
 use crate::rope::AbsLine;
 use crate::theme::Theme;
+use anyhow::Result;
 use gtk4::prelude::*;
 use gtk4::{self as gtk, gdk};
+use persistence::PersistedBuffer;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use tracing::{error, info};
@@ -39,6 +41,91 @@ struct AppState {
 
     interactive_state: InteractiveState,
     line_height: LineHeight,
+}
+
+impl AppState {
+    // TODO: for the persisted data, perhaps we want a trait to abstract
+    // that instead of passing the data in.
+    fn load(
+        line_height: LineHeight,
+        persisted_buffers: &[PersistedBuffer],
+        pane_tree_json: Result<String>,
+    ) -> Self {
+        Theme::set_current(
+            Theme::load_default().expect("failed to load built-in theme"),
+        );
+
+        // Create the minibuf buffer
+        let mut minibuf = Buffer::create_minibuf();
+
+        // Always create an empty scratch buffer.
+        let mut scratch_buffer = Buffer::create_empty();
+
+        let mut buffers = HashMap::new();
+        let mut cursors = HashMap::new();
+        for pb in persisted_buffers {
+            info!("loading {:?}", pb);
+            cursors.insert(pb.buffer_id.clone(), pb.cursors.clone());
+            // TODO; handle no path cases as well.
+            if let Some(path) = &pb.path {
+                buffers.insert(
+                    pb.buffer_id.clone(),
+                    Buffer::from_path(path).unwrap(),
+                );
+            }
+        }
+
+        let mut pane_tree = match pane_tree_json
+            .and_then(|json| PaneTree::load_from_json(&json))
+        {
+            Ok(pt) => pt,
+            Err(err) => {
+                error!("failed to load persisted pane tree: {}", err);
+                PaneTree::new(&mut scratch_buffer, &mut minibuf)
+            }
+        };
+
+        let minibuf_id = minibuf.id().clone();
+        let scratch_buffer_id = scratch_buffer.id().clone();
+        buffers.insert(minibuf_id.clone(), minibuf);
+        buffers.insert(scratch_buffer_id.clone(), scratch_buffer);
+
+        // Ensure that all the panes are pointing to a valid buffer.
+        for pane in pane_tree.panes_mut() {
+            if let Some(buffer) = buffers.get_mut(pane.buffer_id()) {
+                // Default the cursor to the top of the buffer, then try to
+                // restore the proper location from persisted data.
+                buffer.set_cursor(pane, Default::default());
+                if let Some(cursors) = cursors.get(pane.buffer_id()) {
+                    if let Some(pane_cursor) = cursors.get(pane.id()) {
+                        buffer.set_cursor(pane, *pane_cursor);
+                    }
+                }
+            } else {
+                pane.switch_buffer(&mut buffers, &scratch_buffer_id);
+            }
+
+            // Ensure that the pane's top-line is valid.
+            let buffer = buffers.get(pane.buffer_id()).unwrap();
+            if pane.top_line() >= AbsLine(buffer.text().len_lines()) {
+                pane.set_top_line(AbsLine(0));
+            }
+        }
+        buffers
+            .get_mut(&minibuf_id)
+            .unwrap()
+            .set_cursor(pane_tree.minibuf(), Default::default());
+
+        AppState {
+            key_handler: event::KeyHandler::new().unwrap(),
+
+            buffers,
+            pane_tree,
+
+            interactive_state: InteractiveState::Initial,
+            line_height,
+        }
+    }
 }
 
 struct App {
@@ -111,77 +198,15 @@ pub fn init(application: &gtk::Application) {
     window.show();
     event::create_gtk_key_handler(&window);
 
-    Theme::set_current(
-        Theme::load_default().expect("failed to load built-in theme"),
-    );
-
-    // Create the minibuf buffer
-    let mut minibuf = Buffer::create_minibuf();
-
-    // Always create an empty scratch buffer.
-    let mut scratch_buffer = Buffer::create_empty();
-
-    let mut buffers = HashMap::new();
-    let mut cursors = HashMap::new();
-    match AppState::load_persisted_buffers() {
-        Ok(pb) => {
-            for pb in pb {
-                info!("loading {:?}", pb);
-                cursors.insert(pb.buffer_id.clone(), pb.cursors);
-                // TODO; handle no path cases as well.
-                if let Some(path) = pb.path {
-                    buffers.insert(
-                        pb.buffer_id,
-                        Buffer::from_path(&path).unwrap(),
-                    );
-                }
-            }
-        }
+    let persisted_buffers = match AppState::load_persisted_buffers() {
+        Ok(pb) => pb,
         Err(err) => {
             error!("failed to load persisted buffers: {}", err);
+            Vec::new()
         }
     };
 
-    let mut pane_tree = match AppState::load_persisted_pane_tree()
-        .and_then(|json| PaneTree::load_from_json(&json))
-    {
-        Ok(pt) => pt,
-        Err(err) => {
-            error!("failed to load persisted pane tree: {}", err);
-            PaneTree::new(&mut scratch_buffer, &mut minibuf)
-        }
-    };
-
-    let minibuf_id = minibuf.id().clone();
-    let scratch_buffer_id = scratch_buffer.id().clone();
-    buffers.insert(minibuf_id.clone(), minibuf);
-    buffers.insert(scratch_buffer_id.clone(), scratch_buffer);
-
-    // Ensure that all the panes are pointing to a valid buffer.
-    for pane in pane_tree.panes_mut() {
-        if let Some(buffer) = buffers.get_mut(pane.buffer_id()) {
-            // Default the cursor to the top of the buffer, then try to
-            // restore the proper location from persisted data.
-            buffer.set_cursor(pane, Default::default());
-            if let Some(cursors) = cursors.get(pane.buffer_id()) {
-                if let Some(pane_cursor) = cursors.get(pane.id()) {
-                    buffer.set_cursor(pane, *pane_cursor);
-                }
-            }
-        } else {
-            pane.switch_buffer(&mut buffers, &scratch_buffer_id);
-        }
-
-        // Ensure that the pane's top-line is valid.
-        let buffer = buffers.get(pane.buffer_id()).unwrap();
-        if pane.top_line() >= AbsLine(buffer.text().len_lines()) {
-            pane.set_top_line(AbsLine(0));
-        }
-    }
-    buffers
-        .get_mut(&minibuf_id)
-        .unwrap()
-        .set_cursor(pane_tree.minibuf(), Default::default());
+    let pane_tree_json = AppState::load_persisted_pane_tree();
 
     let line_height = LineHeight::calculate(&widget);
 
@@ -189,15 +214,7 @@ pub fn init(application: &gtk::Application) {
         window,
         widget,
 
-        state: AppState {
-            key_handler: event::KeyHandler::new().unwrap(),
-
-            buffers,
-            pane_tree,
-
-            interactive_state: InteractiveState::Initial,
-            line_height,
-        },
+        state: AppState::load(line_height, &persisted_buffers, pane_tree_json),
     };
 
     // Gtk warns if there's no handler for this signal, so add an empty
@@ -208,4 +225,24 @@ pub fn init(application: &gtk::Application) {
     APP.with(|cell| {
         *cell.borrow_mut() = Some(app);
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::anyhow;
+
+    // TODO: experimenting with gtk test.
+    #[gtk::test]
+    fn test_app_state() {
+        let app_state = AppState::load(LineHeight(12.0), &[], Err(anyhow!("")));
+
+        let panes = app_state.pane_tree.panes();
+        assert_eq!(panes.len(), 1);
+        assert_eq!(app_state.pane_tree.active().id(), panes[0].id());
+
+        // Scratch buffer and minibuf.
+        assert_eq!(app_state.buffers.len(), 2);
+        assert!(app_state.buffers.keys().any(|id| id.is_minibuf()));
+    }
 }
