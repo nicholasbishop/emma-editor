@@ -359,7 +359,7 @@ impl PaneTree {
         Self {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,
-            is_minibuf_interactive: true,
+            is_minibuf_interactive: false,
             active_id_before_minibuf: None,
         }
     }
