@@ -208,7 +208,7 @@ struct DrawPane<'a> {
     pos: Point,
 }
 
-impl<'a> fmt::Debug for DrawPane<'a> {
+impl fmt::Debug for DrawPane<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(
             f,
@@ -220,7 +220,7 @@ impl<'a> fmt::Debug for DrawPane<'a> {
     }
 }
 
-impl<'a> DrawPane<'a> {
+impl DrawPane<'_> {
     fn create_layout(&self, text: &str) -> Layout {
         self.widget.create_pango_layout(Some(text))
     }
@@ -481,7 +481,7 @@ impl<'a> DrawPane<'a> {
 
             // Stop if rendering past the bottom of the widget. TODO:
             // is this the right calculation?
-            if self.pos.y > (rect.y + rect.height as f64) {
+            if self.pos.y > (rect.y + rect.height) {
                 break;
             }
         }

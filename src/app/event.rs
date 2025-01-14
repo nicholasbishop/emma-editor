@@ -48,8 +48,8 @@ fn invalid_active_buffer_error() -> Error {
     anyhow!("internal error: active pane points to invalid buffer")
 }
 
-fn active_buffer_mut<'a, 'b>(
-    pane_tree: &'a PaneTree,
+fn active_buffer_mut<'b>(
+    pane_tree: &PaneTree,
     buffers: &'b mut HashMap<BufferId, Buffer>,
 ) -> Result<&'b mut Buffer> {
     let pane = pane_tree.active();
@@ -506,6 +506,6 @@ impl AppState {
         // occasionally redrawing when not needed.
         widget.queue_draw();
 
-        return Propagation::Stop;
+        Propagation::Stop
     }
 }

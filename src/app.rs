@@ -20,7 +20,7 @@ use tracing::{error, info};
 // This global is needed for callbacks on the main thread. On other
 // threads it is None.
 std::thread_local! {
-    static APP: RefCell<Option<App>> = RefCell::new(None);
+    static APP: RefCell<Option<App>> = const { RefCell::new(None) };
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -116,7 +116,7 @@ impl AppState {
             .unwrap()
             .set_cursor(pane_tree.minibuf(), Default::default());
 
-        AppState {
+        Self {
             key_handler: event::KeyHandler::new().unwrap(),
 
             buffers,

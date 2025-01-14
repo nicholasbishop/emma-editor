@@ -527,7 +527,7 @@ impl Buffer {
         };
 
         // TODO: unwrap
-        let ac = AhoCorasick::new(&[text]).unwrap();
+        let ac = AhoCorasick::new([text]).unwrap();
         for line in self.text().lines_at(state.matches.start_line()) {
             let lm = if let Some(lm) = state.matches.get_mut(line.index) {
                 lm

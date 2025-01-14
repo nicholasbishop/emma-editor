@@ -34,7 +34,7 @@ impl Config {
     fn load_from_dir(dir: &Path) -> Result<Self> {
         // Try to create the directory. Ignore the error, it might
         // already exist.
-        let _ = fs::create_dir_all(&dir);
+        let _ = fs::create_dir_all(dir);
 
         let config_path = dir.join("emma.yml");
 
