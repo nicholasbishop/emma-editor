@@ -181,6 +181,10 @@ pub fn init(application: &gtk::Application) {
         line_height,
     };
 
+    // Gtk warns if there's no handler for this signal, so add an empty
+    // handler.
+    application.connect_activate(|_| {});
+
     // Store app in global.
     APP.with(|cell| {
         *cell.borrow_mut() = Some(app);
