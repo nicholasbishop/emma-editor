@@ -142,14 +142,15 @@ pub fn init(application: &gtk::Application) {
         }
     };
 
-    let mut pane_tree = match AppState::load_pane_tree() {
+    let mut pane_tree = match AppState::load_persisted_pane_tree()
+        .and_then(|json| PaneTree::load_from_json(&json))
+    {
         Ok(pt) => pt,
         Err(err) => {
             error!("failed to load persisted pane tree: {}", err);
             PaneTree::new(&mut scratch_buffer, &mut minibuf)
         }
     };
-    pane_tree.cleanup_after_load();
 
     let minibuf_id = minibuf.id().clone();
     let scratch_buffer_id = scratch_buffer.id().clone();

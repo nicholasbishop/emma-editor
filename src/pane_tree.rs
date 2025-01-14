@@ -5,6 +5,7 @@ use crate::app::{BufferMap, LineHeight};
 use crate::buffer::{AbsChar, Buffer, BufferId, RelLine};
 use crate::rope::AbsLine;
 use crate::util;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -331,29 +332,6 @@ pub struct PaneTree {
 }
 
 impl PaneTree {
-    /// Call this after deserializing in case the persisted state
-    /// doesn't make sense.
-    pub fn cleanup_after_load(&mut self) {
-        self.is_minibuf_interactive = false;
-        self.active_id_before_minibuf = None;
-
-        // Ensure exactly one pane is active.
-        let mut any_active = false;
-        for pane in self.root.panes_mut() {
-            if pane.is_active {
-                if any_active {
-                    pane.is_active = false;
-                } else {
-                    any_active = true;
-                }
-            }
-        }
-        if !any_active {
-            // No panes active, arbitrarily pick one to make active.
-            self.root.panes_mut()[0].is_active = true;
-        }
-    }
-
     pub fn new(
         initial_buffer: &mut Buffer,
         minibuf_buffer: &mut Buffer,
@@ -383,6 +361,35 @@ impl PaneTree {
             minibuf: minibuf_pane,
             is_minibuf_interactive: true,
             active_id_before_minibuf: None,
+        }
+    }
+
+    pub fn load_from_json(json: &str) -> Result<Self> {
+        let mut pane_tree: Self = serde_json::from_str(json)?;
+        pane_tree.cleanup_after_load();
+        Ok(pane_tree)
+    }
+
+    /// Call this after deserializing in case the persisted state
+    /// doesn't make sense.
+    fn cleanup_after_load(&mut self) {
+        self.is_minibuf_interactive = false;
+        self.active_id_before_minibuf = None;
+
+        // Ensure exactly one pane is active.
+        let mut any_active = false;
+        for pane in self.root.panes_mut() {
+            if pane.is_active {
+                if any_active {
+                    pane.is_active = false;
+                } else {
+                    any_active = true;
+                }
+            }
+        }
+        if !any_active {
+            // No panes active, arbitrarily pick one to make active.
+            self.root.panes_mut()[0].is_active = true;
         }
     }
 

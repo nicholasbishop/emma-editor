@@ -1,6 +1,5 @@
 use super::AppState;
 use crate::buffer::{BufferId, CursorMap};
-use crate::pane_tree::PaneTree;
 use anyhow::{anyhow, Result};
 use fs_err as fs;
 use rusqlite::Connection;
@@ -112,7 +111,8 @@ impl AppState {
         Ok(iter.collect::<Result<_, _>>()?)
     }
 
-    pub fn load_pane_tree() -> Result<PaneTree> {
+    /// Load JSON that describes the pane tree.
+    pub fn load_persisted_pane_tree() -> Result<String> {
         // TODO: dedup
         let cache_dir = cache_dir()?;
         let db_path = cache_dir.join(DB_NAME);
@@ -122,6 +122,6 @@ impl AppState {
             conn.prepare("SELECT value FROM kv WHERE key = 'pane_tree'")?;
         let pane_tree_json: String = stmt.query_row([], |row| row.get(0))?;
 
-        Ok(serde_json::from_str(&pane_tree_json)?)
+        Ok(pane_tree_json)
     }
 }
