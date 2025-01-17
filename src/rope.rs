@@ -1,5 +1,8 @@
 //! Thin wrapper around `ropey`.
 
+// TODO
+#![allow(clippy::to_string_trait_impl)]
+
 use serde::{Deserialize, Serialize};
 use std::io::{self, Read};
 use std::ops::{Add, AddAssign, Bound, RangeBounds};
