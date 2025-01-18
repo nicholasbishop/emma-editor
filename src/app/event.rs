@@ -518,7 +518,7 @@ pub mod tests {
     use anyhow::Result;
 
     // TODO: experimental test.
-    #[gtk4::test]
+    #[test]
     fn test_action() -> Result<()> {
         let mut app_state = crate::app::tests::create_empty_app_state();
 
@@ -531,6 +531,15 @@ pub mod tests {
 
         app_state.handle_action(None, Action::OpenFile)?;
         assert!(*app_state.pane_tree.active().id() != pane_id);
+        assert_eq!(app_state.minibuf().text().to_string(), "Open file: ");
+        assert_eq!(app_state.minibuf().cursors().len(), 1);
+
+        app_state.handle_action(
+            None,
+            Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Dec),
+        )?;
+        // TODO: this is wrong, should move to the end of the prompt.
+        assert_eq!(app_state.minibuf().cursors().values().next().unwrap().0, 0);
 
         app_state.handle_action(None, Action::Cancel)?;
         assert!(*app_state.pane_tree.active().id() == pane_id);
