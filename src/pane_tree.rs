@@ -375,6 +375,8 @@ impl PaneTree {
     fn cleanup_after_load(&mut self) {
         self.is_minibuf_interactive = false;
         self.active_id_before_minibuf = None;
+        self.minibuf.is_active = false;
+        self.minibuf.is_cursor_visible = false;
 
         // Ensure exactly one pane is active.
         let mut any_active = false;
