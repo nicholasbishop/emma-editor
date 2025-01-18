@@ -6,6 +6,7 @@ pub use draw::LineHeight;
 
 use crate::buffer::{Buffer, BufferId};
 use crate::config::Config;
+use crate::open_file::OpenFile;
 use crate::pane_tree::PaneTree;
 use crate::rope::AbsLine;
 use crate::theme::Theme;
@@ -27,6 +28,7 @@ std::thread_local! {
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum InteractiveState {
     Initial,
+    #[allow(unused)] // TODO
     OpenFile(
         /// Default path.
         PathBuf,
@@ -47,6 +49,9 @@ pub(crate) struct AppState {
     line_height: LineHeight,
 
     is_persistence_enabled: bool,
+
+    // TODO: maybe an enum for the interactive overlay widgets?
+    open_file: Option<OpenFile>,
 }
 
 impl AppState {
@@ -132,6 +137,7 @@ impl AppState {
             line_height,
 
             is_persistence_enabled: false,
+            open_file: None,
         }
     }
 }
@@ -160,6 +166,12 @@ pub fn init(application: &gtk::Application) {
                 height,
                 app.state.line_height,
             );
+
+            // TODO: generalize this somehow.
+            if let Some(open_file) = &mut app.state.open_file {
+                open_file.recalc_layout(width, height, app.state.line_height);
+            }
+
             app.state.draw(
                 &app.widget,
                 ctx,

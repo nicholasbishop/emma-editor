@@ -62,6 +62,19 @@ pub struct Pane {
 }
 
 impl Pane {
+    // Create a one-off pane for use in a widget (e.g. open_file).
+    pub fn create_for_widget(buffer_id: BufferId) -> Self {
+        Self {
+            id: PaneId::new(),
+            buffer_id,
+            rect: Rect::default(),
+            top_line: AbsLine::zero(),
+            is_active: true,
+            show_info_bar: false,
+            is_cursor_visible: true,
+        }
+    }
+
     pub fn id(&self) -> &PaneId {
         &self.id
     }
@@ -72,6 +85,10 @@ impl Pane {
 
     pub fn rect(&self) -> &Rect {
         &self.rect
+    }
+
+    pub fn set_rect(&mut self, rect: Rect) {
+        self.rect = rect;
     }
 
     pub fn top_line(&self) -> AbsLine {

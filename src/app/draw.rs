@@ -538,5 +538,26 @@ impl AppState {
                 error!("failed to draw pane: {}", err);
             }
         }
+
+        if let Some(open_file) = &self.open_file {
+            let buf = open_file.buffer();
+            // TODO: dedup?
+            let mut dp = DrawPane {
+                ctx,
+                widget,
+                pane: open_file.pane(),
+                buf,
+                line_height,
+                theme,
+                span_buf: String::new(),
+                margin: 2.0,
+                cursor: LinePosition::default(),
+                len_lines: buf.text().len_lines(),
+                pos: Point::default(),
+            };
+            if let Err(err) = dp.draw() {
+                error!("failed to draw pane: {}", err);
+            }
+        }
     }
 }

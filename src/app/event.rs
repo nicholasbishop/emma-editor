@@ -4,6 +4,7 @@ use crate::buffer::{
 };
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{is_modifier, KeySequence, KeySequenceAtom};
+use crate::open_file::OpenFile;
 use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
 use anyhow::{anyhow, bail, Context, Error, Result};
@@ -62,7 +63,11 @@ fn active_buffer_mut<'b>(
 }
 
 impl AppState {
-    fn active_buffer(&mut self) -> Result<&Buffer> {
+    fn active_buffer(&self) -> Result<&Buffer> {
+        if let Some(open_file) = &self.open_file {
+            return Ok(open_file.buffer());
+        }
+
         let pane = self.pane_tree.active();
         let buf = self
             .buffers
@@ -72,6 +77,10 @@ impl AppState {
     }
 
     fn active_buffer_mut(&mut self) -> Result<&mut Buffer> {
+        if let Some(open_file) = &mut self.open_file {
+            return Ok(open_file.buffer_mut());
+        }
+
         let pane = self.pane_tree.active();
         let buf = self
             .buffers
@@ -81,6 +90,10 @@ impl AppState {
     }
 
     fn active_pane_buffer_mut(&mut self) -> Result<(&Pane, &mut Buffer)> {
+        if let Some(open_file) = &mut self.open_file {
+            return Ok(open_file.pane_buffer_mut());
+        }
+
         let pane = self.pane_tree.active();
         let buf = self
             .buffers
@@ -92,6 +105,10 @@ impl AppState {
     fn active_pane_mut_buffer_mut(
         &mut self,
     ) -> Result<(&mut Pane, &mut Buffer)> {
+        if let Some(open_file) = &mut self.open_file {
+            return Ok(open_file.pane_mut_buffer_mut());
+        }
+
         let pane = self.pane_tree.active_mut();
         let buf = self.buffers.get_mut(pane.buffer_id()).ok_or_else(|| {
             anyhow!("internal error: active pane points to invalid buffer")
@@ -287,6 +304,13 @@ impl AppState {
     }
 
     fn handle_confirm(&mut self) -> Result<()> {
+        if let Some(open_file) = &mut self.open_file {
+            // TODO
+            dbg!(open_file.path());
+            self.open_file = None;
+            return Ok(());
+        }
+
         match self.interactive_state {
             InteractiveState::Initial => {}
             InteractiveState::OpenFile(_) => {
@@ -478,9 +502,7 @@ impl AppState {
                         std::env::current_dir().unwrap_or_default()
                     });
 
-                self.set_interactive_state(InteractiveState::OpenFile(
-                    default_path,
-                ));
+                self.open_file = Some(OpenFile::new(&default_path));
 
                 buffer_changed = false;
             }
@@ -555,6 +577,10 @@ impl AppState {
             if self.interactive_state == InteractiveState::Search {
                 keymap_stack.push(self.get_search_keymap());
             }
+        }
+
+        if let Some(open_file) = &self.open_file {
+            keymap_stack.push(open_file.get_keymap());
         }
 
         // Ignore lone modifier presses.
