@@ -61,6 +61,15 @@ fn active_buffer_mut<'b>(
 }
 
 impl AppState {
+    fn active_buffer(&mut self) -> Result<&Buffer> {
+        let pane = self.pane_tree.active();
+        let buf = self
+            .buffers
+            .get(pane.buffer_id())
+            .ok_or_else(invalid_active_buffer_error)?;
+        Ok(buf)
+    }
+
     fn active_buffer_mut(&mut self) -> Result<&mut Buffer> {
         let pane = self.pane_tree.active();
         let buf = self
@@ -184,13 +193,19 @@ impl AppState {
 
     fn set_interactive_state(&mut self, state: InteractiveState) {
         let is_interactive = state != InteractiveState::Initial;
-        self.interactive_state = state;
+        self.interactive_state = state.clone();
         self.pane_tree.set_minibuf_interactive(is_interactive);
         self.minibuf_mut().clear();
-        let prompt = match state {
-            InteractiveState::OpenFile => Some("Open file: "),
-            InteractiveState::Search => Some("Search: "),
-            InteractiveState::Initial => None,
+        let (prompt, default) = match state {
+            InteractiveState::OpenFile(default_path) => {
+                // Convert the default path to a string.
+                // TODO: what about non-utf8 paths?
+                let default =
+                    default_path.to_str().unwrap_or_default().to_owned();
+                (Some("Open file: "), default)
+            }
+            InteractiveState::Search => (Some("Search: "), String::new()),
+            InteractiveState::Initial => (None, String::new()),
         };
         if let Some(prompt) = prompt {
             let minibuf_pane = self.pane_tree.minibuf();
@@ -198,8 +213,9 @@ impl AppState {
                 .buffers
                 .get_mut(minibuf_pane.buffer_id())
                 .expect("missing minibuf buffer");
-            minibuf.set_text(prompt);
-            minibuf.set_cursor(minibuf_pane, AbsChar(prompt.len()));
+            let text = format!("{prompt}{default}");
+            minibuf.set_text(&text);
+            minibuf.set_cursor(minibuf_pane, AbsChar(text.len()));
             minibuf.set_marker(PROMPT_END, AbsChar(prompt.len()));
         }
     }
@@ -250,7 +266,7 @@ impl AppState {
     fn handle_confirm(&mut self) -> Result<()> {
         match self.interactive_state {
             InteractiveState::Initial => {}
-            InteractiveState::OpenFile => {
+            InteractiveState::OpenFile(_) => {
                 self.open_file()?;
             }
             InteractiveState::Search => {
@@ -339,8 +355,6 @@ impl AppState {
             }
             Action::InteractiveSearch => {
                 self.set_interactive_state(InteractiveState::Search);
-                // TODO: prompt
-
                 buffer_changed = false;
             }
             Action::SearchNext => {
@@ -404,8 +418,21 @@ impl AppState {
                 buffer_changed = false;
             }
             Action::OpenFile => {
-                self.set_interactive_state(InteractiveState::OpenFile);
-                // TODO: prompt
+                let buf = self.active_buffer()?;
+                // TODO: actually should have a buf.directory() method,
+                // since in the future a dir buffer might display a
+                // directory rather than a file. Or a shell buffer.
+                let default_path = buf
+                    .path()
+                    .and_then(|p| p.parent())
+                    .map(|p| p.to_owned())
+                    .unwrap_or_else(|| {
+                        std::env::current_dir().unwrap_or_default()
+                    });
+
+                self.set_interactive_state(InteractiveState::OpenFile(
+                    default_path,
+                ));
 
                 buffer_changed = false;
             }
@@ -544,7 +571,11 @@ pub mod tests {
 
         app_state.handle_action(None, Action::OpenFile)?;
         assert!(*app_state.pane_tree.active().id() != pane_id);
-        assert_eq!(app_state.minibuf().text().to_string(), "Open file: ");
+        assert!(app_state
+            .minibuf()
+            .text()
+            .to_string()
+            .starts_with("Open file: "));
         assert_eq!(app_state.minibuf().cursors().len(), 1);
 
         app_state.handle_action(

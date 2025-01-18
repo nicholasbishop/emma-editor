@@ -15,6 +15,7 @@ use gtk4::{self as gtk, gdk};
 use persistence::PersistedBuffer;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use tracing::{error, info};
 
 // This global is needed for callbacks on the main thread. On other
@@ -23,10 +24,13 @@ std::thread_local! {
     static APP: RefCell<Option<App>> = const { RefCell::new(None) };
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum InteractiveState {
     Initial,
-    OpenFile,
+    OpenFile(
+        /// Default path.
+        PathBuf,
+    ),
     Search,
 }
 
