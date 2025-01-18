@@ -44,6 +44,8 @@ impl KeyHandler {
     }
 }
 
+const PROMPT_END: &str = "prompt_end";
+
 fn invalid_active_buffer_error() -> Error {
     anyhow!("internal error: active pane points to invalid buffer")
 }
@@ -150,6 +152,17 @@ impl AppState {
             }
         }
 
+        // Prevent the cursor from going before the prompt end.
+        //
+        // This is kinda hacky and too specific. In the future we'll
+        // probably want a way to mark a region of text as untouchable (can't edit
+        // or even move the cursor into it).
+        if let Some(prompt_end) = buf.get_marker(PROMPT_END) {
+            if cursor < prompt_end {
+                cursor = prompt_end;
+            }
+        }
+
         buf.set_cursor(pane, cursor);
 
         pane.maybe_rescroll(buf, cursor, line_height);
@@ -187,7 +200,7 @@ impl AppState {
                 .expect("missing minibuf buffer");
             minibuf.set_text(prompt);
             minibuf.set_cursor(minibuf_pane, AbsChar(prompt.len()));
-            minibuf.set_marker("prompt_end", AbsChar(prompt.len()));
+            minibuf.set_marker(PROMPT_END, AbsChar(prompt.len()));
         }
     }
 
@@ -216,7 +229,7 @@ impl AppState {
         let minibuf = self.minibuf();
         let text = minibuf
             .text()
-            .slice(minibuf.get_marker("prompt_end").unwrap()..)
+            .slice(minibuf.get_marker(PROMPT_END).unwrap()..)
             .to_string();
         let path = Path::new(&text);
 
@@ -538,8 +551,11 @@ pub mod tests {
             None,
             Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Dec),
         )?;
-        // TODO: this is wrong, should move to the end of the prompt.
-        assert_eq!(app_state.minibuf().cursors().values().next().unwrap().0, 0);
+        // Can't move into the prompt.
+        assert_eq!(
+            app_state.minibuf().cursors().values().next().unwrap().0,
+            11
+        );
 
         app_state.handle_action(None, Action::Cancel)?;
         assert!(*app_state.pane_tree.active().id() == pane_id);
