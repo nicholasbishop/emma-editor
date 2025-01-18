@@ -6,7 +6,7 @@ use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{is_modifier, KeySequence, KeySequenceAtom};
 use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
-use anyhow::{anyhow, bail, Error, Result};
+use anyhow::{anyhow, bail, Context, Error, Result};
 use fs_err as fs;
 use gtk4::glib::signal::Propagation;
 use gtk4::prelude::*;
@@ -45,6 +45,7 @@ impl KeyHandler {
 }
 
 const PROMPT_END: &str = "prompt_end";
+const COMPLETION_START: &str = "completion_start";
 
 fn invalid_active_buffer_error() -> Error {
     anyhow!("internal error: active pane points to invalid buffer")
@@ -161,7 +162,8 @@ impl AppState {
             }
         }
 
-        // Prevent the cursor from going before the prompt end.
+        // Prevent the cursor from going before the prompt end or after
+        // the completion start.
         //
         // This is kinda hacky and too specific. In the future we'll
         // probably want a way to mark a region of text as untouchable (can't edit
@@ -169,6 +171,11 @@ impl AppState {
         if let Some(prompt_end) = buf.get_marker(PROMPT_END) {
             if cursor < prompt_end {
                 cursor = prompt_end;
+            }
+        }
+        if let Some(completion_start) = buf.get_marker(COMPLETION_START) {
+            if cursor > completion_start {
+                cursor = completion_start;
             }
         }
 
@@ -217,6 +224,7 @@ impl AppState {
             minibuf.set_text(&text);
             minibuf.set_cursor(minibuf_pane, AbsChar(text.len()));
             minibuf.set_marker(PROMPT_END, AbsChar(prompt.len()));
+            minibuf.set_marker(COMPLETION_START, AbsChar(text.len()));
         }
     }
 
@@ -240,19 +248,36 @@ impl AppState {
         self.minibuf_mut().set_text(msg);
     }
 
+    fn get_interactive_text(&mut self) -> Result<String> {
+        if self.interactive_state == InteractiveState::Initial {
+            bail!("minibuf not in interactive mode");
+        }
+
+        let minibuf = self.minibuf();
+        let start = minibuf
+            .get_marker(PROMPT_END)
+            .context("missing prompt end")?;
+        let end = minibuf
+            .get_marker(COMPLETION_START)
+            .context("missing completion start")?;
+        let text = minibuf.text().slice(start..end).to_string();
+
+        Ok(text)
+    }
+
     fn open_file(&mut self) -> Result<()> {
         // Get the path to open.
-        let minibuf = self.minibuf();
-        let text = minibuf
-            .text()
-            .slice(minibuf.get_marker(PROMPT_END).unwrap()..)
-            .to_string();
+        let text = self.get_interactive_text()?;
         let path = Path::new(&text);
 
         // Reset the minibuf, which also reselects the previous active
         // pane.
         self.clear_interactive_state();
 
+        self.open_file_at_path(path)
+    }
+
+    fn open_file_at_path(&mut self, path: &Path) -> Result<()> {
         // Load the file in a new buffer.
         let buf = Buffer::from_path(path)?;
         let buf_id = buf.id().clone();
@@ -287,20 +312,45 @@ impl AppState {
 
     #[instrument(skip(self))]
     fn handle_buffer_changed(&mut self) -> Result<()> {
-        if self.interactive_state == InteractiveState::Search {
-            let minibuf = self.minibuf();
-            let search_for = minibuf.text().to_string();
+        match self.interactive_state {
+            InteractiveState::Search => {
+                let minibuf = self.minibuf();
+                let search_for = minibuf.text().to_string();
 
-            let line_height = self.line_height;
+                let line_height = self.line_height;
 
-            let pane = self.pane_tree.active_excluding_minibuf();
-            let buf = self
-                .buffers
-                .get_mut(pane.buffer_id())
-                .ok_or_else(invalid_active_buffer_error)?;
-            let num_lines =
-                (pane.rect().height / line_height.0).round() as usize;
-            buf.search(&search_for, pane, num_lines);
+                let pane = self.pane_tree.active_excluding_minibuf();
+                let buf = self
+                    .buffers
+                    .get_mut(pane.buffer_id())
+                    .ok_or_else(invalid_active_buffer_error)?;
+                let num_lines =
+                    (pane.rect().height / line_height.0).round() as usize;
+                buf.search(&search_for, pane, num_lines);
+            }
+            InteractiveState::OpenFile(_) => {
+                // TODO: this is a very simple completion that is
+                // minimally helpful.
+                let mut path = self.get_interactive_text()?;
+                path.push('*');
+                // Arbitrarily grab a few options.
+                let completions: Vec<_> = glob::glob(&path)?
+                    .into_iter()
+                    .take(5)
+                    .map(|p| p.unwrap().to_str().unwrap().to_owned())
+                    .collect();
+
+                let minibuf = self.minibuf_mut();
+                let end = minibuf
+                    .get_marker(COMPLETION_START)
+                    .context("missing completion start")?;
+                let text = minibuf.text().slice(..end).to_string();
+                let text = format!("{}   {}", text, completions.join(" | "));
+
+                // TODO: this probably interacts poorly with undo/redo.
+                minibuf.set_text(&text);
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -556,42 +606,57 @@ impl AppState {
 pub mod tests {
     use super::*;
     use anyhow::Result;
+    use gtk4::glib::translate::FromGlib;
 
     // TODO: experimental test.
     #[test]
-    fn test_action() -> Result<()> {
+    fn test_file_open() -> Result<()> {
         let mut app_state = crate::app::tests::create_empty_app_state();
 
         let (pane, buf) = app_state.active_pane_mut_buffer_mut()?;
 
         let buf_id = buf.id().clone();
         let pane_id = pane.id().clone();
-
         assert!(!buf_id.is_minibuf());
 
+        // Create test files.
+        let tmp_dir = tempfile::tempdir()?;
+        let tmp_path1 = tmp_dir.path().join("testfile1");
+        fs::write(&tmp_path1, "test data 1\n")?;
+        let tmp_path2 = tmp_dir.path().join("testfile2");
+        fs::write(&tmp_path2, "test data 2\n")?;
+
+        // Open the test file non-interactively.
+        app_state.open_file_at_path(&tmp_path1)?;
+
+        // Test interactive open.
         app_state.handle_action(None, Action::OpenFile)?;
         assert!(*app_state.pane_tree.active().id() != pane_id);
-        assert!(app_state
-            .minibuf()
-            .text()
-            .to_string()
-            .starts_with("Open file: "));
+        assert_eq!(
+            app_state.minibuf().text().to_string(),
+            format!("Open file: {}", tmp_dir.path().to_str().unwrap())
+        );
         assert_eq!(app_state.minibuf().cursors().len(), 1);
 
+        // Check that the cursor can't move into the prompt.
         app_state.handle_action(
             None,
             Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Dec),
         )?;
-        // Can't move into the prompt.
         assert_eq!(
             app_state.minibuf().cursors().values().next().unwrap().0,
             11
         );
 
+        // TODO: make it easier to just insert text.
+        for c in "testfile2".chars() {
+            let keyval = gdk::unicode_to_keyval(c as u32);
+            let key = unsafe { gdk::Key::from_glib(keyval) };
+            app_state.handle_action(None, Action::Insert(key))?;
+        }
+
         app_state.handle_action(None, Action::Cancel)?;
         assert!(*app_state.pane_tree.active().id() == pane_id);
-
-        app_state.handle_action(None, Action::Insert(gdk::Key::A))?;
 
         Ok(())
     }
