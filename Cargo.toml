@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 aho-corasick = "1.1.0"
-anyhow = "1.0.58"
+anyhow = { version = "1.0.58", features = ["backtrace"] }
 dirs = "6.0.0"
 fs-err = "3.0.0"
 glob = "0.3.2"
