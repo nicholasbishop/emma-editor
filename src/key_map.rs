@@ -2,7 +2,7 @@ use crate::buffer::{Boundary, Direction};
 use crate::key_sequence::KeySequence;
 use crate::pane_tree;
 use anyhow::Result;
-use gtk4::gdk::{self, ModifierType};
+use gtk4::gdk::ModifierType;
 use std::collections::HashMap;
 use tracing::{debug, error, instrument};
 
@@ -21,7 +21,7 @@ pub enum Action {
 
     // Insert text for a key press, e.g. pressing the 'a' key inserts
     // an 'a' character into the active buffer.
-    Insert(gdk::Key),
+    Insert(char),
 
     // Insert a new line after the cursor. The cursor position is left
     // unchanged.
@@ -256,12 +256,19 @@ impl KeyMapStack {
         // want the default insertion action to occur.
         if seq.0.len() == 1 {
             let atom = &seq.0[0];
-            if atom.modifiers.is_empty() {
-                return KeyMapLookup::Action(Action::Insert(atom.key));
+            // TODO: not very robust, and won't work with capslock.
+            let key = if atom.modifiers.is_empty() {
+                Some(atom.key)
             } else if atom.modifiers == ModifierType::SHIFT_MASK {
-                return KeyMapLookup::Action(Action::Insert(
-                    atom.key.to_upper(),
-                ));
+                Some(atom.key.to_upper())
+            } else {
+                None
+            };
+
+            if let Some(key) = key {
+                let c =
+                    key.to_unicode().expect("failed to convert key to unicode");
+                return KeyMapLookup::Action(Action::Insert(c));
             }
         }
 
@@ -334,9 +341,7 @@ mod tests {
         // Simple sequence not in any keymap.
         assert_eq!(
             stack.lookup(&KeySequence::parse("y").unwrap()),
-            KeyMapLookup::Action(Action::Insert(
-                gdk::Key::from_name("y").unwrap()
-            ))
+            KeyMapLookup::Action(Action::Insert('y'))
         );
 
         // Sequence not in any keymap.

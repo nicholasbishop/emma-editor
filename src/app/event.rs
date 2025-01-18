@@ -118,13 +118,11 @@ impl AppState {
         Ok(())
     }
 
-    fn insert_char(&mut self, key: gdk::Key) -> Result<()> {
-        // Insert a character into the active pane.
-        if let Some(c) = key.to_unicode() {
-            let (pane, buf) = self.active_pane_buffer_mut()?;
-            let pos = buf.cursor(pane);
-            buf.insert_char(c, pos);
-        }
+    /// Insert a character into the active pane.
+    fn insert_char(&mut self, c: char) -> Result<()> {
+        let (pane, buf) = self.active_pane_buffer_mut()?;
+        let pos = buf.cursor(pane);
+        buf.insert_char(c, pos);
         Ok(())
     }
 
@@ -606,7 +604,6 @@ impl AppState {
 pub mod tests {
     use super::*;
     use anyhow::Result;
-    use gtk4::glib::translate::FromGlib;
 
     // TODO: experimental test.
     #[test]
@@ -650,9 +647,7 @@ pub mod tests {
 
         // TODO: make it easier to just insert text.
         for c in "testfile2".chars() {
-            let keyval = gdk::unicode_to_keyval(c as u32);
-            let key = unsafe { gdk::Key::from_glib(keyval) };
-            app_state.handle_action(None, Action::Insert(key))?;
+            app_state.handle_action(None, Action::Insert(c))?;
         }
 
         app_state.handle_action(None, Action::Cancel)?;
