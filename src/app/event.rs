@@ -518,19 +518,23 @@ pub mod tests {
     use anyhow::Result;
 
     // TODO: experimental test.
-    // TODO: turn off persistance in tests.
     #[gtk4::test]
     fn test_action() -> Result<()> {
         let mut app_state = crate::app::tests::create_empty_app_state();
 
         let (pane, buf) = app_state.active_pane_mut_buffer_mut()?;
 
-        let buf_id = buf.id();
-        let pane_id = pane.id();
+        let buf_id = buf.id().clone();
+        let pane_id = pane.id().clone();
 
         assert!(!buf_id.is_minibuf());
 
         app_state.handle_action(None, Action::OpenFile)?;
+
+        assert!(*app_state.pane_tree.active().id() != pane_id);
+
+        app_state.handle_action(None, Action::Cancel)?;
+        app_state.handle_action(None, Action::Insert(gdk::Key::A))?;
 
         Ok(())
     }
