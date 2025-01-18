@@ -605,6 +605,10 @@ pub mod tests {
     use super::*;
     use anyhow::Result;
 
+    fn path_to_string(p: &Path) -> String {
+        p.to_str().unwrap().to_owned()
+    }
+
     // TODO: experimental test.
     #[test]
     fn test_file_open() -> Result<()> {
@@ -618,9 +622,10 @@ pub mod tests {
 
         // Create test files.
         let tmp_dir = tempfile::tempdir()?;
-        let tmp_path1 = tmp_dir.path().join("testfile1");
+        let tmp_dir = tmp_dir.path();
+        let tmp_path1 = tmp_dir.join("testfile1");
         fs::write(&tmp_path1, "test data 1\n")?;
-        let tmp_path2 = tmp_dir.path().join("testfile2");
+        let tmp_path2 = tmp_dir.join("testfile2");
         fs::write(&tmp_path2, "test data 2\n")?;
 
         // Open the test file non-interactively.
@@ -631,7 +636,7 @@ pub mod tests {
         assert!(*app_state.pane_tree.active().id() != pane_id);
         assert_eq!(
             app_state.minibuf().text().to_string(),
-            format!("Open file: {}", tmp_dir.path().to_str().unwrap())
+            format!("Open file: {}", path_to_string(tmp_dir))
         );
         assert_eq!(app_state.minibuf().cursors().len(), 1);
 
@@ -645,10 +650,21 @@ pub mod tests {
             11
         );
 
+        // Check the default path.
+        assert_eq!(app_state.get_interactive_text()?, path_to_string(tmp_dir));
+
+        // Type one character into the minibuf.
+        app_state.handle_action(None, Action::Insert('/'))?;
+        assert_eq!(
+            app_state.get_interactive_text()?,
+            path_to_string(tmp_dir) + "/"
+        );
+
         // TODO: make it easier to just insert text.
         for c in "testfile2".chars() {
             app_state.handle_action(None, Action::Insert(c))?;
         }
+        app_state.handle_action(None, Action::Confirm)?;
 
         app_state.handle_action(None, Action::Cancel)?;
         assert!(*app_state.pane_tree.active().id() == pane_id);
