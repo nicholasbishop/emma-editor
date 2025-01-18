@@ -30,6 +30,10 @@ pub struct PersistedBuffer {
 
 impl AppState {
     pub fn persistence_store(&self) -> Result<()> {
+        if !self.is_persistence_enabled {
+            return Ok(());
+        }
+
         let cache_dir = cache_dir()?;
 
         // Try to create the directory. Ignore the error, it might

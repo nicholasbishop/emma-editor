@@ -41,6 +41,8 @@ pub(crate) struct AppState {
 
     interactive_state: InteractiveState,
     line_height: LineHeight,
+
+    is_persistence_enabled: bool,
 }
 
 impl AppState {
@@ -124,6 +126,8 @@ impl AppState {
 
             interactive_state: InteractiveState::Initial,
             line_height,
+
+            is_persistence_enabled: false,
         }
     }
 }
@@ -210,12 +214,13 @@ pub fn init(application: &gtk::Application) {
 
     let line_height = LineHeight::calculate(&widget);
 
-    let app = App {
+    let mut app = App {
         window,
         widget,
 
         state: AppState::load(line_height, &persisted_buffers, pane_tree_json),
     };
+    app.state.is_persistence_enabled = true;
 
     // Gtk warns if there's no handler for this signal, so add an empty
     // handler.
