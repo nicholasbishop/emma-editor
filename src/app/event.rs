@@ -530,10 +530,11 @@ pub mod tests {
         assert!(!buf_id.is_minibuf());
 
         app_state.handle_action(None, Action::OpenFile)?;
-
         assert!(*app_state.pane_tree.active().id() != pane_id);
 
         app_state.handle_action(None, Action::Cancel)?;
+        assert!(*app_state.pane_tree.active().id() == pane_id);
+
         app_state.handle_action(None, Action::Insert(gdk::Key::A))?;
 
         Ok(())
