@@ -33,7 +33,7 @@ enum InteractiveState {
 pub type BufferMap = HashMap<BufferId, Buffer>;
 
 // Pure state, no GTK stuff goes here.
-struct AppState {
+pub(crate) struct AppState {
     key_handler: event::KeyHandler,
 
     buffers: HashMap<BufferId, Buffer>,
@@ -228,14 +228,19 @@ pub fn init(application: &gtk::Application) {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use anyhow::anyhow;
+
+    // TODO: simplify AppState::load, then maybe won't need this anymore.
+    pub(crate) fn create_empty_app_state() -> AppState {
+        AppState::load(LineHeight(12.0), &[], Err(anyhow!("")))
+    }
 
     // TODO: experimenting with gtk test.
     #[gtk::test]
     fn test_app_state() {
-        let app_state = AppState::load(LineHeight(12.0), &[], Err(anyhow!("")));
+        let app_state = create_empty_app_state();
 
         let panes = app_state.pane_tree.panes();
         assert_eq!(panes.len(), 1);

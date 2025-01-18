@@ -298,7 +298,8 @@ impl AppState {
 
     fn handle_action(
         &mut self,
-        window: gtk::ApplicationWindow,
+        // TODO: just optional for tests
+        window: Option<gtk::ApplicationWindow>,
         action: Action,
     ) -> Result<()> {
         info!("handling action {:?}", action);
@@ -307,7 +308,8 @@ impl AppState {
 
         match action {
             Action::Exit => {
-                window.close();
+                // TODO: unwrap
+                window.unwrap().close();
                 buffer_changed = false;
             }
             Action::Insert(key) => {
@@ -491,7 +493,7 @@ impl AppState {
                 // Waiting for the sequence to be completed.
             }
             KeyMapLookup::Action(action) => {
-                if let Err(err) = self.handle_action(window, action) {
+                if let Err(err) = self.handle_action(Some(window), action) {
                     error!("failed to handle action: {err}");
                     self.display_error(err);
                 }
@@ -507,5 +509,29 @@ impl AppState {
         widget.queue_draw();
 
         Propagation::Stop
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use anyhow::Result;
+
+    // TODO: experimental test.
+    // TODO: turn off persistance in tests.
+    #[gtk4::test]
+    fn test_action() -> Result<()> {
+        let mut app_state = crate::app::tests::create_empty_app_state();
+
+        let (pane, buf) = app_state.active_pane_mut_buffer_mut()?;
+
+        let buf_id = buf.id();
+        let pane_id = pane.id();
+
+        assert!(!buf_id.is_minibuf());
+
+        app_state.handle_action(None, Action::OpenFile)?;
+
+        Ok(())
     }
 }
