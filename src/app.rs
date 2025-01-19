@@ -10,9 +10,9 @@ use crate::open_file::OpenFile;
 use crate::pane_tree::PaneTree;
 use crate::rope::AbsLine;
 use crate::theme::Theme;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use gtk4::prelude::*;
-use gtk4::{self as gtk};
+use gtk4::{self as gtk, gdk};
 use persistence::PersistedBuffer;
 use relm4::abstractions::DrawHandler;
 use relm4::{Component, ComponentParts, ComponentSender};
@@ -173,14 +173,51 @@ impl Component for AppState {
     /// Initialize the UI and model.
     fn init(
         _data: Self::Init,
-        _window: Self::Root,
+        window: Self::Root,
         sender: ComponentSender<Self>,
     ) -> relm4::ComponentParts<Self> {
-        // TODO
-        let model = AppState::load(LineHeight(12.0), &[], Err(anyhow!("")));
+        let config = match Config::load() {
+            Ok(config) => config,
+            Err(err) => {
+                // TODO: would be good to show this error in the UI
+                error!("failed to load config: {}", err);
+                Config::default()
+            }
+        };
+
+        let css = gtk::CssProvider::new();
+        css.load_from_data(&format!(
+            r#"
+        widget {{ 
+            font-family: monospace;
+            font-size: {font_size}pt;
+        }}
+    "#,
+            font_size = config.font_size
+        ));
+        gtk::style_context_add_provider_for_display(
+            &gdk::Display::default().unwrap(),
+            &css,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+
+        let persisted_buffers = match AppState::load_persisted_buffers() {
+            Ok(pb) => pb,
+            Err(err) => {
+                error!("failed to load persisted buffers: {}", err);
+                Vec::new()
+            }
+        };
+
+        let pane_tree_json = AppState::load_persisted_pane_tree();
+
+        let mut model =
+            AppState::load(LineHeight(0.0), &persisted_buffers, pane_tree_json);
 
         let area = model.draw_handler.drawing_area();
         let widgets = view_output!();
+
+        model.line_height = LineHeight::calculate(&window);
 
         ComponentParts { model, widgets }
     }
@@ -227,35 +264,6 @@ pub fn init(application: &gtk::Application) {
     // Create single widget that is used for drawing the whole
     // application.
     let widget = gtk::DrawingArea::new();
-    // widget.set_draw_func(|_widget, ctx, width, height| {
-    //     APP.with(|app| {
-    //         let width = width as f64;
-    //         let height = height as f64;
-
-    //         let mut app = app.borrow_mut();
-    //         let app = app.as_mut().unwrap();
-
-    //         app.state.pane_tree.recalc_layout(
-    //             width,
-    //             height,
-    //             app.state.line_height,
-    //         );
-
-    //         // TODO: generalize this somehow.
-    //         if let Some(open_file) = &mut app.state.open_file {
-    //             open_file.recalc_layout(width, height, app.state.line_height);
-    //         }
-
-    //         app.state.draw(
-    //             &app.widget,
-    //             ctx,
-    //             width,
-    //             height,
-    //             app.state.line_height,
-    //             &Theme::current(),
-    //         );
-    //     })
-    // });
 
     // Create top-level window.
     let window = gtk::ApplicationWindow::new(application);
