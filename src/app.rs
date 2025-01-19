@@ -183,6 +183,8 @@ impl Component for App {
         window: Self::Root,
         sender: ComponentSender<Self>,
     ) -> relm4::ComponentParts<Self> {
+        window.maximize();
+
         let config = match Config::load() {
             Ok(config) => config,
             Err(err) => {
