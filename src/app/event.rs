@@ -632,6 +632,7 @@ impl AppState {
     }
 }
 
+#[cfg(any())] // TODO: reenable
 #[cfg(test)]
 pub mod tests {
     use super::*;

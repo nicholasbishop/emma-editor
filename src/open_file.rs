@@ -120,3 +120,46 @@ impl OpenFile {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::theme::Theme;
+    use anyhow::Result;
+    use std::fs;
+
+    fn path_to_str(p: &Path) -> String {
+        p.to_str().unwrap().to_owned()
+    }
+
+    #[test]
+    fn test_open_file() -> Result<()> {
+        // TODO: ick
+        Theme::set_current(
+            Theme::load_default().expect("failed to load built-in theme"),
+        );
+
+        // Create test files.
+        let tmp_dir = tempfile::tempdir()?;
+        let tmp_dir = tmp_dir.path();
+        let tmp_path1 = tmp_dir.join("testfile1");
+        fs::write(&tmp_path1, "test data 1\n")?;
+        let tmp_path2 = tmp_dir.join("testfile2");
+        fs::write(&tmp_path2, "test data 2\n")?;
+
+        let mut open_file = OpenFile::new(&tmp_dir)?;
+
+        // Check the default path.
+        assert_eq!(path_to_str(&open_file.path()), path_to_str(&tmp_dir) + "/");
+
+        // Check the initial suggestions.
+        assert_eq!(open_file.suggestions(), "testfile1 | testfile2");
+
+        // Modify the path and check suggestions again.
+        open_file.buffer_mut().set_text(&path_to_str(&tmp_path1));
+        open_file.update_suggestions()?;
+        assert_eq!(open_file.suggestions(), "testfile1");
+
+        Ok(())
+    }
+}
