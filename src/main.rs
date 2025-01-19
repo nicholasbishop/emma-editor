@@ -13,18 +13,11 @@ mod shell;
 mod theme;
 mod util;
 
-use gtk4 as gtk;
-use gtk4::prelude::*;
+use relm4::RelmApp;
 
 fn main() {
     tracing_subscriber::fmt::init();
 
-    let application = gtk::Application::builder()
-        .application_id("org.emma.Emma")
-        .register_session(true)
-        .build();
-
-    application.connect_startup(app::init);
-
-    application.run();
+    let app = RelmApp::new("emma");
+    app.run::<app::AppState>(());
 }

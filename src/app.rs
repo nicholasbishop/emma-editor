@@ -10,10 +10,11 @@ use crate::open_file::OpenFile;
 use crate::pane_tree::PaneTree;
 use crate::rope::AbsLine;
 use crate::theme::Theme;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use gtk4::prelude::*;
 use gtk4::{self as gtk, gdk};
 use persistence::PersistedBuffer;
+use relm4::{ComponentParts, ComponentSender, SimpleComponent};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -139,6 +140,36 @@ impl AppState {
             is_persistence_enabled: false,
             open_file: None,
         }
+    }
+}
+
+impl SimpleComponent for AppState {
+    type Input = ();
+    type Output = ();
+    type Init = ();
+    type Root = gtk::Window;
+    type Widgets = ();
+
+    fn init_root() -> Self::Root {
+        // TODO: maximize
+        // TODO: ApplicationWindow?
+        gtk::Window::builder()
+            .title("emma")
+            .default_width(800)
+            .default_height(800)
+            .build()
+    }
+
+    /// Initialize the UI and model.
+    fn init(
+        _data: Self::Init,
+        _window: Self::Root,
+        _sender: ComponentSender<Self>,
+    ) -> relm4::ComponentParts<Self> {
+        // TODO
+        let model = AppState::load(LineHeight(12.0), &[], Err(anyhow!("")));
+
+        ComponentParts { model, widgets: () }
     }
 }
 
