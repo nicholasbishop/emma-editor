@@ -16,16 +16,9 @@ use gtk4::{self as gtk, gdk};
 use persistence::PersistedBuffer;
 use relm4::abstractions::DrawHandler;
 use relm4::{Component, ComponentParts, ComponentSender};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tracing::{error, info};
-
-// This global is needed for callbacks on the main thread. On other
-// threads it is None.
-std::thread_local! {
-    static APP: RefCell<Option<App>> = const { RefCell::new(None) };
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum InteractiveState {
@@ -274,13 +267,6 @@ impl Component for AppState {
             &Theme::current(),
         );
     }
-}
-
-struct App {
-    window: gtk::ApplicationWindow,
-    widget: gtk::DrawingArea,
-
-    state: AppState,
 }
 
 #[cfg(any())]
