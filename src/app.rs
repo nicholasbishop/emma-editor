@@ -148,10 +148,16 @@ impl AppState {
     }
 }
 
+#[derive(Debug)]
+pub enum AppEvent {
+    Resized,
+    KeyPressed(gdk::Key, gdk::ModifierType),
+}
+
 #[relm4::component(pub)]
 impl Component for AppState {
     type CommandOutput = ();
-    type Input = ();
+    type Input = AppEvent;
     type Output = ();
     type Init = ();
 
@@ -161,10 +167,18 @@ impl Component for AppState {
             set_default_width: 800,
             set_default_height: 800,
 
+            add_controller = gtk::EventControllerKey {
+                connect_key_pressed[sender] => move |controller, keyval, _keycode, state| {
+                    controller.set_propagation_phase(gtk::PropagationPhase::Capture);
+                    sender.input(AppEvent::KeyPressed(keyval, state));
+                    gtk::glib::signal::Propagation::Stop
+                }
+            },
+
             #[local_ref]
             area -> gtk::DrawingArea {
                 connect_resize[sender] => move |_, _, _| {
-                    sender.input(());
+                    sender.input(AppEvent::Resized);
                 }
             },
         },
@@ -224,10 +238,20 @@ impl Component for AppState {
 
     fn update(
         &mut self,
-        _msg: (),
+        msg: AppEvent,
         _sender: ComponentSender<Self>,
         root: &Self::Root,
     ) {
+        match msg {
+            AppEvent::KeyPressed(key, state) => {
+                // TODO: remove Propagation return?
+                self.handle_key_press(root, key, state);
+            }
+            AppEvent::Resized => {}
+        }
+
+        // Draw:
+
         let ctx = self.draw_handler.get_context();
 
         let width = root.width() as f64;

@@ -1,4 +1,4 @@
-use super::{AppState, InteractiveState, APP};
+use super::{AppState, InteractiveState};
 use crate::buffer::{
     Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
 };
@@ -15,21 +15,6 @@ use gtk4::{self as gtk, gdk};
 use std::collections::HashMap;
 use std::path::Path;
 use tracing::{error, info, instrument};
-
-pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
-    let key_controller = gtk::EventControllerKey::new();
-    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
-    key_controller.connect_key_pressed(|_self, keyval, _keycode, state| {
-        APP.with(|app| {
-            let mut app = app.borrow_mut();
-            let app = app.as_mut().unwrap();
-            let window = app.window.clone();
-            let widget = app.widget.clone();
-            app.state.handle_key_press(window, widget, keyval, state)
-        })
-    });
-    window.add_controller(key_controller);
-}
 
 pub(super) struct KeyHandler {
     base_keymap: KeyMap,
@@ -404,7 +389,7 @@ impl AppState {
     fn handle_action(
         &mut self,
         // TODO: just optional for tests
-        window: Option<gtk::ApplicationWindow>,
+        window: Option<&gtk::Window>,
         action: Action,
     ) -> Result<()> {
         info!("handling action {:?}", action);
@@ -569,8 +554,7 @@ impl AppState {
 
     pub(super) fn handle_key_press(
         &mut self,
-        window: gtk::ApplicationWindow,
-        widget: gtk::DrawingArea,
+        window: &gtk::Window,
         key: gdk::Key,
         state: gdk::ModifierType,
     ) -> Propagation {
@@ -623,10 +607,6 @@ impl AppState {
         if clear_seq {
             self.key_handler.cur_seq.0.clear();
         }
-
-        // Not every action requires redraw, but most do, no harm
-        // occasionally redrawing when not needed.
-        widget.queue_draw();
 
         Propagation::Stop
     }
