@@ -577,6 +577,12 @@ impl AppState {
             error!("fill failed: {}", err);
         }
 
+        // Prompt.
+        let layout = widget.create_pango_layout(Some("Open file:"));
+        set_source_rgb_from_u8(ctx, 200, 200, 200);
+        ctx.move_to(r.x, r.y);
+        pangocairo::functions::show_layout(ctx, &layout);
+
         let buf = open_file.buffer();
         // TODO: dedup?
         let mut dp = DrawPane {
@@ -595,5 +601,7 @@ impl AppState {
         if let Err(err) = dp.draw() {
             error!("failed to draw pane: {}", err);
         }
+
+        // TODO: completions
     }
 }
