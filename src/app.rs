@@ -192,21 +192,16 @@ impl Component for App {
             }
         };
 
-        let css = gtk::CssProvider::new();
-        css.load_from_data(&format!(
+        let css = format!(
             r#"
-        widget {{ 
-            font-family: monospace;
-            font-size: {font_size}pt;
-        }}
-    "#,
+            * {{ 
+              font-family: monospace;
+              font-size: {font_size}pt;
+            }}
+            "#,
             font_size = config.font_size
-        ));
-        gtk::style_context_add_provider_for_display(
-            &gdk::Display::default().unwrap(),
-            &css,
-            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
+        relm4::set_global_css(&css);
 
         let persisted_buffers = match App::load_persisted_buffers() {
             Ok(pb) => pb,
