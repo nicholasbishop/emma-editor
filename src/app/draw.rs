@@ -9,13 +9,14 @@ use crate::theme::Theme;
 use anyhow::Result;
 use gtk4::pango::{self, Layout};
 use gtk4::prelude::*;
-use gtk4::{self as gtk, cairo};
+use gtk4::{cairo, Window};
+use relm4::abstractions::DrawContext;
 use std::fmt;
 use std::ops::Range;
 use syntect::highlighting::Style;
 use tracing::{debug, error, instrument};
 
-fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
+fn set_source_rgba_from_u8(ctx: &DrawContext, r: u8, g: u8, b: u8, a: u8) {
     let r = (r as f64) / 255.0;
     let g = (g as f64) / 255.0;
     let b = (b as f64) / 255.0;
@@ -23,12 +24,12 @@ fn set_source_rgba_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8, a: u8) {
     ctx.set_source_rgba(r, g, b, a);
 }
 
-fn set_source_rgb_from_u8(ctx: &cairo::Context, r: u8, g: u8, b: u8) {
+fn set_source_rgb_from_u8(ctx: &DrawContext, r: u8, g: u8, b: u8) {
     set_source_rgba_from_u8(ctx, r, g, b, 255);
 }
 
 fn set_source_from_syntect_color(
-    ctx: &cairo::Context,
+    ctx: &DrawContext,
     color: &syntect::highlighting::Color,
 ) {
     set_source_rgba_from_u8(ctx, color.r, color.g, color.b, color.a);
@@ -54,7 +55,7 @@ impl fmt::Display for Point {
 }
 
 impl LineHeight {
-    pub fn calculate(widget: &gtk::DrawingArea) -> Self {
+    pub fn calculate(widget: &Window) -> Self {
         let pctx = widget.pango_context();
         let font_desc = pctx.font_description();
 
@@ -195,8 +196,8 @@ mod tests {
 }
 
 struct DrawPane<'a> {
-    ctx: &'a cairo::Context,
-    widget: &'a gtk::DrawingArea,
+    ctx: &'a DrawContext,
+    widget: &'a Window,
     pane: &'a Pane,
     buf: &'a Buffer,
     line_height: LineHeight,
@@ -498,8 +499,8 @@ impl AppState {
     // Errors here are logged but otherwise swallowed.
     pub(super) fn draw(
         &self,
-        widget: &gtk::DrawingArea,
-        ctx: &cairo::Context,
+        widget: &Window,
+        ctx: &DrawContext,
         width: f64,
         height: f64,
         line_height: LineHeight,
@@ -544,8 +545,8 @@ impl AppState {
 
     fn draw_interactive_widget(
         &self,
-        widget: &gtk::DrawingArea,
-        ctx: &cairo::Context,
+        widget: &Window,
+        ctx: &DrawContext,
         line_height: LineHeight,
         theme: &Theme,
     ) {

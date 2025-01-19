@@ -12,9 +12,10 @@ use crate::rope::AbsLine;
 use crate::theme::Theme;
 use anyhow::{anyhow, Result};
 use gtk4::prelude::*;
-use gtk4::{self as gtk, gdk};
+use gtk4::{self as gtk};
 use persistence::PersistedBuffer;
-use relm4::{ComponentParts, ComponentSender, SimpleComponent};
+use relm4::abstractions::DrawHandler;
+use relm4::{Component, ComponentParts, ComponentSender};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -53,6 +54,8 @@ pub(crate) struct AppState {
 
     // TODO: maybe an enum for the interactive overlay widgets?
     open_file: Option<OpenFile>,
+
+    draw_handler: DrawHandler,
 }
 
 impl AppState {
@@ -139,37 +142,76 @@ impl AppState {
 
             is_persistence_enabled: false,
             open_file: None,
+
+            draw_handler: DrawHandler::new(),
         }
     }
 }
 
-impl SimpleComponent for AppState {
+#[relm4::component(pub)]
+impl Component for AppState {
+    type CommandOutput = ();
     type Input = ();
     type Output = ();
     type Init = ();
-    type Root = gtk::Window;
-    type Widgets = ();
 
-    fn init_root() -> Self::Root {
-        // TODO: maximize
-        // TODO: ApplicationWindow?
-        gtk::Window::builder()
-            .title("emma")
-            .default_width(800)
-            .default_height(800)
-            .build()
+    view! {
+        gtk::Window {
+            set_title: Some("emma"),
+            set_default_width: 800,
+            set_default_height: 800,
+
+            #[local_ref]
+            area -> gtk::DrawingArea {
+                connect_resize[sender] => move |_, _, _| {
+                    sender.input(());
+                }
+            },
+        },
     }
 
     /// Initialize the UI and model.
     fn init(
         _data: Self::Init,
         _window: Self::Root,
-        _sender: ComponentSender<Self>,
+        sender: ComponentSender<Self>,
     ) -> relm4::ComponentParts<Self> {
         // TODO
         let model = AppState::load(LineHeight(12.0), &[], Err(anyhow!("")));
 
-        ComponentParts { model, widgets: () }
+        let area = model.draw_handler.drawing_area();
+        let widgets = view_output!();
+
+        ComponentParts { model, widgets }
+    }
+
+    fn update(
+        &mut self,
+        _msg: (),
+        _sender: ComponentSender<Self>,
+        root: &Self::Root,
+    ) {
+        let ctx = self.draw_handler.get_context();
+
+        let width = root.width() as f64;
+        let height = root.height() as f64;
+
+        self.pane_tree
+            .recalc_layout(width, height, self.line_height);
+
+        // TODO: generalize this somehow.
+        if let Some(open_file) = &mut self.open_file {
+            open_file.recalc_layout(width, height, self.line_height);
+        }
+
+        self.draw(
+            root,
+            &ctx,
+            width,
+            height,
+            self.line_height,
+            &Theme::current(),
+        );
     }
 }
 
@@ -180,39 +222,40 @@ struct App {
     state: AppState,
 }
 
+#[cfg(any())]
 pub fn init(application: &gtk::Application) {
     // Create single widget that is used for drawing the whole
     // application.
     let widget = gtk::DrawingArea::new();
-    widget.set_draw_func(|_widget, ctx, width, height| {
-        APP.with(|app| {
-            let width = width as f64;
-            let height = height as f64;
+    // widget.set_draw_func(|_widget, ctx, width, height| {
+    //     APP.with(|app| {
+    //         let width = width as f64;
+    //         let height = height as f64;
 
-            let mut app = app.borrow_mut();
-            let app = app.as_mut().unwrap();
+    //         let mut app = app.borrow_mut();
+    //         let app = app.as_mut().unwrap();
 
-            app.state.pane_tree.recalc_layout(
-                width,
-                height,
-                app.state.line_height,
-            );
+    //         app.state.pane_tree.recalc_layout(
+    //             width,
+    //             height,
+    //             app.state.line_height,
+    //         );
 
-            // TODO: generalize this somehow.
-            if let Some(open_file) = &mut app.state.open_file {
-                open_file.recalc_layout(width, height, app.state.line_height);
-            }
+    //         // TODO: generalize this somehow.
+    //         if let Some(open_file) = &mut app.state.open_file {
+    //             open_file.recalc_layout(width, height, app.state.line_height);
+    //         }
 
-            app.state.draw(
-                &app.widget,
-                ctx,
-                width,
-                height,
-                app.state.line_height,
-                &Theme::current(),
-            );
-        })
-    });
+    //         app.state.draw(
+    //             &app.widget,
+    //             ctx,
+    //             width,
+    //             height,
+    //             app.state.line_height,
+    //             &Theme::current(),
+    //         );
+    //     })
+    // });
 
     // Create top-level window.
     let window = gtk::ApplicationWindow::new(application);
