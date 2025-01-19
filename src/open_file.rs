@@ -10,23 +10,30 @@ pub struct OpenFile {
     buffer: Buffer,
     pane: Pane,
     rect: Rect,
+    // TODO: this type will probably eventually become more interesting.
+    suggestions: String,
 }
 
 impl OpenFile {
-    pub fn new(default_path: &Path) -> Self {
+    pub fn new(default_path: &Path) -> Result<Self> {
         let mut buffer = Buffer::create_empty();
         // TODO: what about non-utf8 paths?
-        let default_path = default_path.to_str().unwrap();
-        buffer.set_text(default_path);
+        let mut default_path = default_path.to_str().unwrap().to_owned();
+        // That pesky default path doesn't end in a slash.
+        default_path += "/";
+        buffer.set_text(&default_path);
 
         let pane = Pane::create_for_widget(buffer.id().clone());
         buffer.set_cursor(&pane, AbsChar(default_path.len()));
 
-        Self {
+        let mut s = Self {
             buffer,
             pane,
             rect: Rect::default(),
-        }
+            suggestions: String::new(),
+        };
+        s.update_suggestions()?;
+        Ok(s)
     }
 
     pub fn rect(&self) -> &Rect {
@@ -55,6 +62,10 @@ impl OpenFile {
 
     pub fn pane_mut_buffer_mut(&mut self) -> (&mut Pane, &mut Buffer) {
         (&mut self.pane, &mut self.buffer)
+    }
+
+    pub fn suggestions(&self) -> &str {
+        &self.suggestions
     }
 
     pub fn recalc_layout(
@@ -88,5 +99,24 @@ impl OpenFile {
             ]
             .into_iter(),
         )
+    }
+
+    pub fn update_suggestions(&mut self) -> Result<()> {
+        // TODO: this is a very simple completion that is
+        // minimally helpful.
+        let mut path = self.path().to_str().unwrap().to_owned();
+        path.push('*');
+        // Arbitrarily grab a few options.
+        let completions: Vec<_> = glob::glob(&path)?
+            .into_iter()
+            .take(100)
+            .map(|p| {
+                p.unwrap().file_name().unwrap().to_str().unwrap().to_owned()
+            })
+            .collect();
+
+        self.suggestions = completions.join(" | ");
+
+        Ok(())
     }
 }

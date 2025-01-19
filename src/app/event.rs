@@ -334,6 +334,10 @@ impl AppState {
 
     #[instrument(skip(self))]
     fn handle_buffer_changed(&mut self) -> Result<()> {
+        if let Some(open_file) = &mut self.open_file {
+            open_file.update_suggestions()?;
+        }
+
         match self.interactive_state {
             InteractiveState::Search => {
                 let minibuf = self.minibuf();
@@ -502,7 +506,7 @@ impl AppState {
                         std::env::current_dir().unwrap_or_default()
                     });
 
-                self.open_file = Some(OpenFile::new(&default_path));
+                self.open_file = Some(OpenFile::new(&default_path)?);
 
                 buffer_changed = false;
             }
