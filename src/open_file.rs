@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 pub struct OpenFile {
     buffer: Buffer,
     pane: Pane,
+    rect: Rect,
 }
 
 impl OpenFile {
@@ -19,9 +20,17 @@ impl OpenFile {
         buffer.set_text(default_path);
 
         let pane = Pane::create_for_widget(buffer.id().clone());
-        buffer.set_cursor(&pane, AbsChar::default());
+        buffer.set_cursor(&pane, AbsChar(default_path.len()));
 
-        Self { buffer, pane }
+        Self {
+            buffer,
+            pane,
+            rect: Rect::default(),
+        }
+    }
+
+    pub fn rect(&self) -> &Rect {
+        &self.rect
     }
 
     pub fn path(&self) -> PathBuf {
@@ -54,10 +63,15 @@ impl OpenFile {
         _height: f64,
         line_height: LineHeight,
     ) {
-        self.pane.set_rect(Rect {
-            // TODO
+        self.rect = Rect {
             x: 0.0,
             y: 0.0,
+            width,
+            height: line_height.0 * 3.0,
+        };
+        self.pane.set_rect(Rect {
+            x: 0.0,
+            y: line_height.0,
             width,
             height: line_height.0,
         });

@@ -539,25 +539,61 @@ impl AppState {
             }
         }
 
-        if let Some(open_file) = &self.open_file {
-            let buf = open_file.buffer();
-            // TODO: dedup?
-            let mut dp = DrawPane {
-                ctx,
-                widget,
-                pane: open_file.pane(),
-                buf,
-                line_height,
-                theme,
-                span_buf: String::new(),
-                margin: 2.0,
-                cursor: LinePosition::default(),
-                len_lines: buf.text().len_lines(),
-                pos: Point::default(),
-            };
-            if let Err(err) = dp.draw() {
-                error!("failed to draw pane: {}", err);
-            }
+        self.draw_interactive_widget(widget, ctx, line_height, theme);
+    }
+
+    fn draw_interactive_widget(
+        &self,
+        widget: &gtk::DrawingArea,
+        ctx: &cairo::Context,
+        line_height: LineHeight,
+        theme: &Theme,
+    ) {
+        let Some(open_file) = &self.open_file else {
+            return;
+        };
+
+        // Fill in the background.
+        let r = open_file.rect();
+        ctx.rectangle(0.0, 0.0, r.width, r.height);
+        set_source_rgb_from_u8(ctx, 63, 63, 100);
+        if let Err(err) = ctx.fill() {
+            error!("fill failed: {}", err);
+        }
+
+        // Vertical drop shadow at the bottom of the widget.
+        let shadow_height = 20.0;
+        let gradient = cairo::LinearGradient::new(
+            0.0,
+            r.bottom(),
+            0.0,
+            r.bottom() + shadow_height,
+        );
+        gradient.add_color_stop_rgba(0.0, 0.0, 0.0, 0.0, 1.0);
+        gradient.add_color_stop_rgba(1.0, 0.0, 0.0, 0.0, 0.0);
+        ctx.set_source(gradient).unwrap();
+        ctx.rectangle(0.0, r.bottom(), r.width, shadow_height);
+        if let Err(err) = ctx.fill() {
+            error!("fill failed: {}", err);
+        }
+
+        let buf = open_file.buffer();
+        // TODO: dedup?
+        let mut dp = DrawPane {
+            ctx,
+            widget,
+            pane: open_file.pane(),
+            buf,
+            line_height,
+            theme,
+            span_buf: String::new(),
+            margin: 2.0,
+            cursor: LinePosition::default(),
+            len_lines: buf.text().len_lines(),
+            pos: Point::default(),
+        };
+        if let Err(err) = dp.draw() {
+            error!("failed to draw pane: {}", err);
         }
     }
 }

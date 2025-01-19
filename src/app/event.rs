@@ -305,9 +305,9 @@ impl AppState {
 
     fn handle_confirm(&mut self) -> Result<()> {
         if let Some(open_file) = &mut self.open_file {
-            // TODO
-            dbg!(open_file.path());
+            let path = open_file.path();
             self.open_file = None;
+            self.open_file_at_path(&path)?;
             return Ok(());
         }
 
@@ -522,7 +522,9 @@ impl AppState {
                 buffer_changed = false;
             }
             Action::Cancel => {
+                self.open_file = None;
                 self.clear_interactive_state();
+
                 buffer_changed = false;
             }
             todo => {
