@@ -1,4 +1,4 @@
-use super::AppState;
+use super::App;
 use crate::buffer::{
     Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan, StyledLine,
 };
@@ -495,7 +495,7 @@ impl DrawPane<'_> {
     }
 }
 
-impl AppState {
+impl App {
     // Errors here are logged but otherwise swallowed.
     pub(super) fn draw(
         &self,

@@ -1,4 +1,4 @@
-use super::AppState;
+use super::App;
 use crate::buffer::{BufferId, CursorMap};
 use anyhow::{anyhow, Result};
 use fs_err as fs;
@@ -28,7 +28,7 @@ pub struct PersistedBuffer {
     pub cursors: CursorMap,
 }
 
-impl AppState {
+impl App {
     pub fn persistence_store(&self) -> Result<()> {
         if !self.is_persistence_enabled {
             return Ok(());

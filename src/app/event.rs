@@ -1,4 +1,4 @@
-use super::{AppState, InteractiveState};
+use super::{App, InteractiveState};
 use crate::buffer::{
     Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
 };
@@ -47,7 +47,7 @@ fn active_buffer_mut<'b>(
         .ok_or_else(invalid_active_buffer_error)
 }
 
-impl AppState {
+impl App {
     fn active_buffer(&self) -> Result<&Buffer> {
         if let Some(open_file) = &self.open_file {
             return Ok(open_file.buffer());

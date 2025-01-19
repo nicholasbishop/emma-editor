@@ -34,7 +34,7 @@ enum InteractiveState {
 pub type BufferMap = HashMap<BufferId, Buffer>;
 
 // Pure state, no GTK stuff goes here.
-pub(crate) struct AppState {
+pub(crate) struct App {
     key_handler: event::KeyHandler,
 
     buffers: HashMap<BufferId, Buffer>,
@@ -51,7 +51,7 @@ pub(crate) struct AppState {
     draw_handler: DrawHandler,
 }
 
-impl AppState {
+impl App {
     // TODO: for the persisted data, perhaps we want a trait to abstract
     // that instead of passing the data in.
     fn load(
@@ -148,7 +148,7 @@ pub enum AppEvent {
 }
 
 #[relm4::component(pub)]
-impl Component for AppState {
+impl Component for App {
     type CommandOutput = ();
     type Input = AppEvent;
     type Output = ();
@@ -208,7 +208,7 @@ impl Component for AppState {
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
 
-        let persisted_buffers = match AppState::load_persisted_buffers() {
+        let persisted_buffers = match App::load_persisted_buffers() {
             Ok(pb) => pb,
             Err(err) => {
                 error!("failed to load persisted buffers: {}", err);
@@ -216,10 +216,10 @@ impl Component for AppState {
             }
         };
 
-        let pane_tree_json = AppState::load_persisted_pane_tree();
+        let pane_tree_json = App::load_persisted_pane_tree();
 
         let mut model =
-            AppState::load(LineHeight(0.0), &persisted_buffers, pane_tree_json);
+            App::load(LineHeight(0.0), &persisted_buffers, pane_tree_json);
 
         let area = model.draw_handler.drawing_area();
         let widgets = view_output!();
@@ -310,7 +310,7 @@ pub fn init(application: &gtk::Application) {
     window.show();
     event::create_gtk_key_handler(&window);
 
-    let persisted_buffers = match AppState::load_persisted_buffers() {
+    let persisted_buffers = match App::load_persisted_buffers() {
         Ok(pb) => pb,
         Err(err) => {
             error!("failed to load persisted buffers: {}", err);
@@ -318,7 +318,7 @@ pub fn init(application: &gtk::Application) {
         }
     };
 
-    let pane_tree_json = AppState::load_persisted_pane_tree();
+    let pane_tree_json = App::load_persisted_pane_tree();
 
     let line_height = LineHeight::calculate(&widget);
 
@@ -326,7 +326,7 @@ pub fn init(application: &gtk::Application) {
         window,
         widget,
 
-        state: AppState::load(line_height, &persisted_buffers, pane_tree_json),
+        state: App::load(line_height, &persisted_buffers, pane_tree_json),
     };
     app.state.is_persistence_enabled = true;
 
@@ -345,9 +345,9 @@ pub(crate) mod tests {
     use super::*;
     use anyhow::anyhow;
 
-    // TODO: simplify AppState::load, then maybe won't need this anymore.
-    pub(crate) fn create_empty_app_state() -> AppState {
-        AppState::load(LineHeight(12.0), &[], Err(anyhow!("")))
+    // TODO: simplify App::load, then maybe won't need this anymore.
+    pub(crate) fn create_empty_app_state() -> App {
+        App::load(LineHeight(12.0), &[], Err(anyhow!("")))
     }
 
     // TODO: experimenting with gtk test.

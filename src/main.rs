@@ -19,5 +19,5 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     let app = RelmApp::new("net.nbishop.emma");
-    app.run::<app::AppState>(());
+    app.run::<app::App>(());
 }
