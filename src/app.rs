@@ -11,19 +11,15 @@ use crate::pane_tree::PaneTree;
 use crate::rope::AbsLine;
 use crate::theme::Theme;
 use anyhow::Result;
+use glib::clone;
 use gtk4::prelude::*;
-use gtk4::{self as gtk, gdk};
+use gtk4::{self as gtk, gdk, glib};
 use persistence::PersistedBuffer;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::rc::Rc;
 use tracing::{error, info};
-
-// This global is needed for callbacks on the main thread. On other
-// threads it is None.
-std::thread_local! {
-    static APP: RefCell<Option<App>> = const { RefCell::new(None) };
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum InteractiveState {
@@ -142,54 +138,7 @@ impl AppState {
     }
 }
 
-struct App {
-    window: gtk::ApplicationWindow,
-    widget: gtk::DrawingArea,
-
-    state: AppState,
-}
-
 pub fn init(application: &gtk::Application) {
-    // Create single widget that is used for drawing the whole
-    // application.
-    let widget = gtk::DrawingArea::new();
-    widget.set_draw_func(|_widget, ctx, width, height| {
-        APP.with(|app| {
-            let width = width as f64;
-            let height = height as f64;
-
-            let mut app = app.borrow_mut();
-            let app = app.as_mut().unwrap();
-
-            app.state.pane_tree.recalc_layout(
-                width,
-                height,
-                app.state.line_height,
-            );
-
-            // TODO: generalize this somehow.
-            if let Some(open_file) = &mut app.state.open_file {
-                open_file.recalc_layout(width, height, app.state.line_height);
-            }
-
-            app.state.draw(
-                &app.widget,
-                ctx,
-                width,
-                height,
-                app.state.line_height,
-                &Theme::current(),
-            );
-        })
-    });
-
-    // Create top-level window.
-    let window = gtk::ApplicationWindow::new(application);
-    window.set_title(Some("emma"));
-    window.set_default_size(800, 800);
-    window.set_child(Some(&widget));
-    window.maximize();
-
     let config = match Config::load() {
         Ok(config) => config,
         Err(err) => {
@@ -215,9 +164,6 @@ pub fn init(application: &gtk::Application) {
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
 
-    window.show();
-    event::create_gtk_key_handler(&window);
-
     let persisted_buffers = match AppState::load_persisted_buffers() {
         Ok(pb) => pb,
         Err(err) => {
@@ -228,24 +174,77 @@ pub fn init(application: &gtk::Application) {
 
     let pane_tree_json = AppState::load_persisted_pane_tree();
 
-    let line_height = LineHeight::calculate(&widget);
+    let mut state =
+        AppState::load(LineHeight(0.0), &persisted_buffers, pane_tree_json);
+    state.is_persistence_enabled = true;
+    let state = Rc::new(RefCell::new(state));
 
-    let mut app = App {
+    // Create top-level window.
+    let window = gtk::ApplicationWindow::new(application);
+    window.set_title(Some("emma"));
+    window.set_default_size(800, 800);
+    window.maximize();
+    window.show();
+
+    // Create single widget that is used for drawing the whole
+    // application.
+    let widget = gtk::DrawingArea::new();
+    widget.set_draw_func(clone!(
+        #[strong]
+        state,
+        move |widget, ctx, width, height| {
+            let mut state = state.borrow_mut();
+            let width = width as f64;
+            let height = height as f64;
+            let line_height = state.line_height;
+
+            state.pane_tree.recalc_layout(width, height, line_height);
+
+            // TODO: generalize this somehow.
+            if let Some(open_file) = &mut state.open_file {
+                open_file.recalc_layout(width, height, line_height);
+            }
+
+            state.draw(
+                &widget,
+                ctx,
+                width,
+                height,
+                line_height,
+                &Theme::current(),
+            );
+        }
+    ));
+    window.set_child(Some(&widget));
+
+    let key_controller = gtk::EventControllerKey::new();
+    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
+    key_controller.connect_key_pressed(clone!(
+        #[strong]
+        state,
+        #[strong]
         window,
+        #[strong]
         widget,
+        move |_self, keyval, _keycode, modifiers| {
+            // Not every action requires redraw, but most do, no harm
+            // occasionally redrawing when not needed.
+            widget.queue_draw();
 
-        state: AppState::load(line_height, &persisted_buffers, pane_tree_json),
-    };
-    app.state.is_persistence_enabled = true;
+            state.borrow_mut().handle_key_press(
+                window.clone(),
+                keyval,
+                modifiers,
+            )
+        }
+    ));
+    window.add_controller(key_controller);
+
+    state.borrow_mut().line_height = LineHeight::calculate(&widget);
 
     // Gtk warns if there's no handler for this signal, so add an empty
     // handler.
     application.connect_activate(|_| {});
-
-    // Store app in global.
-    APP.with(|cell| {
-        *cell.borrow_mut() = Some(app);
-    });
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use super::{AppState, InteractiveState, APP};
+use super::{AppState, InteractiveState};
 use crate::buffer::{
     Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
 };
@@ -15,25 +15,6 @@ use gtk4::{self as gtk, gdk};
 use std::collections::HashMap;
 use std::path::Path;
 use tracing::{error, info, instrument};
-
-pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
-    let key_controller = gtk::EventControllerKey::new();
-    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
-    key_controller.connect_key_pressed(|_self, keyval, _keycode, state| {
-        APP.with(|app| {
-            let mut app = app.borrow_mut();
-            let app = app.as_mut().unwrap();
-            let window = app.window.clone();
-
-            // Not every action requires redraw, but most do, no harm
-            // occasionally redrawing when not needed.
-            app.widget.queue_draw();
-
-            app.state.handle_key_press(window, keyval, state)
-        })
-    });
-    window.add_controller(key_controller);
-}
 
 pub(super) struct KeyHandler {
     base_keymap: KeyMap,
