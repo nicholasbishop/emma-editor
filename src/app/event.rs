@@ -24,8 +24,12 @@ pub(super) fn create_gtk_key_handler(window: &gtk::ApplicationWindow) {
             let mut app = app.borrow_mut();
             let app = app.as_mut().unwrap();
             let window = app.window.clone();
-            let widget = app.widget.clone();
-            app.state.handle_key_press(window, widget, keyval, state)
+
+            // Not every action requires redraw, but most do, no harm
+            // occasionally redrawing when not needed.
+            app.widget.queue_draw();
+
+            app.state.handle_key_press(window, keyval, state)
         })
     });
     window.add_controller(key_controller);
@@ -570,7 +574,6 @@ impl AppState {
     pub(super) fn handle_key_press(
         &mut self,
         window: gtk::ApplicationWindow,
-        widget: gtk::DrawingArea,
         key: gdk::Key,
         state: gdk::ModifierType,
     ) -> Propagation {
@@ -623,10 +626,6 @@ impl AppState {
         if clear_seq {
             self.key_handler.cur_seq.0.clear();
         }
-
-        // Not every action requires redraw, but most do, no harm
-        // occasionally redrawing when not needed.
-        widget.queue_draw();
 
         Propagation::Stop
     }
