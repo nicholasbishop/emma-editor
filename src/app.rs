@@ -235,6 +235,7 @@ pub fn init(application: &gtk::Application) {
                 window.clone(),
                 keyval,
                 modifiers,
+                state.clone(),
             )
         }
     ));

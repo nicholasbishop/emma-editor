@@ -61,6 +61,8 @@ pub enum Action {
     /// Try to autocomplete something in the minibuf, e.g. a file
     /// path.
     Autocomplete,
+
+    RunNonInteractiveProcess,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -178,6 +180,8 @@ impl KeyMap {
                 ("<ctrl>x+0", Action::ClosePane),
                 ("<ctrl>c+<ctrl>s", Action::OpenShell),
                 ("<ctrl>x+b", Action::SwitchToBuffer),
+                // TODO: what key to use for this.
+                ("<ctrl>x+<ctrl>p", Action::RunNonInteractiveProcess),
                 // TODO: make this generic so that any key sequence can be
                 // canceled with ctrl+g.
                 ("<ctrl>g", Action::Cancel),

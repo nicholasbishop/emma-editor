@@ -2,6 +2,7 @@ pub use crate::rope::{AbsChar, AbsLine, LinesIterItem, RelChar, RelLine};
 
 use crate::grapheme::{next_grapheme_boundary, prev_grapheme_boundary};
 use crate::pane_tree::{Pane, PaneId};
+use crate::process::NonInteractiveProcess;
 use crate::rope::{LineDataVec, Rope};
 use crate::shell::Shell;
 use crate::theme::Theme;
@@ -223,6 +224,7 @@ pub struct Buffer {
     search: Option<SearchState>,
 
     _shell: Option<Shell>,
+    non_interactive_process: Option<NonInteractiveProcess>,
 }
 
 impl fmt::Debug for Buffer {
@@ -249,6 +251,7 @@ impl Buffer {
             style_spans: LineDataVec::new(AbsLine::zero()),
             search: None,
             _shell: None,
+            non_interactive_process: None,
         };
 
         // TODO, async
@@ -266,6 +269,13 @@ impl Buffer {
         Self::new(BufferId::minibuf(), Rope::new(), None)
     }
 
+    pub fn create_for_non_interactive_process() -> Self {
+        // TODO: set path and process info.
+        let mut buf = Self::new(BufferId::new(), Rope::new(), None);
+        buf.non_interactive_process = Some(NonInteractiveProcess::new());
+        buf
+    }
+
     pub fn from_path(path: &Path) -> Result<Self> {
         let text =
             Rope::from_reader(&mut io::BufReader::new(fs::File::open(path)?))?;
@@ -274,6 +284,21 @@ impl Buffer {
 
     pub fn id(&self) -> &BufferId {
         &self.id
+    }
+
+    pub fn run_non_interactive_process(&mut self) -> Result<()> {
+        let proc = self.non_interactive_process.as_mut().unwrap();
+        proc.run()
+    }
+
+    pub fn non_interactive_process(&self) -> Option<&NonInteractiveProcess> {
+        self.non_interactive_process.as_ref()
+    }
+
+    pub fn non_interactive_process_mut(
+        &mut self,
+    ) -> Option<&mut NonInteractiveProcess> {
+        self.non_interactive_process.as_mut()
     }
 
     pub fn text(&self) -> &Rope {

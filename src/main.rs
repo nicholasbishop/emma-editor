@@ -8,6 +8,7 @@ mod key_map;
 mod key_sequence;
 mod open_file;
 mod pane_tree;
+mod process;
 mod rope;
 mod shell;
 mod theme;

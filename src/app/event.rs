@@ -9,11 +9,15 @@ use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
 use anyhow::{anyhow, bail, Context, Error, Result};
 use fs_err as fs;
+use glib::{ControlFlow, IOCondition};
 use gtk4::glib::signal::Propagation;
 use gtk4::prelude::*;
-use gtk4::{self as gtk, gdk};
+use gtk4::{self as gtk, gdk, glib};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::os::fd::AsRawFd;
 use std::path::Path;
+use std::rc::Rc;
 use tracing::{error, info, instrument};
 
 pub(super) struct KeyHandler {
@@ -391,6 +395,8 @@ impl AppState {
         // TODO: just optional for tests
         window: Option<gtk::ApplicationWindow>,
         action: Action,
+        // TODO: ugly
+        app_state: Rc<RefCell<AppState>>,
     ) -> Result<()> {
         info!("handling action {:?}", action);
 
@@ -542,6 +548,55 @@ impl AppState {
 
                 buffer_changed = false;
             }
+            Action::RunNonInteractiveProcess => {
+                let mut buf = Buffer::create_for_non_interactive_process();
+                let buf_id = buf.id().clone();
+                buf.run_non_interactive_process()?;
+
+                let proc = buf.non_interactive_process().unwrap();
+                let _source_id = glib::source::unix_fd_add_local(
+                    proc.output_fd().as_raw_fd(),
+                    IOCondition::IN,
+                    move |_raw_fd, _condition| {
+                        // Read from the FD until we can't (with some
+                        // kind of stopping point, in case the FD keeps
+                        // returning a flood of data?)
+
+                        let mut app_state = app_state.borrow_mut();
+                        // Find the buffer by ID.
+                        // TODO: unwrap
+                        let buf = app_state.buffers.get_mut(&buf_id).unwrap();
+
+                        let proc = buf.non_interactive_process_mut().unwrap();
+
+                        let output = proc.read_output().unwrap();
+                        if output.is_empty() {
+                            // Process finished.
+                            proc.wait();
+                            return ControlFlow::Break;
+                        }
+
+                        // TODO: not great
+                        let output = String::from_utf8(output).unwrap();
+
+                        // TODO: add a way to insert text directly.
+                        let mut s = buf.text().to_string();
+                        s.push_str(&output);
+                        buf.set_text(&s);
+
+                        // Keep the callback.
+                        ControlFlow::Continue
+                    },
+                );
+
+                let buf_id = buf.id().clone();
+                self.buffers.insert(buf_id.clone(), buf);
+                self.pane_tree
+                    .active_mut()
+                    .switch_buffer(&mut self.buffers, &buf_id);
+
+                buffer_changed = false;
+            }
             todo => {
                 buffer_changed = false;
                 dbg!(todo);
@@ -583,6 +638,8 @@ impl AppState {
         window: gtk::ApplicationWindow,
         key: gdk::Key,
         state: gdk::ModifierType,
+        // TODO: ugly
+        app_state: Rc<RefCell<AppState>>,
     ) -> Propagation {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
@@ -623,7 +680,9 @@ impl AppState {
                 // Waiting for the sequence to be completed.
             }
             KeyMapLookup::Action(action) => {
-                if let Err(err) = self.handle_action(Some(window), action) {
+                if let Err(err) =
+                    self.handle_action(Some(window), action, app_state)
+                {
                     error!("failed to handle action: {err}");
                     self.display_error(err);
                 }
@@ -635,6 +694,58 @@ impl AppState {
         }
 
         Propagation::Stop
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    /// Test running a non-interactive process in a buffer.
+    #[gtk4::test]
+    fn test_non_interactive_process() -> Result<()> {
+        let app_state =
+            Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
+
+        app_state.clone().borrow_mut().handle_action(
+            None,
+            Action::RunNonInteractiveProcess,
+            app_state.clone(),
+        )?;
+
+        fn get_buf_text(app_state: Rc<RefCell<AppState>>) -> String {
+            let state = app_state.borrow_mut();
+            let buf = state
+                .buffers
+                .values()
+                .find(|b| b.non_interactive_process().is_some())
+                .unwrap();
+            buf.text().to_string()
+        }
+
+        fn is_process_running(app_state: Rc<RefCell<AppState>>) -> bool {
+            let state = app_state.borrow_mut();
+            let buf = state
+                .buffers
+                .values()
+                .find(|b| b.non_interactive_process().is_some())
+                .unwrap();
+            buf.non_interactive_process().unwrap().is_running()
+        }
+
+        assert_eq!(get_buf_text(app_state.clone()), "");
+        assert!(is_process_running(app_state.clone()));
+
+        loop {
+            glib::MainContext::default().iteration(true);
+            if !is_process_running(app_state.clone()) {
+                break;
+            }
+        }
+
+        assert_eq!(get_buf_text(app_state), "hello!\n");
+
+        Ok(())
     }
 }
 
