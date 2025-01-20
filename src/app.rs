@@ -54,7 +54,6 @@ impl AppState {
     // TODO: for the persisted data, perhaps we want a trait to abstract
     // that instead of passing the data in.
     fn load(
-        line_height: LineHeight,
         persisted_buffers: &[PersistedBuffer],
         pane_tree_json: Result<String>,
     ) -> Self {
@@ -130,7 +129,9 @@ impl AppState {
             pane_tree,
 
             interactive_state: InteractiveState::Initial,
-            line_height,
+            // Outside of tests this is overwritten with a
+            // dynamically-calculated value later.
+            line_height: LineHeight(20.0),
 
             is_persistence_enabled: false,
             open_file: None,
@@ -174,8 +175,7 @@ pub fn init(application: &gtk::Application) {
 
     let pane_tree_json = AppState::load_persisted_pane_tree();
 
-    let mut state =
-        AppState::load(LineHeight(0.0), &persisted_buffers, pane_tree_json);
+    let mut state = AppState::load(&persisted_buffers, pane_tree_json);
     state.is_persistence_enabled = true;
     let state = Rc::new(RefCell::new(state));
 
@@ -254,7 +254,7 @@ pub(crate) mod tests {
 
     // TODO: simplify AppState::load, then maybe won't need this anymore.
     pub(crate) fn create_empty_app_state() -> AppState {
-        AppState::load(LineHeight(12.0), &[], Err(anyhow!("")))
+        AppState::load(&[], Err(anyhow!("")))
     }
 
     // TODO: experimenting with gtk test.
