@@ -478,6 +478,32 @@ impl AppState {
                 self.pane_tree.set_active(&pane_id);
                 buffer_changed = false;
             }
+            Action::DeleteBuffer => {
+                let active_buffer_id = self.active_buffer()?.id().clone();
+
+                // TODO: ensure there's at least one other buffer to switch to.
+                // TODO: if multiple panes are pointed at the buffer,
+                // switch each of them to a different buffer.
+                // For now, just pick some other buffer.
+                let new_buffer_id = self
+                    .buffers
+                    .keys()
+                    .find(|b| **b != active_buffer_id && !b.is_minibuf())
+                    .unwrap()
+                    .clone();
+
+                // Switch any pane pointed to the buffer to something else.
+                for pane in self.pane_tree.panes_mut() {
+                    if *pane.buffer_id() == active_buffer_id {
+                        pane.switch_buffer(&mut self.buffers, &new_buffer_id);
+                    }
+                }
+
+                // Delete the buffer.
+                self.buffers.retain(|b, _| *b != active_buffer_id);
+
+                buffer_changed = false;
+            }
             Action::OpenFile => {
                 let buf = self.active_buffer()?;
                 // TODO: actually should have a buf.directory() method,
