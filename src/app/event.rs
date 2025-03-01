@@ -350,7 +350,6 @@ impl AppState {
                 path.push('*');
                 // Arbitrarily grab a few options.
                 let completions: Vec<_> = glob::glob(&path)?
-                    .into_iter()
                     .take(5)
                     .map(|p| p.unwrap().to_str().unwrap().to_owned())
                     .collect();
@@ -396,7 +395,7 @@ impl AppState {
         window: Option<gtk::ApplicationWindow>,
         action: Action,
         // TODO: ugly
-        app_state: Rc<RefCell<AppState>>,
+        app_state: Rc<RefCell<Self>>,
     ) -> Result<()> {
         info!("handling action {:?}", action);
 
@@ -639,7 +638,7 @@ impl AppState {
         key: gdk::Key,
         state: gdk::ModifierType,
         // TODO: ugly
-        app_state: Rc<RefCell<AppState>>,
+        app_state: Rc<RefCell<Self>>,
     ) -> Propagation {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));

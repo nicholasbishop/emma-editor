@@ -108,7 +108,6 @@ impl OpenFile {
         path.push('*');
         // Arbitrarily grab a few options.
         let completions: Vec<_> = glob::glob(&path)?
-            .into_iter()
             .take(100)
             .map(|p| {
                 p.unwrap().file_name().unwrap().to_str().unwrap().to_owned()

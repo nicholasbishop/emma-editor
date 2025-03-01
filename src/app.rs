@@ -206,7 +206,7 @@ pub fn init(application: &gtk::Application) {
             }
 
             state.draw(
-                &widget,
+                widget,
                 ctx,
                 width,
                 height,
