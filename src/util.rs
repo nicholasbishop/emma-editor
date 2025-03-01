@@ -1,5 +1,5 @@
 use rand::distr::Alphanumeric;
-use rand::{rng, Rng};
+use rand::{Rng, rng};
 
 pub fn make_id(prefix: &str) -> String {
     let r: String = rng()

@@ -1,6 +1,6 @@
 use super::AppState;
 use crate::buffer::{BufferId, CursorMap};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use fs_err as fs;
 use rusqlite::Connection;
 use std::ffi::OsStr;

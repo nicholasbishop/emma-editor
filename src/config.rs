@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use fs_err as fs;
 use serde::{Deserialize, Serialize};
 use std::io::Write;

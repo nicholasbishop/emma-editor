@@ -3,16 +3,16 @@
 //!
 //! See `emma.theme.yml` for an example.
 
-use anyhow::{anyhow, bail, Error, Result};
+use anyhow::{Error, Result, anyhow, bail};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use syntect::LoadingError;
 use syntect::highlighting::{
     Color, ParseThemeError, ScopeSelectors, StyleModifier,
     Theme as SyntectTheme, ThemeItem,
 };
-use syntect::LoadingError;
 
 static THEME: Lazy<Arc<Mutex<Option<Theme>>>> =
     Lazy::new(|| Arc::new(Mutex::new(None)));

@@ -3,11 +3,11 @@ use crate::buffer::{
     Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
 };
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
-use crate::key_sequence::{is_modifier, KeySequence, KeySequenceAtom};
+use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
 use crate::open_file::OpenFile;
 use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
-use anyhow::{anyhow, bail, Context, Error, Result};
+use anyhow::{Context, Error, Result, anyhow, bail};
 use fs_err as fs;
 use glib::{ControlFlow, IOCondition};
 use gtk4::glib::signal::Propagation;
