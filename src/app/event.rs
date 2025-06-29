@@ -241,7 +241,7 @@ impl AppState {
         self.clear_interactive_state();
         // TODO: think about how this error will get unset. On next
         // key press, like emacs? Hide or fade after a timeout?
-        self.minibuf_mut().set_text(&format!("{}", error));
+        self.minibuf_mut().set_text(&format!("{error}"));
     }
 
     /// Display an informational message in the minibuf.

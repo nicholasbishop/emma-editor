@@ -7,5 +7,5 @@ pub fn make_id(prefix: &str) -> String {
         .take(8)
         .map(char::from)
         .collect();
-    format!("{}-{}", prefix, r)
+    format!("{prefix}-{r}")
 }

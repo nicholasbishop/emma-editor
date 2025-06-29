@@ -69,9 +69,9 @@ fn key_to_name_map() -> HashMap<Key, &'static str> {
 
 fn key_to_string(key: &Key) -> String {
     if let Some(name) = key_to_name_map().get(key) {
-        format!("<{}>", name)
+        format!("<{name}>")
     } else if let Some(c) = key.to_unicode() {
-        format!("\"{}\"", c)
+        format!("\"{c}\"")
     } else {
         "unknown".into()
     }
