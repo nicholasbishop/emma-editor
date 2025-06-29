@@ -547,6 +547,12 @@ impl AppState {
 
                 buffer_changed = false;
             }
+            Action::Autocomplete => {
+                if let Some(open_file) = &mut self.open_file {
+                    open_file.autocomplete()?;
+                }
+                buffer_changed = true;
+            }
             Action::RunNonInteractiveProcess => {
                 let mut buf = Buffer::create_for_non_interactive_process();
                 let buf_id = buf.id().clone();

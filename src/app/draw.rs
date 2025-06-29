@@ -603,7 +603,7 @@ impl AppState {
         }
 
         // Suggestions.
-        let layout = widget.create_pango_layout(Some(open_file.suggestions()));
+        let layout = widget.create_pango_layout(Some(&open_file.suggestions()));
         set_source_rgb_from_u8(ctx, 200, 200, 200);
         ctx.move_to(r.x, r.y + line_height.0 * 2.0);
         pangocairo::functions::show_layout(ctx, &layout);

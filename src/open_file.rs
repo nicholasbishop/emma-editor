@@ -11,7 +11,7 @@ pub struct OpenFile {
     pane: Pane,
     rect: Rect,
     // TODO: this type will probably eventually become more interesting.
-    suggestions: String,
+    suggestions: Vec<String>,
 }
 
 impl OpenFile {
@@ -30,7 +30,7 @@ impl OpenFile {
             buffer,
             pane,
             rect: Rect::default(),
-            suggestions: String::new(),
+            suggestions: Vec::new(),
         };
         s.update_suggestions()?;
         Ok(s)
@@ -64,8 +64,8 @@ impl OpenFile {
         (&mut self.pane, &mut self.buffer)
     }
 
-    pub fn suggestions(&self) -> &str {
-        &self.suggestions
+    pub fn suggestions(&self) -> String {
+        self.suggestions.join(" | ")
     }
 
     pub fn recalc_layout(
@@ -101,6 +101,21 @@ impl OpenFile {
         )
     }
 
+    pub fn autocomplete(&mut self) -> Result<()> {
+        // TODO: for now only autocomplete with one option.
+        if self.suggestions.len() != 1 {
+            return Ok(());
+        }
+
+        if let Some(dir) = self.path().parent() {
+            let child = &self.suggestions[0];
+            self.buffer.set_text(dir.join(child).to_str().unwrap());
+            self.update_suggestions()
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn update_suggestions(&mut self) -> Result<()> {
         // TODO: this is a very simple completion that is
         // minimally helpful.
@@ -114,7 +129,7 @@ impl OpenFile {
             })
             .collect();
 
-        self.suggestions = completions.join(" | ");
+        self.suggestions = completions;
 
         Ok(())
     }
