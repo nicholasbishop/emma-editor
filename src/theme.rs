@@ -14,8 +14,9 @@ use syntect::highlighting::{
     Theme as SyntectTheme, ThemeItem,
 };
 
-static THEME: Lazy<Arc<Mutex<Option<Theme>>>> =
-    Lazy::new(|| Arc::new(Mutex::new(None)));
+// TODO: remove option
+static THEME: Lazy<Arc<Mutex<Theme>>> =
+    Lazy::new(|| Arc::new(Mutex::new(Theme::default())));
 
 fn rgb(r: u8, g: u8, b: u8) -> Color {
     Color { r, g, b, a: 255 }
@@ -166,7 +167,16 @@ impl ForeAndBack {
     }
 }
 
-#[derive(Clone, Debug)]
+impl Default for ForeAndBack {
+    fn default() -> Self {
+        Self {
+            foreground: rgb(255, 255, 255),
+            background: rgb(0, 0, 0),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct Theme {
     pub syntect: SyntectTheme,
     pub info_bar_active: ForeAndBack,
@@ -177,11 +187,11 @@ pub struct Theme {
 impl Theme {
     pub fn set_current(theme: Self) {
         let mut guard = THEME.lock().unwrap();
-        *guard = Some(theme);
+        *guard = theme;
     }
 
     pub fn current() -> Self {
-        THEME.lock().unwrap().clone().unwrap()
+        THEME.lock().unwrap().clone()
     }
 
     fn load(theme: &str) -> Result<Self> {

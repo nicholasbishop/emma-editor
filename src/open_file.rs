@@ -123,7 +123,6 @@ impl OpenFile {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::theme::Theme;
     use anyhow::Result;
     use std::fs;
 
@@ -133,11 +132,6 @@ mod tests {
 
     #[test]
     fn test_open_file() -> Result<()> {
-        // TODO: ick
-        Theme::set_current(
-            Theme::load_default().expect("failed to load built-in theme"),
-        );
-
         // Create test files.
         let tmp_dir = tempfile::tempdir()?;
         let tmp_dir = tmp_dir.path();
