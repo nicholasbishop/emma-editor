@@ -538,7 +538,13 @@ impl Buffer {
         // TODO: async style recalc
         self.recalc_style_spans();
 
-        // TODO: update all cursors
+        // Update all cursors in this buffer.
+        let len_chars = self.text().len_chars();
+        for cursor in self.cursors_mut().values_mut() {
+            if cursor.0 > len_chars {
+                cursor.0 = len_chars;
+            }
+        }
     }
 
     pub fn search(&mut self, text: &str, pane: &Pane, num_lines: usize) {
