@@ -111,7 +111,7 @@ impl AppState {
         direction: Direction,
     ) -> Result<()> {
         let (pane, buf) = self.active_pane_buffer_mut()?;
-        let pos = buf.cursor(pane);
+        let pos = buf.cursor(pane.id());
         let boundary = buf.find_boundary(pos, boundary, direction);
         if pos != boundary {
             let range = if pos < boundary {
@@ -127,7 +127,7 @@ impl AppState {
     /// Insert a character into the active pane.
     fn insert_char(&mut self, c: char) -> Result<()> {
         let (pane, buf) = self.active_pane_buffer_mut()?;
-        let pos = buf.cursor(pane);
+        let pos = buf.cursor(pane.id());
         buf.insert_char(c, pos);
         Ok(())
     }
@@ -136,7 +136,7 @@ impl AppState {
         let line_height = self.line_height;
         let (pane, buf) = self.active_pane_mut_buffer_mut()?;
         let text = buf.text();
-        let mut cursor = buf.cursor(pane);
+        let mut cursor = buf.cursor(pane.id());
 
         match step {
             Move::Boundary(boundary) => {
@@ -375,7 +375,7 @@ impl AppState {
             .buffers
             .get_mut(pane.buffer_id())
             .ok_or_else(invalid_active_buffer_error)?;
-        let pos = buf.cursor(pane);
+        let pos = buf.cursor(pane.id());
         let line_pos = LinePosition::from_abs_char(pos, buf);
 
         // Find the next match and move the cursor there.

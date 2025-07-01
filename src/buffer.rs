@@ -338,12 +338,12 @@ impl Buffer {
             .insert(name.into(), pos);
     }
 
-    pub fn cursor(&self, pane: &Pane) -> AbsChar {
+    pub fn cursor(&self, pane_id: &PaneId) -> AbsChar {
         *self
             .active_history_item()
             .cursors
-            .get(pane.id())
-            .unwrap_or_else(|| panic!("no cursor for {}", pane.id()))
+            .get(pane_id)
+            .unwrap_or_else(|| panic!("no cursor for {pane_id}"))
     }
 
     pub fn set_cursor(&mut self, pane: &Pane, cursor: AbsChar) {

@@ -518,7 +518,7 @@ impl PaneTree {
                 ..active.clone()
             };
             // Copy the active pane's cursor.
-            buf.set_cursor(&new_pane, buf.cursor(active));
+            buf.set_cursor(&new_pane, buf.cursor(active.id()));
         }
 
         // TODO: make just have this method take self instead?
