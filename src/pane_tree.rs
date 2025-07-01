@@ -123,7 +123,7 @@ impl Pane {
         }
 
         let new_buf = buffers.get_mut(new_buf_id).unwrap();
-        new_buf.set_cursor(self, AbsChar::default());
+        new_buf.set_cursor(self.id(), AbsChar::default());
 
         // TODO: think about what should happen to the cursor when a
         // buffer is viewed by only one pane, then that pane switches
@@ -371,8 +371,8 @@ impl PaneTree {
             show_info_bar: false,
             is_cursor_visible: false,
         };
-        initial_buffer.set_cursor(&initial_pane, AbsChar::default());
-        minibuf_buffer.set_cursor(&minibuf_pane, AbsChar::default());
+        initial_buffer.set_cursor(&initial_pane.id(), AbsChar::default());
+        minibuf_buffer.set_cursor(&minibuf_pane.id(), AbsChar::default());
         Self {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,
@@ -518,7 +518,7 @@ impl PaneTree {
                 ..active.clone()
             };
             // Copy the active pane's cursor.
-            buf.set_cursor(&new_pane, buf.cursor(active.id()));
+            buf.set_cursor(&new_pane.id(), buf.cursor(active.id()));
         }
 
         // TODO: make just have this method take self instead?

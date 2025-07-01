@@ -346,13 +346,13 @@ impl Buffer {
             .unwrap_or_else(|| panic!("no cursor for {pane_id}"))
     }
 
-    pub fn set_cursor(&mut self, pane: &Pane, cursor: AbsChar) {
+    pub fn set_cursor(&mut self, pane_id: &PaneId, cursor: AbsChar) {
         // This isn't an undoable action, but should prevent history
         // (e.g. press 'a', move cursor, press 'b' should be two
         // history items, not one).
         self.last_action_type = ActionType::None;
 
-        self.cursors_mut().insert(pane.id().clone(), cursor);
+        self.cursors_mut().insert(pane_id.clone(), cursor);
 
         // TODO: set_cursor is used for two cases: moving a cursor and
         // adding a new cursor to represent a new pane showing the

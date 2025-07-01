@@ -24,7 +24,7 @@ impl OpenFile {
         buffer.set_text(&default_path);
 
         let pane = Pane::create_for_widget(buffer.id().clone());
-        buffer.set_cursor(&pane, AbsChar(default_path.len()));
+        buffer.set_cursor(&pane.id(), AbsChar(default_path.len()));
 
         let mut s = Self {
             buffer,

@@ -101,10 +101,10 @@ impl AppState {
             if let Some(buffer) = buffers.get_mut(pane.buffer_id()) {
                 // Default the cursor to the top of the buffer, then try to
                 // restore the proper location from persisted data.
-                buffer.set_cursor(pane, Default::default());
+                buffer.set_cursor(pane.id(), Default::default());
                 if let Some(cursors) = cursors.get(pane.buffer_id()) {
                     if let Some(pane_cursor) = cursors.get(pane.id()) {
-                        buffer.set_cursor(pane, *pane_cursor);
+                        buffer.set_cursor(pane.id(), *pane_cursor);
                     }
                 }
             } else {
@@ -120,7 +120,7 @@ impl AppState {
         buffers
             .get_mut(&minibuf_id)
             .unwrap()
-            .set_cursor(pane_tree.minibuf(), Default::default());
+            .set_cursor(pane_tree.minibuf().id(), Default::default());
 
         Self {
             key_handler: event::KeyHandler::new().unwrap(),

@@ -183,7 +183,7 @@ impl AppState {
             }
         }
 
-        buf.set_cursor(pane, cursor);
+        buf.set_cursor(pane.id(), cursor);
 
         pane.maybe_rescroll(buf, cursor, line_height);
 
@@ -226,7 +226,7 @@ impl AppState {
                 .expect("missing minibuf buffer");
             let text = format!("{prompt}{default}");
             minibuf.set_text(&text);
-            minibuf.set_cursor(minibuf_pane, AbsChar(text.len()));
+            minibuf.set_cursor(minibuf_pane.id(), AbsChar(text.len()));
             minibuf.set_marker(PROMPT_END, AbsChar(prompt.len()));
             minibuf.set_marker(COMPLETION_START, AbsChar(text.len()));
         }
@@ -382,7 +382,7 @@ impl AppState {
         if let Some(search) = buf.search_state() {
             if let Some(m) = search.next_match(line_pos) {
                 let ci = m.to_abs_char(buf);
-                buf.set_cursor(pane, ci);
+                buf.set_cursor(pane.id(), ci);
             }
         }
 
