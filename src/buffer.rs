@@ -19,6 +19,13 @@ use syntect::highlighting::{
 };
 use syntect::parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet};
 
+// TODO: move this into this file?
+use crate::key_map::Move;
+
+// TODO: not sure where we want these.
+pub const PROMPT_END: &str = "prompt_end";
+pub const COMPLETION_START: &str = "completion_start";
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Direction {
     Dec,
@@ -344,6 +351,66 @@ impl Buffer {
             .cursors
             .get(pane_id)
             .unwrap_or_else(|| panic!("no cursor for {pane_id}"))
+    }
+
+    pub fn move_cursor(
+        &mut self,
+        pane_id: &PaneId,
+        step: Move,
+        dir: Direction,
+    ) -> Result<()> {
+        let mut cursor = self.cursor(pane_id);
+
+        match step {
+            Move::Boundary(boundary) => {
+                cursor = self.find_boundary(cursor, boundary, dir);
+            }
+            Move::Line | Move::Page => {
+                let offset =
+                    RelLine::new(if step == Move::Line { 1 } else { 20 });
+
+                let mut lp = LinePosition::from_abs_char(cursor, self);
+
+                // When moving between lines, use grapheme offset
+                // rather than char offset to keep the cursor more or
+                // less visually horizontally aligned. Probably would
+                // need to be more sophisticated for non-monospace
+                // fonts though.
+                let num_graphemes = lp.grapheme_offset(self);
+
+                if dir == Direction::Dec {
+                    lp.line = lp.line.saturating_sub(offset);
+                } else {
+                    lp.line = std::cmp::min(
+                        lp.line + offset,
+                        self.text().max_line_index(),
+                    );
+                }
+                lp.set_offset_in_graphemes(self, num_graphemes);
+                cursor = lp.to_abs_char(self);
+            }
+        }
+
+        // Prevent the cursor from going before the prompt end or after
+        // the completion start.
+        //
+        // This is kinda hacky and too specific. In the future we'll
+        // probably want a way to mark a region of text as untouchable (can't edit
+        // or even move the cursor into it).
+        if let Some(prompt_end) = self.get_marker(PROMPT_END) {
+            if cursor < prompt_end {
+                cursor = prompt_end;
+            }
+        }
+        if let Some(completion_start) = self.get_marker(COMPLETION_START) {
+            if cursor > completion_start {
+                cursor = completion_start;
+            }
+        }
+
+        self.set_cursor(pane_id, cursor);
+
+        Ok(())
     }
 
     pub fn set_cursor(&mut self, pane_id: &PaneId, cursor: AbsChar) {

@@ -1,6 +1,7 @@
 use super::{AppState, InteractiveState};
 use crate::buffer::{
-    Boundary, Buffer, BufferId, Direction, LinePosition, RelLine,
+    Boundary, Buffer, BufferId, COMPLETION_START, Direction, LinePosition,
+    PROMPT_END,
 };
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
@@ -33,9 +34,6 @@ impl KeyHandler {
         })
     }
 }
-
-const PROMPT_END: &str = "prompt_end";
-const COMPLETION_START: &str = "completion_start";
 
 fn invalid_active_buffer_error() -> Error {
     anyhow!("internal error: active pane points to invalid buffer")
@@ -135,56 +133,10 @@ impl AppState {
     fn move_cursor(&mut self, step: Move, dir: Direction) -> Result<()> {
         let line_height = self.line_height;
         let (pane, buf) = self.active_pane_mut_buffer_mut()?;
-        let text = buf.text();
-        let mut cursor = buf.cursor(pane.id());
 
-        match step {
-            Move::Boundary(boundary) => {
-                cursor = buf.find_boundary(cursor, boundary, dir);
-            }
-            Move::Line | Move::Page => {
-                let offset =
-                    RelLine::new(if step == Move::Line { 1 } else { 20 });
+        buf.move_cursor(pane.id(), step, dir)?;
 
-                let mut lp = LinePosition::from_abs_char(cursor, buf);
-
-                // When moving between lines, use grapheme offset
-                // rather than char offset to keep the cursor more or
-                // less visually horizontally aligned. Probably would
-                // need to be more sophisticated for non-monospace
-                // fonts though.
-                let num_graphemes = lp.grapheme_offset(buf);
-
-                if dir == Direction::Dec {
-                    lp.line = lp.line.saturating_sub(offset);
-                } else {
-                    lp.line =
-                        std::cmp::min(lp.line + offset, text.max_line_index());
-                }
-                lp.set_offset_in_graphemes(buf, num_graphemes);
-                cursor = lp.to_abs_char(buf);
-            }
-        }
-
-        // Prevent the cursor from going before the prompt end or after
-        // the completion start.
-        //
-        // This is kinda hacky and too specific. In the future we'll
-        // probably want a way to mark a region of text as untouchable (can't edit
-        // or even move the cursor into it).
-        if let Some(prompt_end) = buf.get_marker(PROMPT_END) {
-            if cursor < prompt_end {
-                cursor = prompt_end;
-            }
-        }
-        if let Some(completion_start) = buf.get_marker(COMPLETION_START) {
-            if cursor > completion_start {
-                cursor = completion_start;
-            }
-        }
-
-        buf.set_cursor(pane.id(), cursor);
-
+        let cursor = buf.cursor(pane.id());
         pane.maybe_rescroll(buf, cursor, line_height);
 
         Ok(())
