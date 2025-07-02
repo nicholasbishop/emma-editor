@@ -711,3 +711,25 @@ impl Buffer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_move_cursor_line_end() {
+        let mut buf = Buffer::create_empty();
+        buf.set_text("abc\n123\n");
+        let pane_id = PaneId::new();
+        buf.set_cursor(&pane_id, AbsChar(0));
+        assert_eq!(buf.cursor(&pane_id), AbsChar(0));
+
+        buf.move_cursor(
+            &pane_id,
+            Move::Boundary(Boundary::LineEnd),
+            Direction::Inc,
+        )
+        .unwrap();
+        assert_eq!(buf.cursor(&pane_id), AbsChar(3));
+    }
+}

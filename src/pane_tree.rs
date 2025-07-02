@@ -13,7 +13,7 @@ use std::fmt;
 pub struct PaneId(String);
 
 impl PaneId {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self(util::make_id("pane"))
     }
 
