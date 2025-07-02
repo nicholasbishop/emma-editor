@@ -539,7 +539,18 @@ impl Buffer {
                     // first-non-whitespace char.
                     lp.offset = RelChar::zero();
                 } else {
-                    lp.offset = RelChar(text.line(lp.line).len_chars() - 1);
+                    let line = text.line(lp.line);
+                    // The last line in a buffer may or may not end in a
+                    // newline character; this will affect the desired
+                    // offset of the cursor.
+                    //
+                    // TODO: to_string is overkill.
+                    let offset = if line.to_string().ends_with('\n') {
+                        1
+                    } else {
+                        0
+                    };
+                    lp.offset = RelChar(line.len_chars() - offset);
                 }
                 lp.to_abs_char(self)
             }
