@@ -371,8 +371,8 @@ impl PaneTree {
             show_info_bar: false,
             is_cursor_visible: false,
         };
-        initial_buffer.set_cursor(&initial_pane.id(), AbsChar::default());
-        minibuf_buffer.set_cursor(&minibuf_pane.id(), AbsChar::default());
+        initial_buffer.set_cursor(initial_pane.id(), AbsChar::default());
+        minibuf_buffer.set_cursor(minibuf_pane.id(), AbsChar::default());
         Self {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,
@@ -518,7 +518,7 @@ impl PaneTree {
                 ..active.clone()
             };
             // Copy the active pane's cursor.
-            buf.set_cursor(&new_pane.id(), buf.cursor(active.id()));
+            buf.set_cursor(new_pane.id(), buf.cursor(active.id()));
         }
 
         // TODO: make just have this method take self instead?
