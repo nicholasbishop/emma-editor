@@ -96,6 +96,7 @@ impl AbsLine {
 #[derive(Clone)]
 pub struct Rope(ropey::Rope);
 
+#[derive(Debug)]
 pub struct RopeSlice<'a>(ropey::RopeSlice<'a>);
 
 pub struct Lines<'a> {
