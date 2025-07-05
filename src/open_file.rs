@@ -1,6 +1,6 @@
 use crate::app::LineHeight;
-use crate::buffer::Buffer;
-use crate::key_map::{Action, KeyMap};
+use crate::buffer::{Boundary, Buffer, Direction};
+use crate::key_map::{Action, KeyMap, Move};
 use crate::pane_tree::{Pane, Rect};
 use crate::rope::AbsChar;
 use anyhow::Result;
@@ -110,6 +110,11 @@ impl OpenFile {
         if let Some(dir) = self.path().parent() {
             let child = &self.suggestions[0];
             self.buffer.set_text(dir.join(child).to_str().unwrap());
+            self.buffer.move_cursor(
+                self.pane.id(),
+                Move::Boundary(Boundary::LineEnd),
+                Direction::Inc,
+            )?;
             self.update_suggestions()
         } else {
             Ok(())
