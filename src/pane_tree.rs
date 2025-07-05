@@ -533,7 +533,6 @@ impl PaneTree {
     }
 
     pub fn make_previous_pane_active(&mut self) {
-        let pane_id;
         let panes = self.panes();
         let index = panes
             .iter()
@@ -544,12 +543,11 @@ impl PaneTree {
         } else {
             index - 1
         };
-        pane_id = panes[prev].id().clone();
+        let pane_id = panes[prev].id().clone();
         self.set_active(&pane_id);
     }
 
     pub fn make_next_pane_active(&mut self) {
-        let pane_id;
         let panes = self.panes();
         let index = panes
             .iter()
@@ -560,7 +558,7 @@ impl PaneTree {
         } else {
             index + 1
         };
-        pane_id = panes[next].id().clone();
+        let pane_id = panes[next].id().clone();
         self.set_active(&pane_id);
     }
 
