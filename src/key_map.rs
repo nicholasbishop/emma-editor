@@ -161,6 +161,7 @@ impl KeyMap {
                     "<ctrl>d",
                     Action::Delete(Boundary::Grapheme, Direction::Inc),
                 ),
+                ("<ctrl>k", Action::Delete(Boundary::LineEnd, Direction::Inc)),
                 ("<ctrl>s", Action::InteractiveSearch),
                 ("<ctrl>/", Action::Undo),
                 ("<ctrl><shift>?", Action::Redo),
