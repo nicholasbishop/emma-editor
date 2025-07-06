@@ -1,4 +1,4 @@
-use super::{AppState, InteractiveState};
+use crate::app::{AppState, InteractiveState, Overlay};
 use crate::buffer::{
     Boundary, Buffer, BufferId, COMPLETION_START, Direction, LinePosition,
     PROMPT_END,
@@ -51,7 +51,7 @@ fn active_buffer_mut<'b>(
 
 impl AppState {
     fn active_buffer(&self) -> Result<&Buffer> {
-        if let Some(open_file) = &self.open_file {
+        if let Some(Overlay::OpenFile(open_file)) = &self.overlay {
             return Ok(open_file.buffer());
         }
 
@@ -64,7 +64,7 @@ impl AppState {
     }
 
     fn active_buffer_mut(&mut self) -> Result<&mut Buffer> {
-        if let Some(open_file) = &mut self.open_file {
+        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
             return Ok(open_file.buffer_mut());
         }
 
@@ -77,7 +77,7 @@ impl AppState {
     }
 
     fn active_pane_buffer_mut(&mut self) -> Result<(&Pane, &mut Buffer)> {
-        if let Some(open_file) = &mut self.open_file {
+        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
             return Ok(open_file.pane_buffer_mut());
         }
 
@@ -92,7 +92,7 @@ impl AppState {
     fn active_pane_mut_buffer_mut(
         &mut self,
     ) -> Result<(&mut Pane, &mut Buffer)> {
-        if let Some(open_file) = &mut self.open_file {
+        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
             return Ok(open_file.pane_mut_buffer_mut());
         }
 
@@ -209,9 +209,9 @@ impl AppState {
     }
 
     fn handle_confirm(&mut self) -> Result<()> {
-        if let Some(open_file) = &mut self.open_file {
+        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
             let path = open_file.path();
-            self.open_file = None;
+            self.overlay = None;
             self.open_file_at_path(&path)?;
             return Ok(());
         }
@@ -236,7 +236,7 @@ impl AppState {
 
     #[instrument(skip(self))]
     fn handle_buffer_changed(&mut self) -> Result<()> {
-        if let Some(open_file) = &mut self.open_file {
+        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
             open_file.update_suggestions()?;
         }
 
@@ -386,7 +386,8 @@ impl AppState {
                         std::env::current_dir().unwrap_or_default()
                     });
 
-                self.open_file = Some(PathChooser::new(&default_path)?);
+                self.overlay =
+                    Some(Overlay::OpenFile(PathChooser::new(&default_path)?));
 
                 buffer_changed = false;
             }
@@ -406,13 +407,13 @@ impl AppState {
                 buffer_changed = false;
             }
             Action::Cancel => {
-                self.open_file = None;
+                self.overlay = None;
                 self.clear_interactive_state();
 
                 buffer_changed = false;
             }
             Action::Autocomplete => {
-                if let Some(open_file) = &mut self.open_file {
+                if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
                     open_file.autocomplete()?;
                 }
                 buffer_changed = true;
@@ -521,7 +522,7 @@ impl AppState {
             }
         }
 
-        if let Some(open_file) = &self.open_file {
+        if let Some(Overlay::OpenFile(open_file)) = &self.overlay {
             keymap_stack.push(open_file.get_keymap());
         }
 

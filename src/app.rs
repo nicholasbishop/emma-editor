@@ -27,6 +27,11 @@ enum InteractiveState {
     Search,
 }
 
+enum Overlay {
+    OpenFile(PathChooser),
+    Search(SearchWidget),
+}
+
 pub type BufferMap = HashMap<BufferId, Buffer>;
 
 // Pure state, no GTK stuff goes here.
@@ -41,9 +46,7 @@ pub(crate) struct AppState {
 
     is_persistence_enabled: bool,
 
-    // TODO: maybe an enum for the interactive overlay widgets?
-    open_file: Option<PathChooser>,
-    _search: Option<SearchWidget>,
+    overlay: Option<Overlay>,
 }
 
 impl AppState {
@@ -130,8 +133,7 @@ impl AppState {
             line_height: LineHeight(20.0),
 
             is_persistence_enabled: false,
-            open_file: None,
-            _search: None,
+            overlay: None,
         }
     }
 }
@@ -198,7 +200,7 @@ pub fn init(application: &gtk::Application) {
             state.pane_tree.recalc_layout(width, height, line_height);
 
             // TODO: generalize this somehow.
-            if let Some(open_file) = &mut state.open_file {
+            if let Some(Overlay::OpenFile(open_file)) = &mut state.overlay {
                 open_file.recalc_layout(width, height, line_height);
             }
 

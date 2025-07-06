@@ -1,4 +1,4 @@
-use super::AppState;
+use crate::app::{AppState, Overlay};
 use crate::buffer::{
     Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan, StyledLine,
 };
@@ -551,7 +551,9 @@ impl AppState {
         line_height: LineHeight,
         theme: &Theme,
     ) {
-        let Some(open_file) = &self.open_file else {
+        // TODO: handle other widgets
+
+        let Some(Overlay::OpenFile(open_file)) = &self.overlay else {
             return;
         };
 
