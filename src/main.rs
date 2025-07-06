@@ -10,6 +10,7 @@ mod pane_tree;
 mod path_chooser;
 mod process;
 mod rope;
+mod search_widget;
 mod shell;
 mod theme;
 mod util;

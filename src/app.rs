@@ -9,6 +9,7 @@ use crate::config::Config;
 use crate::pane_tree::PaneTree;
 use crate::path_chooser::PathChooser;
 use crate::rope::AbsLine;
+use crate::search_widget::SearchWidget;
 use crate::theme::Theme;
 use anyhow::Result;
 use glib::clone;
@@ -42,6 +43,7 @@ pub(crate) struct AppState {
 
     // TODO: maybe an enum for the interactive overlay widgets?
     open_file: Option<PathChooser>,
+    _search: Option<SearchWidget>,
 }
 
 impl AppState {
@@ -129,6 +131,7 @@ impl AppState {
 
             is_persistence_enabled: false,
             open_file: None,
+            _search: None,
         }
     }
 }
