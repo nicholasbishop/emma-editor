@@ -1,6 +1,6 @@
 use crate::app::LineHeight;
 use crate::buffer::Buffer;
-use crate::pane_tree::Pane;
+use crate::pane_tree::{Pane, Rect};
 
 pub trait Widget {
     fn buffer(&self) -> &Buffer;
@@ -12,4 +12,6 @@ pub trait Widget {
     fn pane_mut_buffer_mut(&mut self) -> (&mut Pane, &mut Buffer);
 
     fn recalc_layout(&mut self, width: f64, line_height: LineHeight);
+
+    fn rect(&self) -> &Rect;
 }

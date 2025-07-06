@@ -37,10 +37,6 @@ impl PathChooser {
         Ok(s)
     }
 
-    pub fn rect(&self) -> &Rect {
-        &self.rect
-    }
-
     pub fn path(&self) -> PathBuf {
         PathBuf::from(self.buffer.text().to_string())
     }
@@ -135,6 +131,10 @@ impl Widget for PathChooser {
             width,
             height: line_height.0,
         });
+    }
+
+    fn rect(&self) -> &Rect {
+        &self.rect
     }
 }
 

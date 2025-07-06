@@ -6,7 +6,7 @@ pub use draw::LineHeight;
 
 use crate::buffer::{Buffer, BufferId};
 use crate::config::Config;
-use crate::pane_tree::{Pane, PaneTree};
+use crate::pane_tree::{Pane, PaneTree, Rect};
 use crate::path_chooser::PathChooser;
 use crate::rope::AbsLine;
 use crate::search_widget::SearchWidget;
@@ -68,6 +68,10 @@ impl Widget for Overlay {
 
     fn recalc_layout(&mut self, width: f64, line_height: LineHeight) {
         self.widget_mut().recalc_layout(width, line_height);
+    }
+
+    fn rect(&self) -> &Rect {
+        self.widget().rect()
     }
 }
 

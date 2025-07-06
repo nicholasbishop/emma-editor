@@ -8,6 +8,7 @@ use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
 use crate::pane_tree::{Pane, PaneTree};
 use crate::path_chooser::PathChooser;
 use crate::rope::AbsChar;
+use crate::search_widget::SearchWidget;
 use crate::widget::Widget;
 use anyhow::{Error, Result, anyhow, bail};
 use fs_err as fs;
@@ -93,8 +94,8 @@ impl AppState {
     fn active_pane_mut_buffer_mut(
         &mut self,
     ) -> Result<(&mut Pane, &mut Buffer)> {
-        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
-            return Ok(open_file.pane_mut_buffer_mut());
+        if let Some(overlay) = &mut self.overlay {
+            return Ok(overlay.pane_mut_buffer_mut());
         }
 
         let pane = self.pane_tree.active_mut();
@@ -313,7 +314,7 @@ impl AppState {
                 buffer_changed = true;
             }
             Action::InteractiveSearch => {
-                self.set_interactive_state(InteractiveState::Search);
+                self.overlay = Some(Overlay::Search(SearchWidget::new()));
                 buffer_changed = false;
             }
             Action::SearchNext => {

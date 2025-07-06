@@ -9,6 +9,14 @@ pub struct SearchWidget {
     pane: Pane,
 }
 
+impl SearchWidget {
+    pub fn new() -> Self {
+        let buffer = Buffer::create_empty();
+        let pane = Pane::create_for_widget(buffer.id().clone());
+        Self { buffer, pane }
+    }
+}
+
 impl Widget for SearchWidget {
     fn buffer(&self) -> &Buffer {
         &self.buffer
@@ -33,5 +41,9 @@ impl Widget for SearchWidget {
             width,
             height: line_height.0,
         });
+    }
+
+    fn rect(&self) -> &Rect {
+        self.pane.rect()
     }
 }
