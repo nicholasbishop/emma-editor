@@ -65,8 +65,8 @@ impl AppState {
     }
 
     fn active_buffer_mut(&mut self) -> Result<&mut Buffer> {
-        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
-            return Ok(open_file.buffer_mut());
+        if let Some(overlay) = &mut self.overlay {
+            return Ok(overlay.buffer_mut());
         }
 
         let pane = self.pane_tree.active();
@@ -78,8 +78,8 @@ impl AppState {
     }
 
     fn active_pane_buffer_mut(&mut self) -> Result<(&Pane, &mut Buffer)> {
-        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
-            return Ok(open_file.pane_buffer_mut());
+        if let Some(overlay) = &mut self.overlay {
+            return Ok(overlay.pane_buffer_mut());
         }
 
         let pane = self.pane_tree.active();

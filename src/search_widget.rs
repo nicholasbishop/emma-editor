@@ -18,6 +18,14 @@ impl Widget for SearchWidget {
         &mut self.buffer
     }
 
+    fn pane_buffer_mut(&mut self) -> (&Pane, &mut Buffer) {
+        (&self.pane, &mut self.buffer)
+    }
+
+    fn pane_mut_buffer_mut(&mut self) -> (&mut Pane, &mut Buffer) {
+        (&mut self.pane, &mut self.buffer)
+    }
+
     fn recalc_layout(&mut self, width: f64, line_height: LineHeight) {
         self.pane.set_rect(Rect {
             x: 0.0,
