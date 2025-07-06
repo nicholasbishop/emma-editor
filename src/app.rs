@@ -6,8 +6,8 @@ pub use draw::LineHeight;
 
 use crate::buffer::{Buffer, BufferId};
 use crate::config::Config;
-use crate::open_file::OpenFile;
 use crate::pane_tree::PaneTree;
+use crate::path_chooser::PathChooser;
 use crate::rope::AbsLine;
 use crate::theme::Theme;
 use anyhow::Result;
@@ -41,7 +41,7 @@ pub(crate) struct AppState {
     is_persistence_enabled: bool,
 
     // TODO: maybe an enum for the interactive overlay widgets?
-    open_file: Option<OpenFile>,
+    open_file: Option<PathChooser>,
 }
 
 impl AppState {

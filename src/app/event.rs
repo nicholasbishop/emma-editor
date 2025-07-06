@@ -5,8 +5,8 @@ use crate::buffer::{
 };
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
-use crate::open_file::OpenFile;
 use crate::pane_tree::{Pane, PaneTree};
+use crate::path_chooser::PathChooser;
 use crate::rope::AbsChar;
 use anyhow::{Error, Result, anyhow, bail};
 use fs_err as fs;
@@ -386,7 +386,7 @@ impl AppState {
                         std::env::current_dir().unwrap_or_default()
                     });
 
-                self.open_file = Some(OpenFile::new(&default_path)?);
+                self.open_file = Some(PathChooser::new(&default_path)?);
 
                 buffer_changed = false;
             }
@@ -651,7 +651,7 @@ pub mod tests {
         app_state.open_file_at_path(&tmp_path1)?;
 
         // Test interactive open.
-        app_state.handle_action(None, Action::OpenFile)?;
+        app_state.handle_action(None, Action::PathChooser)?;
         assert!(*app_state.pane_tree.active().id() != pane_id);
         assert_eq!(
             app_state.minibuf().text().to_string(),

@@ -6,7 +6,7 @@ use crate::rope::AbsChar;
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 
-pub struct OpenFile {
+pub struct PathChooser {
     buffer: Buffer,
     pane: Pane,
     rect: Rect,
@@ -14,7 +14,7 @@ pub struct OpenFile {
     suggestions: Vec<String>,
 }
 
-impl OpenFile {
+impl PathChooser {
     pub fn new(default_path: &Path) -> Result<Self> {
         let mut buffer = Buffer::create_empty();
         // TODO: what about non-utf8 paths?
@@ -160,7 +160,7 @@ mod tests {
         let tmp_path2 = tmp_dir.join("testfile2");
         fs::write(&tmp_path2, "test data 2\n")?;
 
-        let mut open_file = OpenFile::new(&tmp_dir)?;
+        let mut open_file = PathChooser::new(&tmp_dir)?;
 
         // Check the default path.
         assert_eq!(path_to_str(&open_file.path()), path_to_str(&tmp_dir) + "/");
