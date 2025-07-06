@@ -57,6 +57,10 @@ impl Widget for Overlay {
     fn buffer_mut(&mut self) -> &mut Buffer {
         self.widget_mut().buffer_mut()
     }
+
+    fn recalc_layout(&mut self, width: f64, line_height: LineHeight) {
+        self.widget_mut().recalc_layout(width, line_height);
+    }
 }
 
 pub type BufferMap = HashMap<BufferId, Buffer>;
@@ -227,8 +231,8 @@ pub fn init(application: &gtk::Application) {
             state.pane_tree.recalc_layout(width, height, line_height);
 
             // TODO: generalize this somehow.
-            if let Some(Overlay::OpenFile(open_file)) = &mut state.overlay {
-                open_file.recalc_layout(width, height, line_height);
+            if let Some(overlay) = &mut state.overlay {
+                overlay.recalc_layout(width, line_height);
             }
 
             state.draw(

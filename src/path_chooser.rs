@@ -61,26 +61,6 @@ impl PathChooser {
         self.suggestions.join(" | ")
     }
 
-    pub fn recalc_layout(
-        &mut self,
-        width: f64,
-        _height: f64,
-        line_height: LineHeight,
-    ) {
-        self.rect = Rect {
-            x: 0.0,
-            y: 0.0,
-            width,
-            height: line_height.0 * 3.0,
-        };
-        self.pane.set_rect(Rect {
-            x: 0.0,
-            y: line_height.0,
-            width,
-            height: line_height.0,
-        });
-    }
-
     // TODO: add a trait to generically get keymap for a widget?
     pub fn get_keymap(&self) -> Result<KeyMap> {
         KeyMap::from_pairs(
@@ -140,6 +120,21 @@ impl Widget for PathChooser {
 
     fn buffer_mut(&mut self) -> &mut Buffer {
         &mut self.buffer
+    }
+
+    fn recalc_layout(&mut self, width: f64, line_height: LineHeight) {
+        self.rect = Rect {
+            x: 0.0,
+            y: 0.0,
+            width,
+            height: line_height.0 * 3.0,
+        };
+        self.pane.set_rect(Rect {
+            x: 0.0,
+            y: line_height.0,
+            width,
+            height: line_height.0,
+        });
     }
 }
 
