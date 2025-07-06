@@ -11,6 +11,7 @@ use crate::path_chooser::PathChooser;
 use crate::rope::AbsLine;
 use crate::search_widget::SearchWidget;
 use crate::theme::Theme;
+use crate::widget::Widget;
 use anyhow::Result;
 use glib::clone;
 use gtk4::prelude::*;
@@ -30,6 +31,32 @@ enum InteractiveState {
 enum Overlay {
     OpenFile(PathChooser),
     Search(SearchWidget),
+}
+
+impl Overlay {
+    fn widget(&self) -> &dyn Widget {
+        match self {
+            Self::OpenFile(w) => w,
+            Self::Search(w) => w,
+        }
+    }
+
+    fn widget_mut(&mut self) -> &mut dyn Widget {
+        match self {
+            Self::OpenFile(w) => w,
+            Self::Search(w) => w,
+        }
+    }
+}
+
+impl Widget for Overlay {
+    fn buffer(&self) -> &Buffer {
+        self.widget().buffer()
+    }
+
+    fn buffer_mut(&mut self) -> &mut Buffer {
+        self.widget_mut().buffer_mut()
+    }
 }
 
 pub type BufferMap = HashMap<BufferId, Buffer>;

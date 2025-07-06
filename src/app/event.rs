@@ -8,6 +8,7 @@ use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
 use crate::pane_tree::{Pane, PaneTree};
 use crate::path_chooser::PathChooser;
 use crate::rope::AbsChar;
+use crate::widget::Widget;
 use anyhow::{Error, Result, anyhow, bail};
 use fs_err as fs;
 use glib::{ControlFlow, IOCondition};
@@ -51,8 +52,8 @@ fn active_buffer_mut<'b>(
 
 impl AppState {
     fn active_buffer(&self) -> Result<&Buffer> {
-        if let Some(Overlay::OpenFile(open_file)) = &self.overlay {
-            return Ok(open_file.buffer());
+        if let Some(overlay) = &self.overlay {
+            return Ok(overlay.buffer());
         }
 
         let pane = self.pane_tree.active();

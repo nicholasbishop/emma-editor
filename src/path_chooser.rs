@@ -3,6 +3,7 @@ use crate::buffer::{Boundary, Buffer, Direction};
 use crate::key_map::{Action, KeyMap, Move};
 use crate::pane_tree::{Pane, Rect};
 use crate::rope::AbsChar;
+use crate::widget::Widget;
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 
@@ -42,14 +43,6 @@ impl PathChooser {
 
     pub fn path(&self) -> PathBuf {
         PathBuf::from(self.buffer.text().to_string())
-    }
-
-    pub fn buffer(&self) -> &Buffer {
-        &self.buffer
-    }
-
-    pub fn buffer_mut(&mut self) -> &mut Buffer {
-        &mut self.buffer
     }
 
     pub fn pane(&self) -> &Pane {
@@ -137,6 +130,16 @@ impl PathChooser {
         self.suggestions = completions;
 
         Ok(())
+    }
+}
+
+impl Widget for PathChooser {
+    fn buffer(&self) -> &Buffer {
+        &self.buffer
+    }
+
+    fn buffer_mut(&mut self) -> &mut Buffer {
+        &mut self.buffer
     }
 }
 

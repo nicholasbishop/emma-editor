@@ -6,6 +6,7 @@ use crate::grapheme::next_grapheme_boundary;
 use crate::pane_tree::Pane;
 use crate::rope::{LineDataVec, RopeSlice};
 use crate::theme::Theme;
+use crate::widget::Widget;
 use anyhow::Result;
 use gtk4::pango::{self, Layout};
 use gtk4::prelude::*;
