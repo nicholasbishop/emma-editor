@@ -41,10 +41,6 @@ impl PathChooser {
         PathBuf::from(self.buffer.text().to_string())
     }
 
-    pub fn pane(&self) -> &Pane {
-        &self.pane
-    }
-
     pub fn suggestions(&self) -> String {
         self.suggestions.join(" | ")
     }
@@ -108,6 +104,10 @@ impl Widget for PathChooser {
 
     fn buffer_mut(&mut self) -> &mut Buffer {
         &mut self.buffer
+    }
+
+    fn pane(&self) -> &Pane {
+        &self.pane
     }
 
     fn pane_buffer_mut(&mut self) -> (&Pane, &mut Buffer) {

@@ -26,6 +26,10 @@ impl Widget for SearchWidget {
         &mut self.buffer
     }
 
+    fn pane(&self) -> &Pane {
+        &self.pane
+    }
+
     fn pane_buffer_mut(&mut self) -> (&Pane, &mut Buffer) {
         (&self.pane, &mut self.buffer)
     }

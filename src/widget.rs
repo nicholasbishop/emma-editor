@@ -7,6 +7,8 @@ pub trait Widget {
 
     fn buffer_mut(&mut self) -> &mut Buffer;
 
+    fn pane(&self) -> &Pane;
+
     fn pane_buffer_mut(&mut self) -> (&Pane, &mut Buffer);
 
     fn pane_mut_buffer_mut(&mut self) -> (&mut Pane, &mut Buffer);

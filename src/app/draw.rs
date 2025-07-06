@@ -552,14 +552,12 @@ impl AppState {
         line_height: LineHeight,
         theme: &Theme,
     ) {
-        // TODO: handle other widgets
-
-        let Some(Overlay::OpenFile(open_file)) = &self.overlay else {
+        let Some(overlay) = &self.overlay else {
             return;
         };
 
         // Fill in the background.
-        let r = open_file.rect();
+        let r = overlay.rect();
         ctx.rectangle(0.0, 0.0, r.width, r.height);
         set_source_rgb_from_u8(ctx, 63, 63, 100);
         if let Err(err) = ctx.fill() {
@@ -582,18 +580,23 @@ impl AppState {
             error!("fill failed: {}", err);
         }
 
+        let prompt = match overlay {
+            Overlay::OpenFile(_) => "Open file:",
+            Overlay::Search(_) => "Search:",
+        };
+
         // Prompt.
-        let layout = widget.create_pango_layout(Some("Open file:"));
+        let layout = widget.create_pango_layout(Some(prompt));
         set_source_rgb_from_u8(ctx, 200, 200, 200);
         ctx.move_to(r.x, r.y);
         pangocairo::functions::show_layout(ctx, &layout);
 
-        let buf = open_file.buffer();
+        let buf = overlay.buffer();
         // TODO: dedup?
         let mut dp = DrawPane {
             ctx,
             widget,
-            pane: open_file.pane(),
+            pane: overlay.pane(),
             buf,
             line_height,
             theme,
@@ -608,9 +611,12 @@ impl AppState {
         }
 
         // Suggestions.
-        let layout = widget.create_pango_layout(Some(&open_file.suggestions()));
-        set_source_rgb_from_u8(ctx, 200, 200, 200);
-        ctx.move_to(r.x, r.y + line_height.0 * 2.0);
-        pangocairo::functions::show_layout(ctx, &layout);
+        if let Overlay::OpenFile(open_file) = overlay {
+            let layout =
+                widget.create_pango_layout(Some(&open_file.suggestions()));
+            set_source_rgb_from_u8(ctx, 200, 200, 200);
+            ctx.move_to(r.x, r.y + line_height.0 * 2.0);
+            pangocairo::functions::show_layout(ctx, &layout);
+        }
     }
 }

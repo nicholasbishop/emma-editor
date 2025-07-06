@@ -62,6 +62,10 @@ impl Widget for Overlay {
         self.widget_mut().pane_buffer_mut()
     }
 
+    fn pane(&self) -> &Pane {
+        self.widget().pane()
+    }
+
     fn pane_mut_buffer_mut(&mut self) -> (&mut Pane, &mut Buffer) {
         self.widget_mut().pane_mut_buffer_mut()
     }
