@@ -17,18 +17,12 @@ use gtk4::{self as gtk, gdk, glib};
 use persistence::PersistedBuffer;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::rc::Rc;
 use tracing::{error, info};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum InteractiveState {
     Initial,
-    #[allow(unused)] // TODO
-    OpenFile(
-        /// Default path.
-        PathBuf,
-    ),
     Search,
 }
 

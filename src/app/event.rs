@@ -8,7 +8,7 @@ use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
 use crate::open_file::OpenFile;
 use crate::pane_tree::{Pane, PaneTree};
 use crate::rope::AbsChar;
-use anyhow::{Context, Error, Result, anyhow, bail};
+use anyhow::{Error, Result, anyhow, bail};
 use fs_err as fs;
 use glib::{ControlFlow, IOCondition};
 use gtk4::glib::signal::Propagation;
@@ -160,13 +160,6 @@ impl AppState {
         self.pane_tree.set_minibuf_interactive(is_interactive);
         self.minibuf_mut().clear();
         let (prompt, default) = match state {
-            InteractiveState::OpenFile(default_path) => {
-                // Convert the default path to a string.
-                // TODO: what about non-utf8 paths?
-                let default =
-                    default_path.to_str().unwrap_or_default().to_owned();
-                (Some("Open file: "), default)
-            }
             InteractiveState::Search => (Some("Search: "), String::new()),
             InteractiveState::Initial => (None, String::new()),
         };
@@ -204,35 +197,6 @@ impl AppState {
         self.minibuf_mut().set_text(msg);
     }
 
-    fn get_interactive_text(&mut self) -> Result<String> {
-        if self.interactive_state == InteractiveState::Initial {
-            bail!("minibuf not in interactive mode");
-        }
-
-        let minibuf = self.minibuf();
-        let start = minibuf
-            .get_marker(PROMPT_END)
-            .context("missing prompt end")?;
-        let end = minibuf
-            .get_marker(COMPLETION_START)
-            .context("missing completion start")?;
-        let text = minibuf.text().slice(start..end).to_string();
-
-        Ok(text)
-    }
-
-    fn open_file(&mut self) -> Result<()> {
-        // Get the path to open.
-        let text = self.get_interactive_text()?;
-        let path = Path::new(&text);
-
-        // Reset the minibuf, which also reselects the previous active
-        // pane.
-        self.clear_interactive_state();
-
-        self.open_file_at_path(path)
-    }
-
     fn open_file_at_path(&mut self, path: &Path) -> Result<()> {
         // Load the file in a new buffer.
         let buf = Buffer::from_path(path)?;
@@ -254,9 +218,6 @@ impl AppState {
 
         match self.interactive_state {
             InteractiveState::Initial => {}
-            InteractiveState::OpenFile(_) => {
-                self.open_file()?;
-            }
             InteractiveState::Search => {
                 self.search_next()?;
 
@@ -294,27 +255,6 @@ impl AppState {
                 let num_lines =
                     (pane.rect().height / line_height.0).round() as usize;
                 buf.search(&search_for, pane, num_lines);
-            }
-            InteractiveState::OpenFile(_) => {
-                // TODO: this is a very simple completion that is
-                // minimally helpful.
-                let mut path = self.get_interactive_text()?;
-                path.push('*');
-                // Arbitrarily grab a few options.
-                let completions: Vec<_> = glob::glob(&path)?
-                    .take(5)
-                    .map(|p| p.unwrap().to_str().unwrap().to_owned())
-                    .collect();
-
-                let minibuf = self.minibuf_mut();
-                let end = minibuf
-                    .get_marker(COMPLETION_START)
-                    .context("missing completion start")?;
-                let text = minibuf.text().slice(..end).to_string();
-                let text = format!("{}   {}", text, completions.join(" | "));
-
-                // TODO: this probably interacts poorly with undo/redo.
-                minibuf.set_text(&text);
             }
             _ => {}
         }
