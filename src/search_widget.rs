@@ -8,6 +8,7 @@ use crate::widget::Widget;
 pub struct SearchWidget {
     buffer: Buffer,
     pane: Pane,
+    rect: Rect,
 }
 
 impl SearchWidget {
@@ -17,7 +18,11 @@ impl SearchWidget {
         let mut buffer = Buffer::create_empty();
         let pane = Pane::create_for_widget(buffer.id().clone());
         buffer.set_cursor(pane.id(), AbsChar::default());
-        Self { buffer, pane }
+        Self {
+            buffer,
+            pane,
+            rect: Rect::default(),
+        }
     }
 }
 
@@ -43,15 +48,21 @@ impl Widget for SearchWidget {
     }
 
     fn recalc_layout(&mut self, width: f64, line_height: LineHeight) {
-        self.pane.set_rect(Rect {
+        self.rect = Rect {
             x: 0.0,
             y: 0.0,
+            width,
+            height: line_height.0 * 2.0,
+        };
+        self.pane.set_rect(Rect {
+            x: 0.0,
+            y: line_height.0,
             width,
             height: line_height.0,
         });
     }
 
     fn rect(&self) -> &Rect {
-        self.pane.rect()
+        &self.rect
     }
 }
