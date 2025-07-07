@@ -1,6 +1,7 @@
 use crate::app::LineHeight;
 use crate::buffer::Buffer;
 use crate::pane_tree::{Pane, Rect};
+use crate::rope::AbsChar;
 use crate::widget::Widget;
 
 // TODO
@@ -11,8 +12,11 @@ pub struct SearchWidget {
 
 impl SearchWidget {
     pub fn new() -> Self {
-        let buffer = Buffer::create_empty();
+        // TODO: dedup with PathChooser, make harder to get wrong (if
+        // cursor is not set, errors occur).
+        let mut buffer = Buffer::create_empty();
         let pane = Pane::create_for_widget(buffer.id().clone());
+        buffer.set_cursor(pane.id(), AbsChar::default());
         Self { buffer, pane }
     }
 }
