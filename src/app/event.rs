@@ -211,11 +211,17 @@ impl AppState {
     }
 
     fn handle_confirm(&mut self) -> Result<()> {
-        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
-            let path = open_file.path();
-            self.overlay = None;
-            self.open_file_at_path(&path)?;
-            return Ok(());
+        match &self.overlay {
+            Some(Overlay::OpenFile(open_file)) => {
+                let path = open_file.path();
+                self.overlay = None;
+                self.open_file_at_path(&path)?;
+                return Ok(());
+            }
+            Some(Overlay::Search(_)) => {
+                self.overlay = None;
+            }
+            None => {}
         }
 
         match self.interactive_state {
@@ -238,8 +244,23 @@ impl AppState {
 
     #[instrument(skip(self))]
     fn handle_buffer_changed(&mut self) -> Result<()> {
-        if let Some(Overlay::OpenFile(open_file)) = &mut self.overlay {
-            open_file.update_suggestions()?;
+        match &mut self.overlay {
+            Some(Overlay::OpenFile(open_file)) => {
+                open_file.update_suggestions()?;
+            }
+            Some(Overlay::Search(search)) => {
+                let line_height = self.line_height;
+
+                let pane = self.pane_tree.active_excluding_minibuf();
+                let buf = self
+                    .buffers
+                    .get_mut(pane.buffer_id())
+                    .ok_or_else(invalid_active_buffer_error)?;
+                let num_lines =
+                    (pane.rect().height / line_height.0).round() as usize;
+                buf.search(&search.text(), pane, num_lines);
+            }
+            None => {}
         }
 
         match self.interactive_state {

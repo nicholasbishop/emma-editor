@@ -24,6 +24,10 @@ impl SearchWidget {
             rect: Rect::default(),
         }
     }
+
+    pub fn text(&self) -> String {
+        self.buffer.text().to_string()
+    }
 }
 
 impl Widget for SearchWidget {
