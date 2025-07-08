@@ -1,10 +1,11 @@
-use crate::app::{AppState, InteractiveState, Overlay};
+use crate::app::{AppState, InteractiveState};
 use crate::buffer::{
     Boundary, Buffer, BufferId, COMPLETION_START, Direction, LinePosition,
     PROMPT_END,
 };
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
+use crate::overlay::Overlay;
 use crate::pane_tree::{Pane, PaneTree};
 use crate::path_chooser::PathChooser;
 use crate::rope::AbsChar;

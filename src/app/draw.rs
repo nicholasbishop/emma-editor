@@ -1,8 +1,9 @@
-use crate::app::{AppState, Overlay};
+use crate::app::AppState;
 use crate::buffer::{
     Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan, StyledLine,
 };
 use crate::grapheme::next_grapheme_boundary;
+use crate::overlay::Overlay;
 use crate::pane_tree::Pane;
 use crate::rope::{LineDataVec, RopeSlice};
 use crate::theme::Theme;

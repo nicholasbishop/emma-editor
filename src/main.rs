@@ -6,6 +6,7 @@ mod config;
 mod grapheme;
 mod key_map;
 mod key_sequence;
+mod overlay;
 mod pane_tree;
 mod path_chooser;
 mod process;
