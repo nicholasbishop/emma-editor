@@ -45,19 +45,6 @@ impl PathChooser {
         self.suggestions.join(" | ")
     }
 
-    // TODO: add a trait to generically get keymap for a widget?
-    pub fn get_keymap(&self) -> Result<KeyMap> {
-        KeyMap::from_pairs(
-            "open_file",
-            vec![
-                ("<ctrl>i", Action::Autocomplete),
-                ("<ret>", Action::Confirm),
-                ("<ctrl>m", Action::Confirm),
-            ]
-            .into_iter(),
-        )
-    }
-
     pub fn autocomplete(&mut self) -> Result<()> {
         // TODO: for now only autocomplete with one option.
         if self.suggestions.len() != 1 {
@@ -98,6 +85,18 @@ impl PathChooser {
 }
 
 impl Widget for PathChooser {
+    fn get_keymap(&self) -> Result<KeyMap> {
+        KeyMap::from_pairs(
+            "open_file",
+            vec![
+                ("<ctrl>i", Action::Autocomplete),
+                ("<ret>", Action::Confirm),
+                ("<ctrl>m", Action::Confirm),
+            ]
+            .into_iter(),
+        )
+    }
+
     fn buffer(&self) -> &Buffer {
         &self.buffer
     }

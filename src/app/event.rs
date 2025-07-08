@@ -545,8 +545,8 @@ impl AppState {
             }
         }
 
-        if let Some(Overlay::OpenFile(open_file)) = &self.overlay {
-            keymap_stack.push(open_file.get_keymap());
+        if let Some(overlay) = &self.overlay {
+            keymap_stack.push(overlay.get_keymap());
         }
 
         // Ignore lone modifier presses.

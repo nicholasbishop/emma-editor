@@ -6,6 +6,7 @@ pub use draw::LineHeight;
 
 use crate::buffer::{Buffer, BufferId};
 use crate::config::Config;
+use crate::key_map::KeyMap;
 use crate::pane_tree::{Pane, PaneTree, Rect};
 use crate::path_chooser::PathChooser;
 use crate::rope::AbsLine;
@@ -50,6 +51,10 @@ impl Overlay {
 }
 
 impl Widget for Overlay {
+    fn get_keymap(&self) -> Result<KeyMap> {
+        self.widget().get_keymap()
+    }
+
     fn buffer(&self) -> &Buffer {
         self.widget().buffer()
     }

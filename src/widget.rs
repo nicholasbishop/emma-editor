@@ -1,8 +1,12 @@
 use crate::app::LineHeight;
 use crate::buffer::Buffer;
+use crate::key_map::KeyMap;
 use crate::pane_tree::{Pane, Rect};
+use anyhow::Result;
 
 pub trait Widget {
+    fn get_keymap(&self) -> Result<KeyMap>;
+
     fn buffer(&self) -> &Buffer;
 
     fn buffer_mut(&mut self) -> &mut Buffer;

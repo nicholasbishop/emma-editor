@@ -1,8 +1,10 @@
 use crate::app::LineHeight;
 use crate::buffer::Buffer;
+use crate::key_map::{Action, KeyMap};
 use crate::pane_tree::{Pane, Rect};
 use crate::rope::AbsChar;
 use crate::widget::Widget;
+use anyhow::Result;
 
 // TODO
 pub struct SearchWidget {
@@ -31,6 +33,18 @@ impl SearchWidget {
 }
 
 impl Widget for SearchWidget {
+    fn get_keymap(&self) -> Result<KeyMap> {
+        KeyMap::from_pairs(
+            "search",
+            vec![
+                ("<ret>", Action::Confirm),
+                ("<ctrl>m", Action::Confirm),
+                ("<ctrl>s", Action::SearchNext),
+            ]
+            .into_iter(),
+        )
+    }
+
     fn buffer(&self) -> &Buffer {
         &self.buffer
     }
