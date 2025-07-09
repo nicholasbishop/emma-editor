@@ -1,4 +1,4 @@
-use crate::app::{AppState, InteractiveState};
+use crate::app::AppState;
 use crate::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
@@ -7,7 +7,7 @@ use crate::pane_tree::{Pane, PaneTree};
 use crate::path_chooser::PathChooser;
 use crate::search_widget::SearchWidget;
 use crate::widget::Widget;
-use anyhow::{Error, Result, anyhow, bail};
+use anyhow::{Error, Result, anyhow};
 use fs_err as fs;
 use glib::{ControlFlow, IOCondition};
 use gtk4::glib::signal::Propagation;
@@ -277,10 +277,6 @@ impl AppState {
                 buffer_changed = false;
             }
             Action::SearchNext => {
-                if self.interactive_state != InteractiveState::Search {
-                    bail!("not searching");
-                }
-
                 self.search_next()?;
                 buffer_changed = false;
             }
@@ -444,25 +440,6 @@ impl AppState {
         Ok(())
     }
 
-    fn get_minibuf_keymap(&self) -> Result<KeyMap> {
-        KeyMap::from_pairs(
-            "minibuf",
-            vec![
-                ("<ctrl>i", Action::Autocomplete),
-                ("<ret>", Action::Confirm),
-                ("<ctrl>m", Action::Confirm),
-            ]
-            .into_iter(),
-        )
-    }
-
-    fn get_search_keymap(&self) -> Result<KeyMap> {
-        KeyMap::from_pairs(
-            "search",
-            vec![("<ctrl>s", Action::SearchNext)].into_iter(),
-        )
-    }
-
     pub(super) fn handle_key_press(
         &mut self,
         window: gtk::ApplicationWindow,
@@ -473,14 +450,6 @@ impl AppState {
     ) -> Propagation {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
-
-        // TODO: figure these customizations out better
-        if self.interactive_state != InteractiveState::Initial {
-            keymap_stack.push(self.get_minibuf_keymap());
-            if self.interactive_state == InteractiveState::Search {
-                keymap_stack.push(self.get_search_keymap());
-            }
-        }
 
         if let Some(overlay) = &self.overlay {
             keymap_stack.push(overlay.get_keymap());

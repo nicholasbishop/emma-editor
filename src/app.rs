@@ -21,12 +21,6 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use tracing::{error, info};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-enum InteractiveState {
-    Initial,
-    Search,
-}
-
 pub type BufferMap = HashMap<BufferId, Buffer>;
 
 // Pure state, no GTK stuff goes here.
@@ -36,7 +30,6 @@ pub(crate) struct AppState {
     buffers: HashMap<BufferId, Buffer>,
     pane_tree: PaneTree,
 
-    interactive_state: InteractiveState,
     line_height: LineHeight,
 
     is_persistence_enabled: bool,
@@ -122,7 +115,6 @@ impl AppState {
             buffers,
             pane_tree,
 
-            interactive_state: InteractiveState::Initial,
             // Outside of tests this is overwritten with a
             // dynamically-calculated value later.
             line_height: LineHeight(20.0),
