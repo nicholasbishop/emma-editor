@@ -339,6 +339,7 @@ impl Buffer {
         self.active_history_item().markers.get(name).copied()
     }
 
+    #[expect(unused)] // TODO
     pub fn set_marker<S: Into<String>>(&mut self, name: S, pos: AbsChar) {
         self.active_history_item_mut()
             .markers
@@ -439,6 +440,7 @@ impl Buffer {
     }
 
     /// Remove all text from the buffer.
+    #[expect(unused)] // TODO
     pub fn clear(&mut self) {
         self.maybe_store_history_item(ActionType::Clear);
 

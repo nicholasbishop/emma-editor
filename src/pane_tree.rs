@@ -568,23 +568,4 @@ impl PaneTree {
         }
         self.minibuf.is_active = &self.minibuf.id == id;
     }
-
-    pub fn set_minibuf_interactive(&mut self, interactive: bool) {
-        self.is_minibuf_interactive = interactive;
-        self.minibuf.is_cursor_visible = interactive;
-        let minibuf_id = self.minibuf.id.clone();
-        if interactive {
-            self.active_id_before_minibuf = Some(self.active().id().clone());
-            self.set_active(&minibuf_id);
-        } else {
-            // TODO: check this case better. If the minibuf is
-            // transitioning from interactive -> not-interactive then
-            // active_id_before_minibuf should always be set, but not
-            // when transitioning from not-interactive ->
-            // not-interactive.
-            if let Some(id) = self.active_id_before_minibuf.take() {
-                self.set_active(&id);
-            }
-        }
-    }
 }

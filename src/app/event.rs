@@ -1,14 +1,10 @@
 use crate::app::{AppState, InteractiveState};
-use crate::buffer::{
-    Boundary, Buffer, BufferId, COMPLETION_START, Direction, LinePosition,
-    PROMPT_END,
-};
+use crate::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
 use crate::overlay::Overlay;
 use crate::pane_tree::{Pane, PaneTree};
 use crate::path_chooser::PathChooser;
-use crate::rope::AbsChar;
 use crate::search_widget::SearchWidget;
 use crate::widget::Widget;
 use anyhow::{Error, Result, anyhow, bail};
@@ -151,36 +147,8 @@ impl AppState {
         self.buffers.get_mut(id).expect("missing minibuf buffer")
     }
 
-    fn set_interactive_state(&mut self, state: InteractiveState) {
-        let is_interactive = state != InteractiveState::Initial;
-        self.interactive_state = state.clone();
-        self.pane_tree.set_minibuf_interactive(is_interactive);
-        self.minibuf_mut().clear();
-        let (prompt, default) = match state {
-            InteractiveState::Search => (Some("Search: "), String::new()),
-            InteractiveState::Initial => (None, String::new()),
-        };
-        if let Some(prompt) = prompt {
-            let minibuf_pane = self.pane_tree.minibuf();
-            let minibuf = self
-                .buffers
-                .get_mut(minibuf_pane.buffer_id())
-                .expect("missing minibuf buffer");
-            let text = format!("{prompt}{default}");
-            minibuf.set_text(&text);
-            minibuf.set_cursor(minibuf_pane.id(), AbsChar(text.len()));
-            minibuf.set_marker(PROMPT_END, AbsChar(prompt.len()));
-            minibuf.set_marker(COMPLETION_START, AbsChar(text.len()));
-        }
-    }
-
-    fn clear_interactive_state(&mut self) {
-        self.set_interactive_state(InteractiveState::Initial);
-    }
-
     /// Display an error message in the minibuf.
     fn display_error(&mut self, error: Error) {
-        self.clear_interactive_state();
         // TODO: think about how this error will get unset. On next
         // key press, like emacs? Hide or fade after a timeout?
         self.minibuf_mut().set_text(&format!("{error}"));
@@ -188,7 +156,6 @@ impl AppState {
 
     /// Display an informational message in the minibuf.
     fn display_message(&mut self, msg: &str) {
-        self.clear_interactive_state();
         // TODO: think about how this error will get unset. On next
         // key press, like emacs? Hide or fade after a timeout?
         self.minibuf_mut().set_text(msg);
@@ -402,8 +369,7 @@ impl AppState {
             }
             Action::Cancel => {
                 self.overlay = None;
-                self.clear_interactive_state();
-
+                // TODO: clear search highlight
                 buffer_changed = false;
             }
             Action::Autocomplete => {
