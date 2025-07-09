@@ -145,12 +145,6 @@ impl AppState {
         Ok(())
     }
 
-    fn minibuf(&self) -> &Buffer {
-        let id = self.pane_tree.minibuf().buffer_id();
-
-        self.buffers.get(id).expect("missing minibuf buffer")
-    }
-
     fn minibuf_mut(&mut self) -> &mut Buffer {
         let id = self.pane_tree.minibuf().buffer_id();
 
@@ -221,15 +215,8 @@ impl AppState {
             }
             Some(Overlay::Search(_)) => {
                 self.overlay = None;
-            }
-            None => {}
-        }
 
-        match self.interactive_state {
-            InteractiveState::Initial => {}
-            InteractiveState::Search => {
                 self.search_next()?;
-
                 let pane = self.pane_tree.active_excluding_minibuf();
                 let buf = self
                     .buffers
@@ -237,9 +224,10 @@ impl AppState {
                     .ok_or_else(invalid_active_buffer_error)?;
 
                 buf.clear_search();
-                self.clear_interactive_state();
             }
+            None => {}
         }
+
         Ok(())
     }
 
@@ -264,24 +252,6 @@ impl AppState {
             None => {}
         }
 
-        match self.interactive_state {
-            InteractiveState::Search => {
-                let minibuf = self.minibuf();
-                let search_for = minibuf.text().to_string();
-
-                let line_height = self.line_height;
-
-                let pane = self.pane_tree.active_excluding_minibuf();
-                let buf = self
-                    .buffers
-                    .get_mut(pane.buffer_id())
-                    .ok_or_else(invalid_active_buffer_error)?;
-                let num_lines =
-                    (pane.rect().height / line_height.0).round() as usize;
-                buf.search(&search_for, pane, num_lines);
-            }
-            _ => {}
-        }
         Ok(())
     }
 
