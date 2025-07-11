@@ -481,7 +481,7 @@ impl AppState {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     /// Test running a non-interactive process in a buffer.
@@ -530,27 +530,12 @@ pub mod tests {
 
         Ok(())
     }
-}
-
-#[cfg(any())] // TODO: reenable
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-    use anyhow::Result;
-
-    fn path_to_string(p: &Path) -> String {
-        p.to_str().unwrap().to_owned()
-    }
 
     // TODO: experimental test.
     #[test]
     fn test_file_open() -> Result<()> {
-        let mut app_state = crate::app::tests::create_empty_app_state();
-
-        let (pane, buf) = app_state.active_pane_mut_buffer_mut()?;
-
-        let buf_id = buf.id().clone();
-        let pane_id = pane.id().clone();
+        let app_state =
+            Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
 
         // Create test files.
         let tmp_dir = tempfile::tempdir()?;
@@ -561,29 +546,28 @@ pub mod tests {
         fs::write(&tmp_path2, "test data 2\n")?;
 
         // Open the test file non-interactively.
-        app_state.open_file_at_path(&tmp_path1)?;
+        app_state.borrow_mut().open_file_at_path(&tmp_path1)?;
 
         // Test interactive open.
-        app_state.handle_action(None, Action::PathChooser)?;
-        assert!(*app_state.pane_tree.active().id() != pane_id);
-
-        // Check that the cursor can't move into the prompt.
-        app_state.handle_action(
+        app_state.borrow_mut().handle_action(
             None,
-            Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Dec),
+            Action::OpenFile,
+            app_state.clone(),
         )?;
 
-        // Check the default path.
-        assert_eq!(app_state.get_interactive_text()?, path_to_string(tmp_dir));
-
-        // TODO: make it easier to just insert text.
-        for c in "testfile2".chars() {
-            app_state.handle_action(None, Action::Insert(c))?;
+        // Type in the path.
+        for c in "/testfile2".chars() {
+            app_state.borrow_mut().handle_action(
+                None,
+                Action::Insert(c),
+                app_state.clone(),
+            )?;
         }
-        app_state.handle_action(None, Action::Confirm)?;
-
-        app_state.handle_action(None, Action::Cancel)?;
-        assert!(*app_state.pane_tree.active().id() == pane_id);
+        app_state.borrow_mut().handle_action(
+            None,
+            Action::Confirm,
+            app_state.clone(),
+        )?;
 
         Ok(())
     }
