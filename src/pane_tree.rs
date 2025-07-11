@@ -344,7 +344,6 @@ impl Node {
 pub struct PaneTree {
     root: Node,
     minibuf: Pane,
-    active_id_before_minibuf: Option<PaneId>,
 }
 
 impl PaneTree {
@@ -375,7 +374,6 @@ impl PaneTree {
         Self {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,
-            active_id_before_minibuf: None,
         }
     }
 
@@ -388,7 +386,6 @@ impl PaneTree {
     /// Call this after deserializing in case the persisted state
     /// doesn't make sense.
     fn cleanup_after_load(&mut self) {
-        self.active_id_before_minibuf = None;
         self.minibuf.is_active = false;
         self.minibuf.is_cursor_visible = false;
 
