@@ -141,17 +141,10 @@ impl AppState {
         Ok(())
     }
 
-    fn minibuf_mut(&mut self) -> &mut Buffer {
-        let id = self.pane_tree.minibuf().buffer_id();
-
-        self.buffers.get_mut(id).expect("missing minibuf buffer")
-    }
-
     /// Display an error message in the minibuf.
     fn display_error(&mut self, error: Error) {
-        // TODO: think about how this error will get unset. On next
-        // key press, like emacs? Hide or fade after a timeout?
-        self.minibuf_mut().set_text(&format!("{error}"));
+        // TODO: think about how to display this in the UI.
+        println!("error: {error}");
     }
 
     fn open_file_at_path(&mut self, path: &Path) -> Result<()> {
