@@ -184,7 +184,7 @@ pub fn init(application: &gtk::Application) {
             let height = height as f64;
             let line_height = state.line_height;
 
-            state.pane_tree.recalc_layout(width, height, line_height);
+            state.pane_tree.recalc_layout(width, height);
 
             // TODO: generalize this somehow.
             if let Some(overlay) = &mut state.overlay {

@@ -409,24 +409,12 @@ impl PaneTree {
         }
     }
 
-    pub fn recalc_layout(
-        &mut self,
-        width: f64,
-        height: f64,
-        line_height: LineHeight,
-    ) {
-        let minibuf_height = line_height.0;
-        self.minibuf.rect = Rect {
-            x: 0.0,
-            y: height - minibuf_height,
-            width,
-            height: minibuf_height,
-        };
+    pub fn recalc_layout(&mut self, width: f64, height: f64) {
         self.root.recalc_layout(Rect {
             x: 0.0,
             y: 0.0,
             width,
-            height: height - minibuf_height,
+            height,
         });
     }
 
