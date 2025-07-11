@@ -154,13 +154,6 @@ impl AppState {
         self.minibuf_mut().set_text(&format!("{error}"));
     }
 
-    /// Display an informational message in the minibuf.
-    fn display_message(&mut self, msg: &str) {
-        // TODO: think about how this error will get unset. On next
-        // key press, like emacs? Hide or fade after a timeout?
-        self.minibuf_mut().set_text(msg);
-    }
-
     fn open_file_at_path(&mut self, path: &Path) -> Result<()> {
         // Load the file in a new buffer.
         let buf = Buffer::from_path(path)?;
@@ -352,8 +345,6 @@ impl AppState {
                 let buf = self.active_buffer_mut()?;
                 if let Some(path) = buf.path() {
                     fs::write(path, buf.text().to_string())?;
-                    let msg = format!("Saved {}", path.display());
-                    self.display_message(&msg);
                 } else {
                     todo!("attempted to save a buffer with no path");
                 }
