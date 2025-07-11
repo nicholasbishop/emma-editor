@@ -184,7 +184,7 @@ impl AppState {
                 self.overlay = None;
 
                 self.search_next()?;
-                let pane = self.pane_tree.active_excluding_minibuf();
+                let pane = self.pane_tree.active();
                 let buf = self
                     .buffers
                     .get_mut(pane.buffer_id())
@@ -207,7 +207,7 @@ impl AppState {
             Some(Overlay::Search(search)) => {
                 let line_height = self.line_height;
 
-                let pane = self.pane_tree.active_excluding_minibuf();
+                let pane = self.pane_tree.active();
                 let buf = self
                     .buffers
                     .get_mut(pane.buffer_id())
@@ -223,7 +223,7 @@ impl AppState {
     }
 
     fn search_next(&mut self) -> Result<()> {
-        let pane = self.pane_tree.active_excluding_minibuf();
+        let pane = self.pane_tree.active();
         let buf = self
             .buffers
             .get_mut(pane.buffer_id())

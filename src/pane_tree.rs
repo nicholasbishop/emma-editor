@@ -446,22 +446,6 @@ impl PaneTree {
         }
     }
 
-    pub fn active_excluding_minibuf(&self) -> &Pane {
-        if let Some(id) = &self.active_id_before_minibuf {
-            if let Some(Node::Leaf(pane)) =
-                self.root.find_leaf(|pane| &pane.id == id)
-            {
-                pane
-            } else {
-                panic!("invalid active_id_before_minibuf");
-            }
-        } else if let Some(Node::Leaf(pane)) = self.root.active() {
-            pane
-        } else {
-            panic!("no active pane");
-        }
-    }
-
     fn take_root(&mut self) -> Node {
         // TODO: this seems silly, creating a temporary unused node
         // just so I can move out of self.root, not sure how to avoid
