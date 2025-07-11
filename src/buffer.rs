@@ -51,14 +51,6 @@ impl BufferId {
         Self(util::make_id("buffer"))
     }
 
-    fn minibuf() -> Self {
-        Self("buffer-minibuf".into())
-    }
-
-    pub fn is_minibuf(&self) -> bool {
-        *self == Self::minibuf()
-    }
-
     pub fn as_str(&self) -> &str {
         &self.0
     }

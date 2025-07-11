@@ -70,9 +70,6 @@ impl AppState {
         let tx = conn.transaction()?;
         tx.execute("DELETE FROM buffers", ())?;
         for (buffer_id, buffer) in &self.buffers {
-            if buffer_id.is_minibuf() {
-                continue;
-            }
             let cursors = serde_json::to_string(buffer.cursors())?;
             tx.execute(
                 "INSERT INTO buffers (buffer_id, path, cursors) VALUES (?1, ?2, ?3)",

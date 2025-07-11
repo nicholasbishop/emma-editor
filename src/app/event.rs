@@ -141,7 +141,7 @@ impl AppState {
         Ok(())
     }
 
-    /// Display an error message in the minibuf.
+    /// Display an error message.
     fn display_error(&mut self, error: Error) {
         // TODO: think about how to display this in the UI.
         println!("error: {error}");
@@ -300,7 +300,7 @@ impl AppState {
                 let new_buffer_id = self
                     .buffers
                     .keys()
-                    .find(|b| **b != active_buffer_id && !b.is_minibuf())
+                    .find(|b| **b != active_buffer_id)
                     .unwrap()
                     .clone();
 
@@ -551,7 +551,6 @@ pub mod tests {
 
         let buf_id = buf.id().clone();
         let pane_id = pane.id().clone();
-        assert!(!buf_id.is_minibuf());
 
         // Create test files.
         let tmp_dir = tempfile::tempdir()?;
@@ -567,31 +566,15 @@ pub mod tests {
         // Test interactive open.
         app_state.handle_action(None, Action::PathChooser)?;
         assert!(*app_state.pane_tree.active().id() != pane_id);
-        assert_eq!(
-            app_state.minibuf().text().to_string(),
-            format!("Open file: {}", path_to_string(tmp_dir))
-        );
-        assert_eq!(app_state.minibuf().cursors().len(), 1);
 
         // Check that the cursor can't move into the prompt.
         app_state.handle_action(
             None,
             Action::Move(Move::Boundary(Boundary::LineEnd), Direction::Dec),
         )?;
-        assert_eq!(
-            app_state.minibuf().cursors().values().next().unwrap().0,
-            11
-        );
 
         // Check the default path.
         assert_eq!(app_state.get_interactive_text()?, path_to_string(tmp_dir));
-
-        // Type one character into the minibuf.
-        app_state.handle_action(None, Action::Insert('/'))?;
-        assert_eq!(
-            app_state.get_interactive_text()?,
-            path_to_string(tmp_dir) + "/"
-        );
 
         // TODO: make it easier to just insert text.
         for c in "testfile2".chars() {
