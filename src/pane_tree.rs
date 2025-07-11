@@ -16,10 +16,6 @@ impl PaneId {
     pub fn new() -> Self {
         Self(util::make_id("pane"))
     }
-
-    fn minibuf() -> Self {
-        Self("pane-minibuf".into())
-    }
 }
 
 impl fmt::Display for PaneId {
@@ -343,14 +339,10 @@ impl Node {
 #[derive(Deserialize, Serialize)]
 pub struct PaneTree {
     root: Node,
-    minibuf: Pane,
 }
 
 impl PaneTree {
-    pub fn new(
-        initial_buffer: &mut Buffer,
-        minibuf_buffer: &mut Buffer,
-    ) -> Self {
+    pub fn new(initial_buffer: &mut Buffer) -> Self {
         let initial_pane = Pane {
             id: PaneId::new(),
             buffer_id: initial_buffer.id().clone(),
@@ -360,20 +352,9 @@ impl PaneTree {
             show_info_bar: true,
             is_cursor_visible: true,
         };
-        let minibuf_pane = Pane {
-            id: PaneId::minibuf(),
-            buffer_id: minibuf_buffer.id().clone(),
-            rect: Rect::default(),
-            top_line: AbsLine::zero(),
-            is_active: false,
-            show_info_bar: false,
-            is_cursor_visible: false,
-        };
         initial_buffer.set_cursor(initial_pane.id(), AbsChar::default());
-        minibuf_buffer.set_cursor(minibuf_pane.id(), AbsChar::default());
         Self {
             root: Node::Leaf(initial_pane),
-            minibuf: minibuf_pane,
         }
     }
 
@@ -386,9 +367,6 @@ impl PaneTree {
     /// Call this after deserializing in case the persisted state
     /// doesn't make sense.
     fn cleanup_after_load(&mut self) {
-        self.minibuf.is_active = false;
-        self.minibuf.is_cursor_visible = false;
-
         // Ensure exactly one pane is active.
         let mut any_active = false;
         for pane in self.root.panes_mut() {
@@ -413,10 +391,6 @@ impl PaneTree {
             width,
             height,
         });
-    }
-
-    pub fn minibuf(&self) -> &Pane {
-        &self.minibuf
     }
 
     pub fn panes(&self) -> Vec<&Pane> {
@@ -516,6 +490,5 @@ impl PaneTree {
         for pane in self.panes_mut() {
             pane.is_active = &pane.id == id;
         }
-        self.minibuf.is_active = &self.minibuf.id == id;
     }
 }

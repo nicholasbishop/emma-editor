@@ -49,7 +49,7 @@ impl AppState {
         );
 
         // Create the minibuf buffer
-        let mut minibuf = Buffer::create_minibuf();
+        let minibuf = Buffer::create_minibuf();
 
         // Always create an empty scratch buffer.
         let mut scratch_buffer = Buffer::create_empty();
@@ -74,7 +74,7 @@ impl AppState {
             Ok(pt) => pt,
             Err(err) => {
                 error!("failed to load persisted pane tree: {}", err);
-                PaneTree::new(&mut scratch_buffer, &mut minibuf)
+                PaneTree::new(&mut scratch_buffer)
             }
         };
 
@@ -104,10 +104,6 @@ impl AppState {
                 pane.set_top_line(AbsLine(0));
             }
         }
-        buffers
-            .get_mut(&minibuf_id)
-            .unwrap()
-            .set_cursor(pane_tree.minibuf().id(), Default::default());
 
         Self {
             key_handler: event::KeyHandler::new().unwrap(),
