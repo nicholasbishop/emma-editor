@@ -48,18 +48,16 @@ pub enum Action {
     /// Delete the buffer in the active pane.
     DeleteBuffer,
 
-    /// Move the cursor in the active pane (or minibuf).
+    /// Move the cursor in the active pane.
     Move(Move, Direction),
 
     /// Interactively switch to a different buffer.
     SwitchToBuffer,
 
-    /// Cancel the current operation, e.g. opening a file from the
-    /// minibuf.
+    /// Cancel the current operation, e.g. opening a file.
     Cancel,
 
-    /// Try to autocomplete something in the minibuf, e.g. a file
-    /// path.
+    /// Try to autocomplete something, e.g. a file path.
     Autocomplete,
 
     RunNonInteractiveProcess,
