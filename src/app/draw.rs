@@ -519,10 +519,7 @@ impl AppState {
             error!("fill failed: {}", err);
         }
 
-        let mut panes = self.pane_tree.panes();
-        panes.push(self.pane_tree.minibuf());
-
-        for pane in panes {
+        for pane in self.pane_tree.panes() {
             let buf = self.buffers.get(pane.buffer_id()).unwrap();
 
             let mut dp = DrawPane {
