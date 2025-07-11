@@ -272,10 +272,6 @@ impl Buffer {
         Self::new(BufferId::new(), Rope::new(), None)
     }
 
-    pub fn create_minibuf() -> Self {
-        Self::new(BufferId::minibuf(), Rope::new(), None)
-    }
-
     pub fn create_for_non_interactive_process() -> Self {
         // TODO: set path and process info.
         let mut buf = Self::new(BufferId::new(), Rope::new(), None);

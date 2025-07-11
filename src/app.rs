@@ -48,9 +48,6 @@ impl AppState {
             Theme::load_default().expect("failed to load built-in theme"),
         );
 
-        // Create the minibuf buffer
-        let minibuf = Buffer::create_minibuf();
-
         // Always create an empty scratch buffer.
         let mut scratch_buffer = Buffer::create_empty();
 
@@ -78,9 +75,7 @@ impl AppState {
             }
         };
 
-        let minibuf_id = minibuf.id().clone();
         let scratch_buffer_id = scratch_buffer.id().clone();
-        buffers.insert(minibuf_id.clone(), minibuf);
         buffers.insert(scratch_buffer_id.clone(), scratch_buffer);
 
         // Ensure that all the panes are pointing to a valid buffer.
@@ -249,8 +244,7 @@ pub(crate) mod tests {
         assert_eq!(panes.len(), 1);
         assert_eq!(app_state.pane_tree.active().id(), panes[0].id());
 
-        // Scratch buffer and minibuf.
-        assert_eq!(app_state.buffers.len(), 2);
-        assert!(app_state.buffers.keys().any(|id| id.is_minibuf()));
+        // Scratch buffer.
+        assert_eq!(app_state.buffers.len(), 1);
     }
 }
