@@ -344,7 +344,6 @@ impl Node {
 pub struct PaneTree {
     root: Node,
     minibuf: Pane,
-    is_minibuf_interactive: bool,
     active_id_before_minibuf: Option<PaneId>,
 }
 
@@ -376,7 +375,6 @@ impl PaneTree {
         Self {
             root: Node::Leaf(initial_pane),
             minibuf: minibuf_pane,
-            is_minibuf_interactive: false,
             active_id_before_minibuf: None,
         }
     }
@@ -390,7 +388,6 @@ impl PaneTree {
     /// Call this after deserializing in case the persisted state
     /// doesn't make sense.
     fn cleanup_after_load(&mut self) {
-        self.is_minibuf_interactive = false;
         self.active_id_before_minibuf = None;
         self.minibuf.is_active = false;
         self.minibuf.is_cursor_visible = false;
@@ -438,26 +435,14 @@ impl PaneTree {
     }
 
     pub fn panes(&self) -> Vec<&Pane> {
-        let mut vec = self.root.panes();
-        if self.is_minibuf_interactive {
-            vec.push(&self.minibuf);
-        }
-        vec
+        self.root.panes()
     }
 
     pub fn panes_mut(&mut self) -> Vec<&mut Pane> {
-        let mut vec = self.root.panes_mut();
-        if self.is_minibuf_interactive {
-            vec.push(&mut self.minibuf);
-        }
-        vec
+        self.root.panes_mut()
     }
 
     pub fn active(&self) -> &Pane {
-        if self.is_minibuf_interactive && self.minibuf.is_active() {
-            return &self.minibuf;
-        }
-
         if let Some(Node::Leaf(pane)) = self.root.active() {
             pane
         } else {
@@ -466,10 +451,6 @@ impl PaneTree {
     }
 
     pub fn active_mut(&mut self) -> &mut Pane {
-        if self.is_minibuf_interactive && self.minibuf.is_active() {
-            return &mut self.minibuf;
-        }
-
         if let Some(Node::Leaf(pane)) = self.root.active_mut() {
             pane
         } else {
