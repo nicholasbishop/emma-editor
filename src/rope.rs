@@ -162,11 +162,11 @@ impl Rope {
         AbsLine(self.0.len_lines() - 1)
     }
 
-    pub fn line(&self, line_idx: AbsLine) -> RopeSlice {
+    pub fn line(&self, line_idx: AbsLine) -> RopeSlice<'_> {
         RopeSlice(self.0.line(line_idx.0))
     }
 
-    pub fn lines(&self) -> Lines {
+    pub fn lines(&self) -> Lines<'_> {
         Lines {
             iter: self.0.lines(),
             index: AbsLine::zero(),
@@ -178,7 +178,7 @@ impl Rope {
         self.0.line_to_char(line_idx.0)
     }
 
-    pub fn lines_at(&self, line_idx: AbsLine) -> Lines {
+    pub fn lines_at(&self, line_idx: AbsLine) -> Lines<'_> {
         Lines {
             iter: self.0.lines_at(line_idx.0),
             index: line_idx,
@@ -192,7 +192,7 @@ impl Rope {
         self.0.remove(convert_abs_char_range_bounds(char_range));
     }
 
-    pub fn slice<R>(&self, char_range: R) -> RopeSlice
+    pub fn slice<R>(&self, char_range: R) -> RopeSlice<'_>
     where
         R: RangeBounds<AbsChar>,
     {
@@ -328,11 +328,11 @@ impl<T> LineDataVec<T> {
         self.lines.get_mut(offset.0)
     }
 
-    pub fn iter(&self) -> LineDataIter<T> {
+    pub fn iter(&self) -> LineDataIter<'_, T> {
         self.starting_from(self.start_line())
     }
 
-    pub fn starting_from(&self, abs_line: AbsLine) -> LineDataIter<T> {
+    pub fn starting_from(&self, abs_line: AbsLine) -> LineDataIter<'_, T> {
         LineDataIter {
             data: self,
             // If input index is less than the start line, set the offset to
