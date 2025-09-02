@@ -218,11 +218,11 @@ impl AppState {
         let line_pos = LinePosition::from_abs_char(pos, buf);
 
         // Find the next match and move the cursor there.
-        if let Some(search) = buf.search_state() {
-            if let Some(m) = search.next_match(line_pos) {
-                let ci = m.to_abs_char(buf);
-                buf.set_cursor(pane.id(), ci);
-            }
+        if let Some(search) = buf.search_state()
+            && let Some(m) = search.next_match(line_pos)
+        {
+            let ci = m.to_abs_char(buf);
+            buf.set_cursor(pane.id(), ci);
         }
 
         Ok(())

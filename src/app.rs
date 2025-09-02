@@ -84,10 +84,10 @@ impl AppState {
                 // Default the cursor to the top of the buffer, then try to
                 // restore the proper location from persisted data.
                 buffer.set_cursor(pane.id(), Default::default());
-                if let Some(cursors) = cursors.get(pane.buffer_id()) {
-                    if let Some(pane_cursor) = cursors.get(pane.id()) {
-                        buffer.set_cursor(pane.id(), *pane_cursor);
-                    }
+                if let Some(cursors) = cursors.get(pane.buffer_id())
+                    && let Some(pane_cursor) = cursors.get(pane.id())
+                {
+                    buffer.set_cursor(pane.id(), *pane_cursor);
                 }
             } else {
                 pane.switch_buffer(&mut buffers, &scratch_buffer_id);

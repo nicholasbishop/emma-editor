@@ -69,14 +69,14 @@ impl YamlTheme {
         let vars = &self.vars;
 
         let expand = |s: &mut Option<String>| {
-            if let Some(s) = s {
-                if s.starts_with('$') {
-                    let name = &s[1..];
-                    if let Some(value) = vars.get(name) {
-                        *s = value.clone();
-                    } else {
-                        return Err(anyhow!("invalid variable: {}", name));
-                    }
+            if let Some(s) = s
+                && s.starts_with('$')
+            {
+                let name = &s[1..];
+                if let Some(value) = vars.get(name) {
+                    *s = value.clone();
+                } else {
+                    return Err(anyhow!("invalid variable: {}", name));
                 }
             }
             Ok(())

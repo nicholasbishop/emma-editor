@@ -386,15 +386,15 @@ impl Buffer {
         // This is kinda hacky and too specific. In the future we'll
         // probably want a way to mark a region of text as untouchable (can't edit
         // or even move the cursor into it).
-        if let Some(prompt_end) = self.get_marker(PROMPT_END) {
-            if cursor < prompt_end {
-                cursor = prompt_end;
-            }
+        if let Some(prompt_end) = self.get_marker(PROMPT_END)
+            && cursor < prompt_end
+        {
+            cursor = prompt_end;
         }
-        if let Some(completion_start) = self.get_marker(COMPLETION_START) {
-            if cursor > completion_start {
-                cursor = completion_start;
-            }
+        if let Some(completion_start) = self.get_marker(COMPLETION_START)
+            && cursor > completion_start
+        {
+            cursor = completion_start;
         }
 
         self.set_cursor(pane_id, cursor);
@@ -648,10 +648,10 @@ impl Buffer {
     }
 
     fn get_syntax<'a>(&self, syntax_set: &'a SyntaxSet) -> &'a SyntaxReference {
-        if let Some(path) = &self.path {
-            if let Ok(Some(syntax)) = syntax_set.find_syntax_for_file(path) {
-                return syntax;
-            }
+        if let Some(path) = &self.path
+            && let Ok(Some(syntax)) = syntax_set.find_syntax_for_file(path)
+        {
+            return syntax;
         }
 
         // Fall back to plain text.

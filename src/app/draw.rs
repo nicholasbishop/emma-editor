@@ -262,13 +262,13 @@ impl DrawPane<'_> {
         let mut style_spans = base_style_spans;
         // TODO: share across iterations
         let modified_style_spans;
-        if let Some(search) = self.buf.search_state() {
-            if let Some(matches) = search.line_matches(self.pane, line.index) {
-                modified_style_spans =
-                    apply_match_style(base_style_spans, matches, &match_style);
+        if let Some(search) = self.buf.search_state()
+            && let Some(matches) = search.line_matches(self.pane, line.index)
+        {
+            modified_style_spans =
+                apply_match_style(base_style_spans, matches, &match_style);
 
-                style_spans = &modified_style_spans;
-            }
+            style_spans = &modified_style_spans;
         }
 
         let mut span_offset = 0;
