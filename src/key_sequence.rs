@@ -1,8 +1,9 @@
-use gtk4::gdk::{self, Key, ModifierType};
+use crate::key::{Key, ModifierType};
+use gtk4::gdk;
 use gtk4::glib::translate::FromGlib;
 use std::collections::HashMap;
 
-fn name_to_key_map() -> HashMap<&'static str, gdk::Key> {
+fn name_to_key_map() -> HashMap<&'static str, Key> {
     // This map is the only place that needs to be updated to add a
     // new named key.
     let mut map = HashMap::new();
