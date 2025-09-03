@@ -1,6 +1,6 @@
 use crate::app::AppState;
 use crate::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
-use crate::key::{Key, Modifier, Modifiers};
+use crate::key::{Key, Modifiers};
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{KeySequence, KeySequenceAtom};
 use crate::overlay::Overlay;
@@ -11,10 +11,9 @@ use crate::widget::Widget;
 use anyhow::{Error, Result, anyhow};
 use fs_err as fs;
 use glib::{ControlFlow, IOCondition};
-use gtk4::gdk::ModifierType;
 use gtk4::glib::signal::Propagation;
 use gtk4::prelude::*;
-use gtk4::{self as gtk, gdk, glib};
+use gtk4::{self as gtk, glib};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::fd::AsRawFd;
@@ -429,14 +428,11 @@ impl AppState {
     pub(super) fn handle_key_press(
         &mut self,
         window: gtk::ApplicationWindow,
-        key: gdk::Key,
-        state: gdk::ModifierType,
+        key: Key,
+        modifiers: Modifiers,
         // TODO: ugly
         app_state: Rc<RefCell<Self>>,
     ) -> Propagation {
-        // TODO
-        let key = key_from_gdk(key);
-
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
 
@@ -454,7 +450,7 @@ impl AppState {
         // shift, but currently that is treated as a valid
         // sequence. Need to figure out how to prevent that.
 
-        let atom = KeySequenceAtom::from_event(key, modifiers_from_gdk(state));
+        let atom = KeySequenceAtom::from_event(key, modifiers);
         self.key_handler.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
@@ -575,38 +571,5 @@ mod tests {
         )?;
 
         Ok(())
-    }
-}
-
-fn key_from_gdk(key: gtk4::gdk::Key) -> Key {
-    use gtk4::gdk::Key as GKey;
-    match key {
-        GKey::BackSpace => Key::Backspace,
-        GKey::Escape => Key::Escape,
-        GKey::greater => Key::Greater,
-        GKey::less => Key::Less,
-        GKey::plus => Key::Plus,
-        GKey::Return => Key::Return,
-        GKey::space => Key::Space,
-
-        GKey::Alt_L | GKey::Alt_R => Key::Modifier(Modifier::Alt),
-        GKey::Control_L | GKey::Control_R => Key::Modifier(Modifier::Control),
-        GKey::Shift_L | GKey::Shift_R => Key::Modifier(Modifier::Shift),
-
-        _ => {
-            if let Some(c) = key.to_unicode() {
-                Key::Char(c)
-            } else {
-                todo!("unhandled key: {key}")
-            }
-        }
-    }
-}
-
-fn modifiers_from_gdk(modifiers: gtk4::gdk::ModifierType) -> Modifiers {
-    Modifiers {
-        alt: modifiers.contains(ModifierType::ALT_MASK),
-        control: modifiers.contains(ModifierType::CONTROL_MASK),
-        shift: modifiers.contains(ModifierType::SHIFT_MASK),
     }
 }
