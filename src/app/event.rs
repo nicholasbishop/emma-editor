@@ -1,5 +1,6 @@
 use crate::app::AppState;
 use crate::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
+use crate::key::Modifiers;
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
 use crate::overlay::Overlay;
@@ -10,6 +11,7 @@ use crate::widget::Widget;
 use anyhow::{Error, Result, anyhow};
 use fs_err as fs;
 use glib::{ControlFlow, IOCondition};
+use gtk4::gdk::ModifierType;
 use gtk4::glib::signal::Propagation;
 use gtk4::prelude::*;
 use gtk4::{self as gtk, gdk, glib};
@@ -449,7 +451,7 @@ impl AppState {
         // shift, but currently that is treated as a valid
         // sequence. Need to figure out how to prevent that.
 
-        let atom = KeySequenceAtom::from_event(key, state);
+        let atom = KeySequenceAtom::from_event(key, modifiers_from_gdk(state));
         self.key_handler.cur_seq.0.push(atom);
 
         let mut clear_seq = true;
@@ -570,5 +572,13 @@ mod tests {
         )?;
 
         Ok(())
+    }
+}
+
+fn modifiers_from_gdk(modifiers: gtk4::gdk::ModifierType) -> Modifiers {
+    Modifiers {
+        alt: modifiers.contains(ModifierType::ALT_MASK),
+        control: modifiers.contains(ModifierType::CONTROL_MASK),
+        shift: modifiers.contains(ModifierType::SHIFT_MASK),
     }
 }

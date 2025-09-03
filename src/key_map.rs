@@ -1,8 +1,8 @@
 use crate::buffer::{Boundary, Direction};
+use crate::key::Modifier;
 use crate::key_sequence::KeySequence;
 use crate::pane_tree;
 use anyhow::Result;
-use gtk4::gdk::ModifierType;
 use std::collections::HashMap;
 use tracing::{debug, error, instrument};
 
@@ -262,7 +262,7 @@ impl KeyMapStack {
             // TODO: not very robust, and won't work with capslock.
             let key = if atom.modifiers.is_empty() {
                 Some(atom.key)
-            } else if atom.modifiers == ModifierType::SHIFT_MASK {
+            } else if atom.modifiers == Modifier::Shift {
                 Some(atom.key.to_upper())
             } else {
                 None

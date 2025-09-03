@@ -1,4 +1,4 @@
-use crate::key::{Key, ModifierType};
+use crate::key::{Key, Modifier, Modifiers};
 use gtk4::gdk;
 use gtk4::glib::translate::FromGlib;
 use std::collections::HashMap;
@@ -31,32 +31,20 @@ pub fn is_modifier(key: &Key) -> bool {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct KeySequenceAtom {
-    pub modifiers: ModifierType,
+    pub modifiers: Modifiers,
     pub key: Key,
 }
 
 impl KeySequenceAtom {
-    pub fn from_event(key: Key, state: ModifierType) -> Self {
+    pub fn from_event(key: Key, modifiers: Modifiers) -> Self {
         Self {
-            modifiers: state,
+            modifiers,
             // Convert the key to lowercase as a way to
             // normalize. This is far from perfect, for example "?"
             // should probably be the same thing as "<shift>/", but
             // that's not handled well right now.
             key: key.to_lower(),
         }
-    }
-}
-
-fn single_modifier_to_string(m: &ModifierType) -> &'static str {
-    if *m == ModifierType::CONTROL_MASK {
-        "ctrl"
-    } else if *m == ModifierType::SHIFT_MASK {
-        "shift"
-    } else if *m == ModifierType::ALT_MASK {
-        "alt"
-    } else {
-        "unknown"
     }
 }
 
@@ -86,8 +74,8 @@ pub enum Error {
     #[error("unexpected \"+\"")]
     UnexpectedAppend,
 
-    #[error("unexpected modifier {}", single_modifier_to_string(.0))]
-    UnexpectedModifier(ModifierType),
+    #[error("unexpected modifier {0}")]
+    UnexpectedModifier(Modifier),
 
     #[error("unexpected key {}", key_to_string(.0))]
     UnexpectedKey(Key),
@@ -95,7 +83,7 @@ pub enum Error {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ParseItem {
-    Modifier(ModifierType),
+    Modifier(Modifier),
     Key(Key),
     Append,
 }
@@ -109,9 +97,9 @@ fn parse_key_sequence_as_items(s: &str) -> Result<Vec<ParseItem>, Error> {
     let mut state = State::Initial;
 
     let mut names = HashMap::new();
-    names.insert("ctrl", ParseItem::Modifier(ModifierType::CONTROL_MASK));
-    names.insert("shift", ParseItem::Modifier(ModifierType::SHIFT_MASK));
-    names.insert("alt", ParseItem::Modifier(ModifierType::ALT_MASK));
+    names.insert("alt", ParseItem::Modifier(Modifier::Alt));
+    names.insert("ctrl", ParseItem::Modifier(Modifier::Control));
+    names.insert("shift", ParseItem::Modifier(Modifier::Shift));
     for (k, v) in name_to_key_map() {
         names.insert(k, ParseItem::Key(v));
     }
@@ -163,12 +151,12 @@ impl KeySequence {
 
         let mut state = State::ModOrKeyRequired;
         let mut seq = Vec::new();
-        let mut cur_mods = ModifierType::empty();
+        let mut cur_mods = Modifiers::default();
 
         for item in items {
             match item {
                 ParseItem::Modifier(m) => {
-                    cur_mods |= *m;
+                    cur_mods.enable_modifier(*m);
 
                     match state {
                         State::ModOrKeyRequired => {
@@ -184,7 +172,7 @@ impl KeySequence {
                         modifiers: cur_mods,
                         key: *k,
                     });
-                    cur_mods = ModifierType::empty();
+                    cur_mods = Modifiers::new();
 
                     match state {
                         State::ModOrKeyRequired => {
