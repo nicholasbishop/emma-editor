@@ -1,8 +1,8 @@
 use crate::app::AppState;
 use crate::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
-use crate::key::Modifiers;
+use crate::key::{Key, Modifier, Modifiers};
 use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
-use crate::key_sequence::{KeySequence, KeySequenceAtom, is_modifier};
+use crate::key_sequence::{KeySequence, KeySequenceAtom};
 use crate::overlay::Overlay;
 use crate::pane_tree::{Pane, PaneTree};
 use crate::path_chooser::PathChooser;
@@ -434,6 +434,9 @@ impl AppState {
         // TODO: ugly
         app_state: Rc<RefCell<Self>>,
     ) -> Propagation {
+        // TODO
+        let key = key_from_gdk(key);
+
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
 
@@ -442,7 +445,7 @@ impl AppState {
         }
 
         // Ignore lone modifier presses.
-        if is_modifier(&key) {
+        if key.is_modifier() {
             return Propagation::Proceed;
         }
 
@@ -572,6 +575,31 @@ mod tests {
         )?;
 
         Ok(())
+    }
+}
+
+fn key_from_gdk(key: gtk4::gdk::Key) -> Key {
+    use gtk4::gdk::Key as GKey;
+    match key {
+        GKey::BackSpace => Key::Backspace,
+        GKey::Escape => Key::Escape,
+        GKey::greater => Key::Greater,
+        GKey::less => Key::Less,
+        GKey::plus => Key::Plus,
+        GKey::Return => Key::Return,
+        GKey::space => Key::Space,
+
+        GKey::Alt_L | GKey::Alt_R => Key::Modifier(Modifier::Alt),
+        GKey::Control_L | GKey::Control_R => Key::Modifier(Modifier::Control),
+        GKey::Shift_L | GKey::Shift_R => Key::Modifier(Modifier::Shift),
+
+        _ => {
+            if let Some(c) = key.to_unicode() {
+                Key::Char(c)
+            } else {
+                todo!("unhandled key: {key}")
+            }
+        }
     }
 }
 

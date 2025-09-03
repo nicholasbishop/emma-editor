@@ -1,32 +1,18 @@
 use crate::key::{Key, Modifier, Modifiers};
-use gtk4::gdk;
-use gtk4::glib::translate::FromGlib;
 use std::collections::HashMap;
 
 fn name_to_key_map() -> HashMap<&'static str, Key> {
     // This map is the only place that needs to be updated to add a
     // new named key.
     let mut map = HashMap::new();
-    map.insert("backspace", Key::BackSpace);
+    map.insert("backspace", Key::Backspace);
     map.insert("esc", Key::Escape);
-    map.insert("space", Key::space);
+    map.insert("space", Key::Space);
     map.insert("ret", Key::Return);
-    map.insert("plus", Key::plus);
-    map.insert("less", Key::less);
-    map.insert("greater", Key::greater);
+    map.insert("plus", Key::Plus);
+    map.insert("less", Key::Less);
+    map.insert("greater", Key::Greater);
     map
-}
-
-pub fn is_modifier(key: &Key) -> bool {
-    matches!(
-        *key,
-        Key::Alt_L
-            | Key::Alt_R
-            | Key::Control_L
-            | Key::Control_R
-            | Key::Shift_L
-            | Key::Shift_R
-    )
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -59,7 +45,7 @@ fn key_to_name_map() -> HashMap<Key, &'static str> {
 fn key_to_string(key: &Key) -> String {
     if let Some(name) = key_to_name_map().get(key) {
         format!("<{name}>")
-    } else if let Some(c) = key.to_unicode() {
+    } else if let Some(c) = key.to_char() {
         format!("\"{c}\"")
     } else {
         "unknown".into()
@@ -114,9 +100,7 @@ fn parse_key_sequence_as_items(s: &str) -> Result<Vec<ParseItem>, Error> {
                 } else if c == '+' {
                     items.push(ParseItem::Append);
                 } else {
-                    let keyval = gdk::unicode_to_keyval(c as u32);
-                    // TODO: any safe way to do this?
-                    let key = unsafe { Key::from_glib(keyval) };
+                    let key = Key::from_char(c);
                     items.push(ParseItem::Key(key))
                 }
             }

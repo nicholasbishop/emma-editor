@@ -1,7 +1,83 @@
-// TODO
-pub use gtk4::gdk::Key;
-
 use std::fmt::{self, Display, Formatter};
+use tracing::error;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum Key {
+    Modifier(Modifier),
+    Char(char),
+
+    // TODO: some of these could be represented with Char, is there a
+    // good reason not to?
+    Backspace,
+    Escape,
+    Greater,
+    Less,
+    Plus,
+    Return,
+    Space,
+}
+
+impl Key {
+    pub fn is_modifier(self) -> bool {
+        matches!(self, Self::Modifier(_))
+    }
+
+    pub fn from_char(c: char) -> Self {
+        Self::Char(c)
+    }
+
+    pub fn to_lower(self) -> Self {
+        if let Self::Char(c) = self {
+            let s = c.to_lowercase().to_string();
+            let mut chars = s.chars();
+            if let Some(c) = chars.next() {
+                if chars.next().is_none() {
+                    Self::Char(c)
+                } else {
+                    // TODO: for now just return the original key.
+                    error!("lowercased character is no longer a single char");
+                    self
+                }
+            } else {
+                unreachable!("lowercased character is an empty string");
+            }
+        } else {
+            self
+        }
+    }
+
+    pub fn to_upper(self) -> Self {
+        if let Self::Char(c) = self {
+            let s = c.to_uppercase().to_string();
+            let mut chars = s.chars();
+            if let Some(c) = chars.next() {
+                if chars.next().is_none() {
+                    Self::Char(c)
+                } else {
+                    // TODO: for now just return the original key.
+                    error!("uppercased character is no longer a single char");
+                    self
+                }
+            } else {
+                unreachable!("uppercased character is an empty string");
+            }
+        } else {
+            self
+        }
+    }
+
+    pub fn to_char(self) -> Option<char> {
+        match self {
+            Self::Char(c) => Some(c),
+            Self::Less => Some('<'),
+            Self::Greater => Some('>'),
+            Self::Plus => Some('+'),
+            Self::Space => Some(' '),
+            Self::Return => Some('\n'),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum Modifier {

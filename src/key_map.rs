@@ -270,7 +270,7 @@ impl KeyMapStack {
 
             if let Some(key) = key {
                 let c =
-                    key.to_unicode().expect("failed to convert key to unicode");
+                    key.to_char().expect("failed to convert key to unicode");
                 return KeyMapLookup::Action(Action::Insert(c));
             }
         }
