@@ -1,0 +1,6 @@
+[package]
+name = "emma_gtk_shell"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

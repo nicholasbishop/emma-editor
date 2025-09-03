@@ -3,6 +3,13 @@ name = "emma"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = ["app", "gtk_shell"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+
 [dependencies]
 aho-corasick = "1.1.0"
 anyhow = { version = "1.0.58", features = ["backtrace"] }
