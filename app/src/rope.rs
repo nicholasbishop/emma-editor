@@ -93,7 +93,7 @@ impl AbsLine {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Rope(ropey::Rope);
 
 #[derive(Debug)]
@@ -142,6 +142,7 @@ impl Rope {
         AbsLine(self.0.char_to_line(char_idx.0))
     }
 
+    #[expect(clippy::should_implement_trait)] // TODO
     pub fn from_str(text: &str) -> Self {
         Self(ropey::Rope::from_str(text))
     }

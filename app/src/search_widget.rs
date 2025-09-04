@@ -1,3 +1,5 @@
+#![expect(clippy::new_without_default)]
+
 use crate::LineHeight;
 use crate::buffer::Buffer;
 use crate::key_map::{Action, KeyMap};

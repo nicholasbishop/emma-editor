@@ -1,3 +1,5 @@
+#![expect(clippy::new_without_default)]
+
 use anyhow::{Context, Result};
 use std::io::Read;
 use std::os::fd::{AsFd, BorrowedFd};

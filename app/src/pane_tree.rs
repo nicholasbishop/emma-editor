@@ -8,7 +8,9 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Debug, Clone, Eq, Hash, PartialEq, Deserialize, Serialize)]
+#[derive(
+    Debug, Default, Clone, Eq, Hash, PartialEq, Deserialize, Serialize,
+)]
 pub struct PaneId(String);
 
 impl PaneId {
