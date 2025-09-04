@@ -12,19 +12,21 @@ use emma_app::pane_tree::PaneTree;
 use emma_app::rope::AbsLine;
 use emma_app::theme::Theme;
 use emma_app::widget::Widget;
-use glib::clone;
 use gtk4::gdk::ModifierType;
+use gtk4::glib::{self, ControlFlow, IOCondition, clone};
 use gtk4::prelude::{
     ApplicationExt, DrawingAreaExtManual, EventControllerExt, GtkWindowExt,
     WidgetExt,
 };
 use gtk4::{
     Application, ApplicationWindow, CssProvider, DrawingArea,
-    EventControllerKey, PropagationPhase, gdk, glib,
+    EventControllerKey, PropagationPhase, gdk,
 };
 use persistence::PersistedBuffer;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::{self, BufRead, BufReader};
+use std::os::fd::AsRawFd;
 use std::rc::Rc;
 use tracing::{error, info};
 
@@ -122,6 +124,10 @@ impl AppState {
 }
 
 pub fn init(application: &Application) {
+    // TODO: unwrap
+    let (to_gtk_reader, to_gtk_writer) = io::pipe().unwrap();
+    let mut to_gtk_reader = BufReader::new(to_gtk_reader);
+
     let config = match Config::load() {
         Ok(config) => config,
         Err(err) => {
@@ -205,8 +211,6 @@ pub fn init(application: &Application) {
         #[strong]
         state,
         #[strong]
-        window,
-        #[strong]
         widget,
         move |_self, keyval, _keycode, modifiers| {
             // Not every action requires redraw, but most do, no harm
@@ -214,14 +218,38 @@ pub fn init(application: &Application) {
             widget.queue_draw();
 
             state.borrow_mut().handle_key_press(
-                window.clone(),
                 key_from_gdk(keyval),
                 modifiers_from_gdk(modifiers),
                 state.clone(),
+                &to_gtk_writer,
             )
         }
     ));
     window.add_controller(key_controller);
+
+    let _source_id = glib::source::unix_fd_add_local(
+        to_gtk_reader.get_ref().as_raw_fd(),
+        IOCondition::IN,
+        move |_raw_fd, _condition| {
+            // Read from the FD until we can't (with some
+            // kind of stopping point, in case the FD keeps
+            // returning a flood of data?)
+
+            // TODO: unwraps
+            let mut msg = Vec::new();
+            to_gtk_reader.read_until(b'\n', &mut msg).unwrap();
+            let msg = str::from_utf8(&msg).unwrap().trim();
+
+            if msg == "close" {
+                window.close();
+            } else {
+                error!("unhandled message: {msg}");
+            }
+
+            // Keep the callback.
+            ControlFlow::Continue
+        },
+    );
 
     state.borrow_mut().line_height = draw::calculate_line_height(&widget);
 

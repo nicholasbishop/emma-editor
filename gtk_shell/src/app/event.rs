@@ -10,13 +10,12 @@ use emma_app::path_chooser::PathChooser;
 use emma_app::search_widget::SearchWidget;
 use emma_app::widget::Widget;
 use fs_err as fs;
-use gtk4::ApplicationWindow;
 use gtk4::glib;
 use gtk4::glib::signal::Propagation;
 use gtk4::glib::{ControlFlow, IOCondition};
-use gtk4::prelude::GtkWindowExt;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::{PipeWriter, Write};
 use std::os::fd::AsRawFd;
 use std::path::Path;
 use std::rc::Rc;
@@ -232,11 +231,10 @@ impl AppState {
 
     fn handle_action(
         &mut self,
-        // TODO: just optional for tests
-        window: Option<ApplicationWindow>,
         action: Action,
         // TODO: ugly
         app_state: Rc<RefCell<Self>>,
+        mut to_gtk_writer: &PipeWriter,
     ) -> Result<()> {
         info!("handling action {:?}", action);
 
@@ -244,8 +242,8 @@ impl AppState {
 
         match action {
             Action::Exit => {
-                // TODO: unwrap
-                window.unwrap().close();
+                // TODO: formalize the messages.
+                to_gtk_writer.write_all(b"close\n").unwrap();
                 buffer_changed = false;
             }
             Action::Insert(key) => {
@@ -428,11 +426,11 @@ impl AppState {
 
     pub(super) fn handle_key_press(
         &mut self,
-        window: ApplicationWindow,
         key: Key,
         modifiers: Modifiers,
         // TODO: ugly
         app_state: Rc<RefCell<Self>>,
+        to_gtk_writer: &PipeWriter,
     ) -> Propagation {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
@@ -466,7 +464,7 @@ impl AppState {
             }
             KeyMapLookup::Action(action) => {
                 if let Err(err) =
-                    self.handle_action(Some(window), action, app_state)
+                    self.handle_action(action, app_state, to_gtk_writer)
                 {
                     error!("failed to handle action: {err}");
                     self.display_error(err);
