@@ -4,6 +4,7 @@ pub mod grapheme;
 pub mod key;
 pub mod key_map;
 pub mod key_sequence;
+pub mod message;
 pub mod overlay;
 pub mod pane_tree;
 pub mod path_chooser;

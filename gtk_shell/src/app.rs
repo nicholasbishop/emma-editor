@@ -7,6 +7,7 @@ use emma_app::LineHeight;
 use emma_app::buffer::{Buffer, BufferId};
 use emma_app::config::Config;
 use emma_app::key::{Key, Modifier, Modifiers};
+use emma_app::message::ToGtkMsg;
 use emma_app::overlay::Overlay;
 use emma_app::pane_tree::PaneTree;
 use emma_app::rope::AbsLine;
@@ -240,12 +241,12 @@ pub fn init(application: &Application) {
             // TODO: unwraps
             let mut msg = Vec::new();
             to_gtk_reader.read_until(b'\n', &mut msg).unwrap();
-            let msg = str::from_utf8(&msg).unwrap().trim();
+            let msg: ToGtkMsg = serde_json::from_slice(&msg).unwrap();
 
-            if msg == "close" {
+            if msg == ToGtkMsg::Close {
                 window.close();
             } else {
-                error!("unhandled message: {msg}");
+                error!("unhandled message: {msg:?}");
             }
 
             // Keep the callback.

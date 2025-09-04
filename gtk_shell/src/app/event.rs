@@ -4,6 +4,7 @@ use emma_app::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
 use emma_app::key::{Key, Modifiers};
 use emma_app::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use emma_app::key_sequence::{KeySequence, KeySequenceAtom};
+use emma_app::message::ToGtkMsg;
 use emma_app::overlay::Overlay;
 use emma_app::pane_tree::{Pane, PaneTree};
 use emma_app::path_chooser::PathChooser;
@@ -240,8 +241,8 @@ impl AppState {
 
         match action {
             Action::Exit => {
-                // TODO: formalize the messages.
-                to_gtk_writer.write_all(b"close\n").unwrap();
+                serde_json::to_writer(to_gtk_writer, &ToGtkMsg::Close)?;
+                to_gtk_writer.write_all(b"\n")?;
                 buffer_changed = false;
             }
             Action::Insert(key) => {
