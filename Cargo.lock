@@ -181,36 +181,48 @@ dependencies = [
 name = "emma"
 version = "0.1.0"
 dependencies = [
- "aho-corasick",
  "anyhow",
  "dirs",
+ "emma_app",
  "fs-err",
- "glob",
  "gtk4",
- "nix",
- "once_cell",
  "pangocairo",
- "rand",
- "ropey",
  "rusqlite",
- "serde",
  "serde_json",
- "serde_yaml",
  "syntect",
  "tempfile",
- "thiserror 2.0.16",
  "tracing",
  "tracing-subscriber",
- "unicode-segmentation",
 ]
 
 [[package]]
 name = "emma_app"
 version = "0.1.0"
+dependencies = [
+ "aho-corasick",
+ "anyhow",
+ "dirs",
+ "fs-err",
+ "glob",
+ "nix",
+ "once_cell",
+ "rand",
+ "ropey",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "syntect",
+ "thiserror 2.0.16",
+ "tracing",
+ "unicode-segmentation",
+]
 
 [[package]]
 name = "emma_gtk_shell"
 version = "0.1.0"
+dependencies = [
+ "emma_app",
+]
 
 [[package]]
 name = "equivalent"

@@ -26,6 +26,9 @@ use crate::key_map::Move;
 pub const PROMPT_END: &str = "prompt_end";
 pub const COMPLETION_START: &str = "completion_start";
 
+// TODO: location
+pub type BufferMap = HashMap<BufferId, Buffer>;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Direction {
     Dec,
@@ -328,7 +331,7 @@ impl Buffer {
     }
 
     #[expect(unused)] // TODO
-    pub fn set_marker<S: Into<String>>(&mut self, name: S, pos: AbsChar) {
+    fn set_marker<S: Into<String>>(&mut self, name: S, pos: AbsChar) {
         self.active_history_item_mut()
             .markers
             .insert(name.into(), pos);
@@ -429,7 +432,7 @@ impl Buffer {
 
     /// Remove all text from the buffer.
     #[expect(unused)] // TODO
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.maybe_store_history_item(ActionType::Clear);
 
         *self.text_mut().unwrap() = Rope::new();

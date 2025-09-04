@@ -2,17 +2,16 @@ mod draw;
 mod event;
 mod persistence;
 
-pub use draw::LineHeight;
-
-use crate::buffer::{Buffer, BufferId};
-use crate::config::Config;
-use crate::key::{Key, Modifier, Modifiers};
-use crate::overlay::Overlay;
-use crate::pane_tree::PaneTree;
-use crate::rope::AbsLine;
-use crate::theme::Theme;
-use crate::widget::Widget;
 use anyhow::Result;
+use emma_app::LineHeight;
+use emma_app::buffer::{Buffer, BufferId};
+use emma_app::config::Config;
+use emma_app::key::{Key, Modifier, Modifiers};
+use emma_app::overlay::Overlay;
+use emma_app::pane_tree::PaneTree;
+use emma_app::rope::AbsLine;
+use emma_app::theme::Theme;
+use emma_app::widget::Widget;
 use glib::clone;
 use gtk4::gdk::ModifierType;
 use gtk4::prelude::*;
@@ -22,8 +21,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use tracing::{error, info};
-
-pub type BufferMap = HashMap<BufferId, Buffer>;
 
 // Pure state, no GTK stuff goes here.
 pub(crate) struct AppState {
@@ -220,7 +217,7 @@ pub fn init(application: &gtk::Application) {
     ));
     window.add_controller(key_controller);
 
-    state.borrow_mut().line_height = LineHeight::calculate(&widget);
+    state.borrow_mut().line_height = draw::calculate_line_height(&widget);
 
     // Gtk warns if there's no handler for this signal, so add an empty
     // handler.

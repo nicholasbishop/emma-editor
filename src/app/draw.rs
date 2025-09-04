@@ -1,14 +1,15 @@
 use crate::app::AppState;
-use crate::buffer::{
+use anyhow::Result;
+use emma_app::LineHeight;
+use emma_app::buffer::{
     Buffer, LineMatches, LinePosition, LinesIterItem, StyleSpan, StyledLine,
 };
-use crate::grapheme::next_grapheme_boundary;
-use crate::overlay::Overlay;
-use crate::pane_tree::Pane;
-use crate::rope::{LineDataVec, RopeSlice};
-use crate::theme::Theme;
-use crate::widget::Widget;
-use anyhow::Result;
+use emma_app::grapheme::next_grapheme_boundary;
+use emma_app::overlay::Overlay;
+use emma_app::pane_tree::Pane;
+use emma_app::rope::{LineDataVec, RopeSlice};
+use emma_app::theme::Theme;
+use emma_app::widget::Widget;
 use gtk4::pango::{self, Layout};
 use gtk4::prelude::*;
 use gtk4::{self as gtk, cairo};
@@ -40,9 +41,6 @@ fn pango_unscale(i: i32) -> f64 {
     i as f64 / pango::SCALE as f64
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct LineHeight(pub f64);
-
 #[derive(Default)]
 struct Point {
     x: f64,
@@ -55,16 +53,14 @@ impl fmt::Display for Point {
     }
 }
 
-impl LineHeight {
-    pub fn calculate(widget: &gtk::DrawingArea) -> Self {
-        let pctx = widget.pango_context();
-        let font_desc = pctx.font_description();
+pub fn calculate_line_height(widget: &gtk::DrawingArea) -> LineHeight {
+    let pctx = widget.pango_context();
+    let font_desc = pctx.font_description();
 
-        let language = None;
-        let metrics = pctx.metrics(font_desc.as_ref(), language);
+    let language = None;
+    let metrics = pctx.metrics(font_desc.as_ref(), language);
 
-        Self(pango_unscale(metrics.height()))
-    }
+    LineHeight(pango_unscale(metrics.height()))
 }
 
 struct StyledLayout {

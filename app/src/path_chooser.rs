@@ -1,4 +1,4 @@
-use crate::app::LineHeight;
+use crate::LineHeight;
 use crate::buffer::{Boundary, Buffer, Direction};
 use crate::key_map::{Action, KeyMap, Move};
 use crate::pane_tree::{Pane, Rect};

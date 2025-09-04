@@ -1,10 +1,9 @@
 // TODO: clippy bug? Triggering on Orientation enum.
 #![allow(clippy::use_self)]
 
-use crate::app::{BufferMap, LineHeight};
-use crate::buffer::{AbsChar, Buffer, BufferId, RelLine};
+use crate::buffer::{AbsChar, Buffer, BufferId, BufferMap, RelLine};
 use crate::rope::AbsLine;
-use crate::util;
+use crate::{LineHeight, util};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt;
