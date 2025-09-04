@@ -10,10 +10,11 @@ use emma_app::path_chooser::PathChooser;
 use emma_app::search_widget::SearchWidget;
 use emma_app::widget::Widget;
 use fs_err as fs;
-use glib::{ControlFlow, IOCondition};
+use gtk4::ApplicationWindow;
+use gtk4::glib;
 use gtk4::glib::signal::Propagation;
-use gtk4::prelude::*;
-use gtk4::{self as gtk, glib};
+use gtk4::glib::{ControlFlow, IOCondition, MainContext};
+use gtk4::prelude::GtkWindowExt;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::fd::AsRawFd;
@@ -232,7 +233,7 @@ impl AppState {
     fn handle_action(
         &mut self,
         // TODO: just optional for tests
-        window: Option<gtk::ApplicationWindow>,
+        window: Option<ApplicationWindow>,
         action: Action,
         // TODO: ugly
         app_state: Rc<RefCell<Self>>,
@@ -427,7 +428,7 @@ impl AppState {
 
     pub(super) fn handle_key_press(
         &mut self,
-        window: gtk::ApplicationWindow,
+        window: ApplicationWindow,
         key: Key,
         modifiers: Modifiers,
         // TODO: ugly
@@ -521,7 +522,7 @@ mod tests {
         assert!(is_process_running(app_state.clone()));
 
         loop {
-            glib::MainContext::default().iteration(true);
+            MainContext::default().iteration(true);
             if !is_process_running(app_state.clone()) {
                 break;
             }

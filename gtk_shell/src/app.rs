@@ -14,8 +14,14 @@ use emma_app::theme::Theme;
 use emma_app::widget::Widget;
 use glib::clone;
 use gtk4::gdk::ModifierType;
-use gtk4::prelude::*;
-use gtk4::{self as gtk, gdk, glib};
+use gtk4::prelude::{
+    ApplicationExt, DrawingAreaExtManual, EventControllerExt, GtkWindowExt,
+    WidgetExt,
+};
+use gtk4::{
+    Application, ApplicationWindow, CssProvider, DrawingArea,
+    EventControllerKey, PropagationPhase, gdk, glib,
+};
 use persistence::PersistedBuffer;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -115,7 +121,7 @@ impl AppState {
     }
 }
 
-pub fn init(application: &gtk::Application) {
+pub fn init(application: &Application) {
     let config = match Config::load() {
         Ok(config) => config,
         Err(err) => {
@@ -125,7 +131,7 @@ pub fn init(application: &gtk::Application) {
         }
     };
 
-    let css = gtk::CssProvider::new();
+    let css = CssProvider::new();
     css.load_from_data(&format!(
         r#"
         widget {{ 
@@ -135,10 +141,10 @@ pub fn init(application: &gtk::Application) {
     "#,
         font_size = config.font_size
     ));
-    gtk::style_context_add_provider_for_display(
+    gtk4::style_context_add_provider_for_display(
         &gdk::Display::default().unwrap(),
         &css,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
 
     let persisted_buffers = match AppState::load_persisted_buffers() {
@@ -156,7 +162,7 @@ pub fn init(application: &gtk::Application) {
     let state = Rc::new(RefCell::new(state));
 
     // Create top-level window.
-    let window = gtk::ApplicationWindow::new(application);
+    let window = ApplicationWindow::new(application);
     window.set_title(Some("emma"));
     window.set_default_size(800, 800);
     window.maximize();
@@ -164,7 +170,7 @@ pub fn init(application: &gtk::Application) {
 
     // Create single widget that is used for drawing the whole
     // application.
-    let widget = gtk::DrawingArea::new();
+    let widget = DrawingArea::new();
     widget.set_draw_func(clone!(
         #[strong]
         state,
@@ -193,8 +199,8 @@ pub fn init(application: &gtk::Application) {
     ));
     window.set_child(Some(&widget));
 
-    let key_controller = gtk::EventControllerKey::new();
-    key_controller.set_propagation_phase(gtk::PropagationPhase::Capture);
+    let key_controller = EventControllerKey::new();
+    key_controller.set_propagation_phase(PropagationPhase::Capture);
     key_controller.connect_key_pressed(clone!(
         #[strong]
         state,
@@ -268,7 +274,7 @@ pub(crate) mod tests {
     }
 
     // TODO: experimenting with gtk test.
-    #[gtk::test]
+    #[gtk4::test]
     fn test_app_state() {
         let app_state = create_empty_app_state();
 

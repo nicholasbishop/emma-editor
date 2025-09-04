@@ -11,8 +11,8 @@ use emma_app::rope::{LineDataVec, RopeSlice};
 use emma_app::theme::Theme;
 use emma_app::widget::Widget;
 use gtk4::pango::{self, Layout};
-use gtk4::prelude::*;
-use gtk4::{self as gtk, cairo};
+use gtk4::prelude::WidgetExt;
+use gtk4::{DrawingArea, cairo};
 use std::fmt;
 use std::ops::Range;
 use syntect::highlighting::Style;
@@ -53,7 +53,7 @@ impl fmt::Display for Point {
     }
 }
 
-pub fn calculate_line_height(widget: &gtk::DrawingArea) -> LineHeight {
+pub fn calculate_line_height(widget: &DrawingArea) -> LineHeight {
     let pctx = widget.pango_context();
     let font_desc = pctx.font_description();
 
@@ -194,7 +194,7 @@ mod tests {
 
 struct DrawPane<'a> {
     ctx: &'a cairo::Context,
-    widget: &'a gtk::DrawingArea,
+    widget: &'a DrawingArea,
     pane: &'a Pane,
     buf: &'a Buffer,
     line_height: LineHeight,
@@ -498,7 +498,7 @@ impl AppState {
     // Errors here are logged but otherwise swallowed.
     pub(super) fn draw(
         &self,
-        widget: &gtk::DrawingArea,
+        widget: &DrawingArea,
         ctx: &cairo::Context,
         width: f64,
         height: f64,
@@ -541,7 +541,7 @@ impl AppState {
 
     fn draw_interactive_widget(
         &self,
-        widget: &gtk::DrawingArea,
+        widget: &DrawingArea,
         ctx: &cairo::Context,
         line_height: LineHeight,
         theme: &Theme,
