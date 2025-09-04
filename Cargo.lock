@@ -178,24 +178,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "emma"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dirs",
- "emma_app",
- "fs-err",
- "gtk4",
- "pangocairo",
- "rusqlite",
- "serde_json",
- "syntect",
- "tempfile",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "emma_app"
 version = "0.1.0"
 dependencies = [
@@ -221,7 +203,18 @@ dependencies = [
 name = "emma_gtk_shell"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "dirs",
  "emma_app",
+ "fs-err",
+ "gtk4",
+ "pangocairo",
+ "rusqlite",
+ "serde_json",
+ "syntect",
+ "tempfile",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
