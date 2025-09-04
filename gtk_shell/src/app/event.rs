@@ -13,7 +13,7 @@ use fs_err as fs;
 use gtk4::ApplicationWindow;
 use gtk4::glib;
 use gtk4::glib::signal::Propagation;
-use gtk4::glib::{ControlFlow, IOCondition, MainContext};
+use gtk4::glib::{ControlFlow, IOCondition};
 use gtk4::prelude::GtkWindowExt;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -485,6 +485,7 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gtk4::glib::MainContext;
 
     /// Test running a non-interactive process in a buffer.
     #[gtk4::test]
