@@ -13,7 +13,7 @@ use emma_app::rope::AbsLine;
 use emma_app::theme::Theme;
 use emma_app::widget::Widget;
 use gtk4::gdk::ModifierType;
-use gtk4::glib::{self, ControlFlow, IOCondition, clone};
+use gtk4::glib::{self, ControlFlow, IOCondition, Propagation, clone};
 use gtk4::prelude::{
     ApplicationExt, DrawingAreaExtManual, EventControllerExt, GtkWindowExt,
     WidgetExt,
@@ -222,7 +222,9 @@ pub fn init(application: &Application) {
                 modifiers_from_gdk(modifiers),
                 state.clone(),
                 &to_gtk_writer,
-            )
+            );
+
+            Propagation::Stop
         }
     ));
     window.add_controller(key_controller);

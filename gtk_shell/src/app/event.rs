@@ -10,9 +10,7 @@ use emma_app::path_chooser::PathChooser;
 use emma_app::search_widget::SearchWidget;
 use emma_app::widget::Widget;
 use fs_err as fs;
-use gtk4::glib;
-use gtk4::glib::signal::Propagation;
-use gtk4::glib::{ControlFlow, IOCondition};
+use gtk4::glib::{self, ControlFlow, IOCondition};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{PipeWriter, Write};
@@ -431,7 +429,7 @@ impl AppState {
         // TODO: ugly
         app_state: Rc<RefCell<Self>>,
         to_gtk_writer: &PipeWriter,
-    ) -> Propagation {
+    ) {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
 
@@ -441,7 +439,7 @@ impl AppState {
 
         // Ignore lone modifier presses.
         if key.is_modifier() {
-            return Propagation::Proceed;
+            return;
         }
 
         // TODO: we want to ignore combo modifier presses too if no
@@ -475,8 +473,6 @@ impl AppState {
         if clear_seq {
             self.key_handler.cur_seq.0.clear();
         }
-
-        Propagation::Stop
     }
 }
 
