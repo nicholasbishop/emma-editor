@@ -139,3 +139,25 @@ impl PartialEq<Modifier> for Modifiers {
         }
     }
 }
+
+impl From<Modifier> for Modifiers {
+    fn from(modifier: Modifier) -> Self {
+        match modifier {
+            Modifier::Alt => Self {
+                alt: true,
+                control: false,
+                shift: false,
+            },
+            Modifier::Control => Self {
+                alt: false,
+                control: true,
+                shift: false,
+            },
+            Modifier::Shift => Self {
+                alt: false,
+                control: false,
+                shift: true,
+            },
+        }
+    }
+}

@@ -198,15 +198,12 @@ mod tests {
     #[test]
     fn test_error_display() {
         assert_eq!(
-            format!(
-                "{}",
-                Error::UnexpectedModifier(ModifierType::CONTROL_MASK)
-            ),
+            format!("{}", Error::UnexpectedModifier(Modifier::Control)),
             "unexpected modifier ctrl".to_string()
         );
 
         assert_eq!(
-            format!("{}", Error::UnexpectedKey(Key::a)),
+            format!("{}", Error::UnexpectedKey(Key::Char('a'))),
             "unexpected key \"a\"".to_string()
         );
 
@@ -216,7 +213,7 @@ mod tests {
         );
 
         assert_eq!(
-            format!("{}", Error::UnexpectedKey(Key::BackSpace)),
+            format!("{}", Error::UnexpectedKey(Key::Backspace)),
             "unexpected key <backspace>".to_string()
         );
     }
@@ -225,14 +222,17 @@ mod tests {
     fn test_parse_key_sequence() {
         assert_eq!(
             parse_key_sequence_as_items("aa"),
-            Ok(vec![ParseItem::Key(Key::a), ParseItem::Key(Key::a)])
+            Ok(vec![
+                ParseItem::Key(Key::Char('a')),
+                ParseItem::Key(Key::Char('a'))
+            ])
         );
 
         assert_eq!(
             parse_key_sequence_as_items("<ctrl><shift>"),
             Ok(vec![
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Modifier(ModifierType::SHIFT_MASK),
+                ParseItem::Modifier(Modifier::Control),
+                ParseItem::Modifier(Modifier::Shift),
             ])
         );
 
@@ -247,59 +247,59 @@ mod tests {
     #[test]
     fn test_sequence_from_items() {
         assert_eq!(
-            KeySequence::from_items(&[ParseItem::Key(Key::a)]),
+            KeySequence::from_items(&[ParseItem::Key(Key::Char('a'))]),
             Ok(KeySequence(vec![KeySequenceAtom {
-                modifiers: ModifierType::empty(),
-                key: Key::a,
+                modifiers: Modifiers::new(),
+                key: Key::Char('a'),
             }]))
         );
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Key(Key::a)
+                ParseItem::Modifier(Modifier::Control),
+                ParseItem::Key(Key::Char('a'))
             ]),
             Ok(KeySequence(vec![KeySequenceAtom {
-                modifiers: ModifierType::CONTROL_MASK,
-                key: Key::a,
+                modifiers: Modifier::Control.into(),
+                key: Key::Char('a'),
             }]))
         );
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Key(Key::x),
+                ParseItem::Modifier(Modifier::Control),
+                ParseItem::Key(Key::Char('x')),
                 ParseItem::Append,
-                ParseItem::Key(Key::a),
+                ParseItem::Key(Key::Char('a')),
             ]),
             Ok(KeySequence(vec![
                 KeySequenceAtom {
-                    modifiers: ModifierType::CONTROL_MASK,
-                    key: Key::x,
+                    modifiers: Modifier::Control.into(),
+                    key: Key::Char('x'),
                 },
                 KeySequenceAtom {
-                    modifiers: ModifierType::empty(),
-                    key: Key::a,
+                    modifiers: Modifiers::new(),
+                    key: Key::Char('a'),
                 }
             ]))
         );
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Key(Key::x),
+                ParseItem::Modifier(Modifier::Control),
+                ParseItem::Key(Key::Char('x')),
                 ParseItem::Append,
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
-                ParseItem::Key(Key::a),
+                ParseItem::Modifier(Modifier::Control),
+                ParseItem::Key(Key::Char('a')),
             ]),
             Ok(KeySequence(vec![
                 KeySequenceAtom {
-                    modifiers: ModifierType::CONTROL_MASK,
-                    key: Key::x,
+                    modifiers: Modifier::Control.into(),
+                    key: Key::Char('x'),
                 },
                 KeySequenceAtom {
-                    modifiers: ModifierType::CONTROL_MASK,
-                    key: Key::a,
+                    modifiers: Modifier::Control.into(),
+                    key: Key::Char('a'),
                 }
             ]))
         );
@@ -308,10 +308,10 @@ mod tests {
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Key(Key::a),
-                ParseItem::Modifier(ModifierType::CONTROL_MASK),
+                ParseItem::Key(Key::Char('a')),
+                ParseItem::Modifier(Modifier::Control),
             ]),
-            Err(Error::UnexpectedModifier(ModifierType::CONTROL_MASK))
+            Err(Error::UnexpectedModifier(Modifier::Control))
         );
 
         assert_eq!(
@@ -321,10 +321,10 @@ mod tests {
 
         assert_eq!(
             KeySequence::from_items(&[
-                ParseItem::Key(Key::a),
-                ParseItem::Key(Key::a),
+                ParseItem::Key(Key::Char('a')),
+                ParseItem::Key(Key::Char('a')),
             ]),
-            Err(Error::UnexpectedKey(Key::a))
+            Err(Error::UnexpectedKey(Key::Char('a')))
         );
     }
 }

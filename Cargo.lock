@@ -194,6 +194,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "syntect",
+ "tempfile",
  "thiserror 2.0.16",
  "tracing",
  "unicode-segmentation",
