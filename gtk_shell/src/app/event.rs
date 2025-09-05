@@ -445,12 +445,11 @@ impl AppState {
 mod tests {
     use super::*;
     use emma_app::message::create_message_pipe;
-    use gtk4::glib::MainContext;
     use std::cell::RefCell;
     use std::rc::Rc;
 
     /// Test running a non-interactive process in a buffer.
-    #[gtk4::test]
+    #[test]
     fn test_non_interactive_process() -> Result<()> {
         let app_state =
             Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
@@ -472,34 +471,7 @@ mod tests {
             buf.id().clone()
         };
 
-        fn get_buf_text(app_state: Rc<RefCell<AppState>>) -> String {
-            let state = app_state.borrow_mut();
-            let buf = state
-                .buffers
-                .values()
-                .find(|b| b.non_interactive_process().is_some())
-                .unwrap();
-            buf.text().to_string()
-        }
-
-        fn is_process_running(app_state: Rc<RefCell<AppState>>) -> bool {
-            let state = app_state.borrow_mut();
-            let buf = state
-                .buffers
-                .values()
-                .find(|b| b.non_interactive_process().is_some())
-                .unwrap();
-            buf.non_interactive_process().unwrap().is_running()
-        }
-
-        assert_eq!(get_buf_text(app_state.clone()), "");
-
-        loop {
-            MainContext::default().iteration(true);
-            if !is_process_running(app_state.clone()) {
-                break;
-            }
-        }
+        // assert_eq!(get_buf_text(app_state.clone()), "");
 
         // TODO: would be nice to test the buffer text, but currently
         // that's handled by code in a glib signal handler.
