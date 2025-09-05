@@ -447,6 +447,9 @@ impl AppState {
 mod tests {
     use super::*;
     use gtk4::glib::MainContext;
+    use std::cell::RefCell;
+    use std::io::{self, BufRead, BufReader};
+    use std::rc::Rc;
 
     /// Test running a non-interactive process in a buffer.
     #[gtk4::test]
@@ -454,11 +457,23 @@ mod tests {
         let app_state =
             Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
 
-        app_state.clone().borrow_mut().handle_action(
-            None,
-            Action::RunNonInteractiveProcess,
-            app_state.clone(),
-        )?;
+        let (reader, writer) = io::pipe()?;
+        let mut reader = BufReader::new(reader);
+
+        app_state
+            .clone()
+            .borrow_mut()
+            .handle_action(Action::RunNonInteractiveProcess, &writer)?;
+
+        let buf_id = {
+            let state = app_state.borrow_mut();
+            let buf = state
+                .buffers
+                .values()
+                .find(|b| b.non_interactive_process().is_some())
+                .unwrap();
+            buf.id().clone()
+        };
 
         fn get_buf_text(app_state: Rc<RefCell<AppState>>) -> String {
             let state = app_state.borrow_mut();
@@ -481,7 +496,6 @@ mod tests {
         }
 
         assert_eq!(get_buf_text(app_state.clone()), "");
-        assert!(is_process_running(app_state.clone()));
 
         loop {
             MainContext::default().iteration(true);
@@ -490,7 +504,18 @@ mod tests {
             }
         }
 
-        assert_eq!(get_buf_text(app_state), "hello!\n");
+        // TODO: would be nice to test the buffer text, but currently
+        // that's handled by code in a glib signal handler.
+        let mut msg = Vec::new();
+        reader.read_until(b'\n', &mut msg)?;
+        let msg: ToGtkMsg = serde_json::from_slice(&msg)?;
+        assert_eq!(
+            msg,
+            ToGtkMsg::AppendToBuffer(buf_id, "hello!\n".to_owned())
+        );
+
+        // TODO
+        // assert_eq!(get_buf_text(app_state), "hello!\n");
 
         Ok(())
     }
@@ -498,6 +523,8 @@ mod tests {
     // TODO: experimental test.
     #[test]
     fn test_file_open() -> Result<()> {
+        let (_reader, writer) = io::pipe()?;
+
         let app_state =
             Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
 
@@ -513,25 +540,19 @@ mod tests {
         app_state.borrow_mut().open_file_at_path(&tmp_path1)?;
 
         // Test interactive open.
-        app_state.borrow_mut().handle_action(
-            None,
-            Action::OpenFile,
-            app_state.clone(),
-        )?;
+        app_state
+            .borrow_mut()
+            .handle_action(Action::OpenFile, &writer)?;
 
         // Type in the path.
         for c in "/testfile2".chars() {
-            app_state.borrow_mut().handle_action(
-                None,
-                Action::Insert(c),
-                app_state.clone(),
-            )?;
+            app_state
+                .borrow_mut()
+                .handle_action(Action::Insert(c), &writer)?;
         }
-        app_state.borrow_mut().handle_action(
-            None,
-            Action::Confirm,
-            app_state.clone(),
-        )?;
+        app_state
+            .borrow_mut()
+            .handle_action(Action::Confirm, &writer)?;
 
         Ok(())
     }
