@@ -1,4 +1,4 @@
-use crate::buffer::{Boundary, Direction};
+use crate::buffer::{Boundary, BufferId, Direction};
 use crate::key::Modifier;
 use crate::key_sequence::KeySequence;
 use crate::pane_tree;
@@ -61,6 +61,9 @@ pub enum Action {
     Autocomplete,
 
     RunNonInteractiveProcess,
+
+    // TODO: maybe not the right level of specificity
+    AppendToBuffer(BufferId, String),
 }
 
 #[derive(Debug, Eq, PartialEq)]

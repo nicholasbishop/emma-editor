@@ -11,9 +11,10 @@ use aho_corasick::AhoCorasick;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io::{self, PipeWriter};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
-use std::{fmt, fs, io};
+use std::{fmt, fs};
 use syntect::highlighting::{
     HighlightState, Highlighter, RangedHighlightIterator, Style,
 };
@@ -284,9 +285,12 @@ impl Buffer {
         &self.id
     }
 
-    pub fn run_non_interactive_process(&mut self) -> Result<()> {
+    pub fn run_non_interactive_process(
+        &mut self,
+        to_gtk_writer: &PipeWriter,
+    ) -> Result<()> {
         let proc = self.non_interactive_process.as_mut().unwrap();
-        proc.run()
+        proc.run(self.id.clone(), to_gtk_writer.try_clone()?)
     }
 
     pub fn non_interactive_process(&self) -> Option<&NonInteractiveProcess> {

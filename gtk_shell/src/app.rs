@@ -7,6 +7,7 @@ use emma_app::LineHeight;
 use emma_app::buffer::{Buffer, BufferId};
 use emma_app::config::Config;
 use emma_app::key::{Key, Modifier, Modifiers};
+use emma_app::key_map::Action;
 use emma_app::message::ToGtkMsg;
 use emma_app::overlay::Overlay;
 use emma_app::pane_tree::PaneTree;
@@ -206,6 +207,8 @@ pub fn init(application: &Application) {
     ));
     window.set_child(Some(&widget));
 
+    let to_gtk_writer_2 = to_gtk_writer.try_clone().unwrap();
+
     let key_controller = EventControllerKey::new();
     key_controller.set_propagation_phase(PropagationPhase::Capture);
     key_controller.connect_key_pressed(clone!(
@@ -221,7 +224,6 @@ pub fn init(application: &Application) {
             state.borrow_mut().handle_key_press(
                 key_from_gdk(keyval),
                 modifiers_from_gdk(modifiers),
-                state.clone(),
                 &to_gtk_writer,
             );
 
@@ -233,25 +235,36 @@ pub fn init(application: &Application) {
     let _source_id = glib::source::unix_fd_add_local(
         to_gtk_reader.get_ref().as_raw_fd(),
         IOCondition::IN,
-        move |_raw_fd, _condition| {
-            // Read from the FD until we can't (with some
-            // kind of stopping point, in case the FD keeps
-            // returning a flood of data?)
+        clone!(
+            #[strong]
+            state,
+            move |_raw_fd, _condition| {
+                // Read from the FD until we can't (with some
+                // kind of stopping point, in case the FD keeps
+                // returning a flood of data?)
 
-            // TODO: unwraps
-            let mut msg = Vec::new();
-            to_gtk_reader.read_until(b'\n', &mut msg).unwrap();
-            let msg: ToGtkMsg = serde_json::from_slice(&msg).unwrap();
+                // TODO: unwraps
+                let mut msg = Vec::new();
+                to_gtk_reader.read_until(b'\n', &mut msg).unwrap();
+                let msg: ToGtkMsg = serde_json::from_slice(&msg).unwrap();
 
-            if msg == ToGtkMsg::Close {
-                window.close();
-            } else {
-                error!("unhandled message: {msg:?}");
+                match msg {
+                    ToGtkMsg::Close => window.close(),
+                    ToGtkMsg::AppendToBuffer(buf_id, content) => {
+                        state
+                            .borrow_mut()
+                            .handle_action(
+                                Action::AppendToBuffer(buf_id, content),
+                                &to_gtk_writer_2,
+                            )
+                            .unwrap();
+                    }
+                }
+
+                // Keep the callback.
+                ControlFlow::Continue
             }
-
-            // Keep the callback.
-            ControlFlow::Continue
-        },
+        ),
     );
 
     state.borrow_mut().line_height = draw::calculate_line_height(&widget);

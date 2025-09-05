@@ -1,5 +1,5 @@
 use crate::app::AppState;
-use anyhow::{Error, Result, anyhow};
+use anyhow::{Context, Error, Result, anyhow};
 use emma_app::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
 use emma_app::key::{Key, Modifiers};
 use emma_app::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
@@ -11,13 +11,9 @@ use emma_app::path_chooser::PathChooser;
 use emma_app::search_widget::SearchWidget;
 use emma_app::widget::Widget;
 use fs_err as fs;
-use gtk4::glib::{self, ControlFlow, IOCondition};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{PipeWriter, Write};
-use std::os::fd::AsRawFd;
 use std::path::Path;
-use std::rc::Rc;
 use tracing::{error, info, instrument};
 
 pub(super) struct KeyHandler {
@@ -228,11 +224,9 @@ impl AppState {
         Ok(())
     }
 
-    fn handle_action(
+    pub(crate) fn handle_action(
         &mut self,
         action: Action,
-        // TODO: ugly
-        app_state: Rc<RefCell<Self>>,
         mut to_gtk_writer: &PipeWriter,
     ) -> Result<()> {
         info!("handling action {:?}", action);
@@ -360,51 +354,27 @@ impl AppState {
             Action::RunNonInteractiveProcess => {
                 let mut buf = Buffer::create_for_non_interactive_process();
                 let buf_id = buf.id().clone();
-                buf.run_non_interactive_process()?;
+                buf.run_non_interactive_process(to_gtk_writer)?;
 
-                let proc = buf.non_interactive_process().unwrap();
-                let _source_id = glib::source::unix_fd_add_local(
-                    proc.output_fd().as_raw_fd(),
-                    IOCondition::IN,
-                    move |_raw_fd, _condition| {
-                        // Read from the FD until we can't (with some
-                        // kind of stopping point, in case the FD keeps
-                        // returning a flood of data?)
-
-                        let mut app_state = app_state.borrow_mut();
-                        // Find the buffer by ID.
-                        // TODO: unwrap
-                        let buf = app_state.buffers.get_mut(&buf_id).unwrap();
-
-                        let proc = buf.non_interactive_process_mut().unwrap();
-
-                        let output = proc.read_output().unwrap();
-                        if output.is_empty() {
-                            // Process finished.
-                            proc.wait();
-                            return ControlFlow::Break;
-                        }
-
-                        // TODO: not great
-                        let output = String::from_utf8(output).unwrap();
-
-                        // TODO: add a way to insert text directly.
-                        let mut s = buf.text().to_string();
-                        s.push_str(&output);
-                        buf.set_text(&s);
-
-                        // Keep the callback.
-                        ControlFlow::Continue
-                    },
-                );
-
-                let buf_id = buf.id().clone();
                 self.buffers.insert(buf_id.clone(), buf);
                 self.pane_tree
                     .active_mut()
                     .switch_buffer(&mut self.buffers, &buf_id);
 
                 buffer_changed = false;
+            }
+            Action::AppendToBuffer(buf_id, content) => {
+                let buf = self
+                    .buffers
+                    .get_mut(&buf_id)
+                    .context("invalid buffer: {buf_id}")?;
+
+                // TODO: add a way to insert text directly.
+                let mut s = buf.text().to_string();
+                s.push_str(&content);
+                buf.set_text(&s);
+
+                buffer_changed = true;
             }
             todo => {
                 buffer_changed = false;
@@ -427,8 +397,6 @@ impl AppState {
         &mut self,
         key: Key,
         modifiers: Modifiers,
-        // TODO: ugly
-        app_state: Rc<RefCell<Self>>,
         to_gtk_writer: &PipeWriter,
     ) {
         let mut keymap_stack = KeyMapStack::default();
@@ -462,9 +430,7 @@ impl AppState {
                 // Waiting for the sequence to be completed.
             }
             KeyMapLookup::Action(action) => {
-                if let Err(err) =
-                    self.handle_action(action, app_state, to_gtk_writer)
-                {
+                if let Err(err) = self.handle_action(action, to_gtk_writer) {
                     error!("failed to handle action: {err}");
                     self.display_error(err);
                 }
