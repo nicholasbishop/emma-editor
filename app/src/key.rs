@@ -161,3 +161,34 @@ impl From<Modifier> for Modifiers {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_modifier() {
+        assert!(Key::Modifier(Modifier::Control).is_modifier());
+        assert!(!Key::Char('a').is_modifier());
+    }
+
+    #[test]
+    fn test_to_upper() {
+        assert_eq!(Key::Char('a').to_upper(), Key::Char('A'));
+        assert_eq!(Key::Char('ß').to_upper(), Key::Char('ß'));
+        assert_eq!(Key::Escape.to_upper(), Key::Escape);
+    }
+
+    #[test]
+    fn test_to_lower() {
+        assert_eq!(Key::Char('A').to_lower(), Key::Char('a'));
+        assert_eq!(Key::Char('İ').to_lower(), Key::Char('İ'));
+        assert_eq!(Key::Escape.to_lower(), Key::Escape);
+    }
+
+    #[test]
+    fn test_to_char() {
+        assert_eq!(Key::Char('a').to_char(), Some('a'));
+        assert!(Key::Escape.to_char().is_none());
+    }
+}

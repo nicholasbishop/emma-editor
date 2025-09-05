@@ -1,11 +1,9 @@
-use crate::draw;
+use crate::{draw, key};
 use emma_app::config::Config;
-use emma_app::key::{Key, Modifier, Modifiers};
 use emma_app::key_map::Action;
 use emma_app::message::{Message, create_message_pipe};
 use emma_app::state::AppState;
 use emma_app::theme::Theme;
-use gtk4::gdk::ModifierType;
 use gtk4::glib::{self, ControlFlow, IOCondition, Propagation, clone};
 use gtk4::prelude::{
     ApplicationExt, DrawingAreaExtManual, EventControllerExt, GtkWindowExt,
@@ -111,8 +109,8 @@ pub fn init(application: &Application) {
             widget.queue_draw();
 
             state.borrow_mut().handle_key_press(
-                key_from_gdk(keyval),
-                modifiers_from_gdk(modifiers),
+                key::key_from_gdk(keyval),
+                key::modifiers_from_gdk(modifiers),
                 &message_writer,
             );
 
@@ -161,37 +159,4 @@ pub fn init(application: &Application) {
     // Gtk warns if there's no handler for this signal, so add an empty
     // handler.
     application.connect_activate(|_| {});
-}
-
-fn key_from_gdk(key: gtk4::gdk::Key) -> Key {
-    use gtk4::gdk::Key as GKey;
-    match key {
-        GKey::BackSpace => Key::Backspace,
-        GKey::Escape => Key::Escape,
-        GKey::greater => Key::Greater,
-        GKey::less => Key::Less,
-        GKey::plus => Key::Plus,
-        GKey::Return => Key::Return,
-        GKey::space => Key::Space,
-
-        GKey::Alt_L | GKey::Alt_R => Key::Modifier(Modifier::Alt),
-        GKey::Control_L | GKey::Control_R => Key::Modifier(Modifier::Control),
-        GKey::Shift_L | GKey::Shift_R => Key::Modifier(Modifier::Shift),
-
-        _ => {
-            if let Some(c) = key.to_unicode() {
-                Key::Char(c)
-            } else {
-                todo!("unhandled key: {key}")
-            }
-        }
-    }
-}
-
-fn modifiers_from_gdk(modifiers: gtk4::gdk::ModifierType) -> Modifiers {
-    Modifiers {
-        alt: modifiers.contains(ModifierType::ALT_MASK),
-        control: modifiers.contains(ModifierType::CONTROL_MASK),
-        shift: modifiers.contains(ModifierType::SHIFT_MASK),
-    }
 }

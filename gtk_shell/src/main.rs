@@ -2,6 +2,7 @@
 
 mod draw;
 mod init;
+mod key;
 
 use gtk4::Application;
 use gtk4::prelude::{ApplicationExt, ApplicationExtManual};
