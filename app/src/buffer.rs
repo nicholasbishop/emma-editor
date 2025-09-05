@@ -1,6 +1,7 @@
 pub use crate::rope::{AbsChar, AbsLine, LinesIterItem, RelChar, RelLine};
 
 use crate::grapheme::{next_grapheme_boundary, prev_grapheme_boundary};
+use crate::message::MessageWriter;
 use crate::pane_tree::{Pane, PaneId};
 use crate::process::NonInteractiveProcess;
 use crate::rope::{LineDataVec, Rope};
@@ -11,7 +12,7 @@ use aho_corasick::AhoCorasick;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{self, PipeWriter};
+use std::io::{self};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::{fmt, fs};
@@ -287,10 +288,10 @@ impl Buffer {
 
     pub fn run_non_interactive_process(
         &mut self,
-        to_gtk_writer: &PipeWriter,
+        message_writer: &MessageWriter,
     ) -> Result<()> {
         let proc = self.non_interactive_process.as_mut().unwrap();
-        proc.run(self.id.clone(), to_gtk_writer.try_clone()?)
+        proc.run(self.id.clone(), message_writer.try_clone()?)
     }
 
     pub fn non_interactive_process(&self) -> Option<&NonInteractiveProcess> {

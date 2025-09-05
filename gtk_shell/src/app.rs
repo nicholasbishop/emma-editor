@@ -8,7 +8,7 @@ use emma_app::buffer::{Buffer, BufferId};
 use emma_app::config::Config;
 use emma_app::key::{Key, Modifier, Modifiers};
 use emma_app::key_map::Action;
-use emma_app::message::ToGtkMsg;
+use emma_app::message::{Message, create_message_pipe};
 use emma_app::overlay::Overlay;
 use emma_app::pane_tree::PaneTree;
 use emma_app::rope::AbsLine;
@@ -27,8 +27,6 @@ use gtk4::{
 use persistence::PersistedBuffer;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::{self, BufRead, BufReader};
-use std::os::fd::AsRawFd;
 use std::rc::Rc;
 use tracing::{error, info};
 
@@ -127,8 +125,7 @@ impl AppState {
 
 pub fn init(application: &Application) {
     // TODO: unwrap
-    let (to_gtk_reader, to_gtk_writer) = io::pipe().unwrap();
-    let mut to_gtk_reader = BufReader::new(to_gtk_reader);
+    let (mut message_reader, message_writer) = create_message_pipe().unwrap();
 
     let config = match Config::load() {
         Ok(config) => config,
@@ -207,7 +204,7 @@ pub fn init(application: &Application) {
     ));
     window.set_child(Some(&widget));
 
-    let to_gtk_writer_2 = to_gtk_writer.try_clone().unwrap();
+    let message_writer_2 = message_writer.try_clone().unwrap();
 
     let key_controller = EventControllerKey::new();
     key_controller.set_propagation_phase(PropagationPhase::Capture);
@@ -224,7 +221,7 @@ pub fn init(application: &Application) {
             state.borrow_mut().handle_key_press(
                 key_from_gdk(keyval),
                 modifiers_from_gdk(modifiers),
-                &to_gtk_writer,
+                &message_writer,
             );
 
             Propagation::Stop
@@ -233,7 +230,7 @@ pub fn init(application: &Application) {
     window.add_controller(key_controller);
 
     let _source_id = glib::source::unix_fd_add_local(
-        to_gtk_reader.get_ref().as_raw_fd(),
+        message_reader.as_raw_fd(),
         IOCondition::IN,
         clone!(
             #[strong]
@@ -244,18 +241,16 @@ pub fn init(application: &Application) {
                 // returning a flood of data?)
 
                 // TODO: unwraps
-                let mut msg = Vec::new();
-                to_gtk_reader.read_until(b'\n', &mut msg).unwrap();
-                let msg: ToGtkMsg = serde_json::from_slice(&msg).unwrap();
+                let msg = message_reader.read().unwrap();
 
                 match msg {
-                    ToGtkMsg::Close => window.close(),
-                    ToGtkMsg::AppendToBuffer(buf_id, content) => {
+                    Message::Close => window.close(),
+                    Message::AppendToBuffer(buf_id, content) => {
                         state
                             .borrow_mut()
                             .handle_action(
                                 Action::AppendToBuffer(buf_id, content),
-                                &to_gtk_writer_2,
+                                &message_writer_2,
                             )
                             .unwrap();
                     }

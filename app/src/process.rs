@@ -1,9 +1,9 @@
 #![expect(clippy::new_without_default)]
 
 use crate::buffer::BufferId;
-use crate::message::ToGtkMsg;
+use crate::message::{Message, MessageWriter};
 use anyhow::{Context, Result};
-use std::io::{PipeWriter, Read, Write};
+use std::io::Read;
 use std::os::fd::{AsFd, BorrowedFd};
 use std::process::{Child, ChildStdout, Command, Stdio};
 use std::thread::{self, JoinHandle};
@@ -33,7 +33,7 @@ impl NonInteractiveProcess {
     pub fn run(
         &mut self,
         buf_id: BufferId,
-        mut to_gtk_writer: PipeWriter,
+        message_writer: MessageWriter,
     ) -> Result<()> {
         // TODO
         assert!(self.child.is_none());
@@ -64,12 +64,9 @@ impl NonInteractiveProcess {
                 // TODO: not great
                 let output = String::from_utf8(output).unwrap();
 
-                serde_json::to_writer(
-                    to_gtk_writer.try_clone().unwrap(),
-                    &ToGtkMsg::AppendToBuffer(buf_id.clone(), output),
-                )
-                .unwrap();
-                to_gtk_writer.write_all(b"\n").unwrap();
+                message_writer
+                    .send(Message::AppendToBuffer(buf_id.clone(), output))
+                    .unwrap();
 
                 // TODO: add a way to insert text directly.
                 // let mut s = buf.text().to_string();

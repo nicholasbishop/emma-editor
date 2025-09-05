@@ -4,7 +4,7 @@ use emma_app::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
 use emma_app::key::{Key, Modifiers};
 use emma_app::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
 use emma_app::key_sequence::{KeySequence, KeySequenceAtom};
-use emma_app::message::ToGtkMsg;
+use emma_app::message::{Message, MessageWriter};
 use emma_app::overlay::Overlay;
 use emma_app::pane_tree::{Pane, PaneTree};
 use emma_app::path_chooser::PathChooser;
@@ -12,7 +12,6 @@ use emma_app::search_widget::SearchWidget;
 use emma_app::widget::Widget;
 use fs_err as fs;
 use std::collections::HashMap;
-use std::io::{PipeWriter, Write};
 use std::path::Path;
 use tracing::{error, info, instrument};
 
@@ -227,7 +226,7 @@ impl AppState {
     pub(crate) fn handle_action(
         &mut self,
         action: Action,
-        mut to_gtk_writer: &PipeWriter,
+        message_writer: &MessageWriter,
     ) -> Result<()> {
         info!("handling action {:?}", action);
 
@@ -235,8 +234,7 @@ impl AppState {
 
         match action {
             Action::Exit => {
-                serde_json::to_writer(to_gtk_writer, &ToGtkMsg::Close)?;
-                to_gtk_writer.write_all(b"\n")?;
+                message_writer.send(Message::Close)?;
                 buffer_changed = false;
             }
             Action::Insert(key) => {
@@ -354,7 +352,7 @@ impl AppState {
             Action::RunNonInteractiveProcess => {
                 let mut buf = Buffer::create_for_non_interactive_process();
                 let buf_id = buf.id().clone();
-                buf.run_non_interactive_process(to_gtk_writer)?;
+                buf.run_non_interactive_process(message_writer)?;
 
                 self.buffers.insert(buf_id.clone(), buf);
                 self.pane_tree
@@ -397,7 +395,7 @@ impl AppState {
         &mut self,
         key: Key,
         modifiers: Modifiers,
-        to_gtk_writer: &PipeWriter,
+        message_writer: &MessageWriter,
     ) {
         let mut keymap_stack = KeyMapStack::default();
         keymap_stack.push(Ok(self.key_handler.base_keymap.clone()));
@@ -430,7 +428,7 @@ impl AppState {
                 // Waiting for the sequence to be completed.
             }
             KeyMapLookup::Action(action) => {
-                if let Err(err) = self.handle_action(action, to_gtk_writer) {
+                if let Err(err) = self.handle_action(action, message_writer) {
                     error!("failed to handle action: {err}");
                     self.display_error(err);
                 }
@@ -446,9 +444,9 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use emma_app::message::create_message_pipe;
     use gtk4::glib::MainContext;
     use std::cell::RefCell;
-    use std::io::{self, BufRead, BufReader};
     use std::rc::Rc;
 
     /// Test running a non-interactive process in a buffer.
@@ -457,8 +455,7 @@ mod tests {
         let app_state =
             Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
 
-        let (reader, writer) = io::pipe()?;
-        let mut reader = BufReader::new(reader);
+        let (mut reader, writer) = create_message_pipe()?;
 
         app_state
             .clone()
@@ -506,13 +503,8 @@ mod tests {
 
         // TODO: would be nice to test the buffer text, but currently
         // that's handled by code in a glib signal handler.
-        let mut msg = Vec::new();
-        reader.read_until(b'\n', &mut msg)?;
-        let msg: ToGtkMsg = serde_json::from_slice(&msg)?;
-        assert_eq!(
-            msg,
-            ToGtkMsg::AppendToBuffer(buf_id, "hello!\n".to_owned())
-        );
+        let msg = reader.read()?;
+        assert_eq!(msg, Message::AppendToBuffer(buf_id, "hello!\n".to_owned()));
 
         // TODO
         // assert_eq!(get_buf_text(app_state), "hello!\n");
@@ -523,7 +515,7 @@ mod tests {
     // TODO: experimental test.
     #[test]
     fn test_file_open() -> Result<()> {
-        let (_reader, writer) = io::pipe()?;
+        let (_reader, writer) = create_message_pipe()?;
 
         let app_state =
             Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
