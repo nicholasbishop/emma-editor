@@ -1,22 +1,22 @@
-// TODO: can some of these be private?
+mod key_map;
+mod key_sequence;
+mod path_chooser;
+mod process;
+mod search_widget;
+mod shell;
+mod util;
+
 pub mod action;
 pub mod buffer;
 pub mod config;
 pub mod grapheme;
 pub mod key;
-pub mod key_map;
-pub mod key_sequence;
 pub mod message;
 pub mod overlay;
 pub mod pane_tree;
-pub mod path_chooser;
-pub mod process;
 pub mod rope;
-pub mod search_widget;
-pub mod shell;
 pub mod state;
 pub mod theme;
-pub mod util;
 pub mod widget;
 
 // TODO: location
