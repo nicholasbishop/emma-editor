@@ -1,6 +1,7 @@
+use crate::action::{Action, Move};
 use crate::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
 use crate::key::{Key, Modifiers};
-use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
+use crate::key_map::{KeyMap, KeyMapLookup, KeyMapStack};
 use crate::key_sequence::{KeySequence, KeySequenceAtom};
 use crate::message::{Message, MessageWriter};
 use crate::overlay::Overlay;

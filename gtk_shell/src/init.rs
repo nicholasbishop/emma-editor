@@ -1,6 +1,6 @@
 use crate::{draw, key};
+use emma_app::action::Action;
 use emma_app::config::Config;
-use emma_app::key_map::Action;
 use emma_app::message::{Message, create_message_pipe};
 use emma_app::state::AppState;
 use emma_app::theme::Theme;

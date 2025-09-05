@@ -1,8 +1,9 @@
 #![expect(clippy::new_without_default)]
 
 use crate::LineHeight;
+use crate::action::Action;
 use crate::buffer::Buffer;
-use crate::key_map::{Action, KeyMap};
+use crate::key_map::KeyMap;
 use crate::pane_tree::{Pane, Rect};
 use crate::rope::AbsChar;
 use crate::widget::Widget;

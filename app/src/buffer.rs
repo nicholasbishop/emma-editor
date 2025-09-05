@@ -22,7 +22,7 @@ use syntect::highlighting::{
 use syntect::parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet};
 
 // TODO: move this into this file?
-use crate::key_map::Move;
+use crate::action::Move;
 
 // TODO: not sure where we want these.
 pub const PROMPT_END: &str = "prompt_end";

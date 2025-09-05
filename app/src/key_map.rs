@@ -1,70 +1,11 @@
-use crate::buffer::{Boundary, BufferId, Direction};
+use crate::action::{Action, Move};
+use crate::buffer::{Boundary, Direction};
 use crate::key::Modifier;
 use crate::key_sequence::KeySequence;
 use crate::pane_tree;
 use anyhow::Result;
 use std::collections::HashMap;
 use tracing::{debug, error, instrument};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Move {
-    Boundary(Boundary),
-    Line,
-    Page,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Action {
-    // Used in tests.
-    #[cfg(test)]
-    Test(&'static str),
-
-    // Insert text for a key press, e.g. pressing the 'a' key inserts
-    // an 'a' character into the active buffer.
-    Insert(char),
-
-    // Insert a new line after the cursor. The cursor position is left
-    // unchanged.
-    InsertLineAfter,
-
-    Exit,
-    OpenFile,
-    SaveFile,
-    PreviousPane,
-    NextPane,
-    SplitPane(pane_tree::Orientation),
-    ClosePane,
-    Confirm,
-    OpenShell,
-    InteractiveSearch,
-    SearchNext,
-
-    Undo,
-    Redo,
-
-    /// Delete text in the active pane.
-    Delete(Boundary, Direction),
-
-    /// Delete the buffer in the active pane.
-    DeleteBuffer,
-
-    /// Move the cursor in the active pane.
-    Move(Move, Direction),
-
-    /// Interactively switch to a different buffer.
-    SwitchToBuffer,
-
-    /// Cancel the current operation, e.g. opening a file.
-    Cancel,
-
-    /// Try to autocomplete something, e.g. a file path.
-    Autocomplete,
-
-    RunNonInteractiveProcess,
-
-    // TODO: maybe not the right level of specificity
-    AppendToBuffer(BufferId, String),
-}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum KeyMapLookup {

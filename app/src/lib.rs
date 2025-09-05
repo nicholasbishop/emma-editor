@@ -1,3 +1,5 @@
+// TODO: can some of these be private?
+pub mod action;
 pub mod buffer;
 pub mod config;
 pub mod grapheme;
