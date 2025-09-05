@@ -1,5 +1,22 @@
-use crate::buffer::{Boundary, BufferId, Direction};
+use crate::buffer::BufferId;
 use crate::pane_tree::Orientation;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Direction {
+    Dec,
+    Inc,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Boundary {
+    Grapheme,
+    LineEnd,
+    BufferEnd,
+    // TODO:
+    // Subword,
+    // Word,
+    // LineEndExcludingWhitespace,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Move {

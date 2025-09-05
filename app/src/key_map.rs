@@ -1,5 +1,4 @@
-use crate::action::{Action, Move};
-use crate::buffer::{Boundary, Direction};
+use crate::action::{Action, Boundary, Direction, Move};
 use crate::key::Modifier;
 use crate::key_sequence::KeySequence;
 use crate::pane_tree;

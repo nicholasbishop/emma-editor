@@ -1,6 +1,6 @@
 use crate::LineHeight;
-use crate::action::{Action, Move};
-use crate::buffer::{Boundary, Buffer, Direction};
+use crate::action::{Action, Boundary, Direction, Move};
+use crate::buffer::Buffer;
 use crate::key_map::KeyMap;
 use crate::pane_tree::{Pane, Rect};
 use crate::rope::AbsChar;

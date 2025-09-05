@@ -1,5 +1,5 @@
-use crate::action::{Action, Move};
-use crate::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
+use crate::action::{Action, Boundary, Direction, Move};
+use crate::buffer::{Buffer, BufferId, LinePosition};
 use crate::key::{Key, Modifiers};
 use crate::key_map::{KeyMap, KeyMapLookup, KeyMapStack};
 use crate::key_sequence::{KeySequence, KeySequenceAtom};

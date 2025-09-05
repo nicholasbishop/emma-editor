@@ -1,5 +1,6 @@
 pub use crate::rope::{AbsChar, AbsLine, LinesIterItem, RelChar, RelLine};
 
+use crate::action::{Boundary, Direction, Move};
 use crate::grapheme::{next_grapheme_boundary, prev_grapheme_boundary};
 use crate::message::MessageWriter;
 use crate::pane_tree::{Pane, PaneId};
@@ -21,32 +22,12 @@ use syntect::highlighting::{
 };
 use syntect::parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet};
 
-// TODO: move this into this file?
-use crate::action::Move;
-
 // TODO: not sure where we want these.
 pub const PROMPT_END: &str = "prompt_end";
 pub const COMPLETION_START: &str = "completion_start";
 
 // TODO: location
 pub type BufferMap = HashMap<BufferId, Buffer>;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Direction {
-    Dec,
-    Inc,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Boundary {
-    Grapheme,
-    LineEnd,
-    BufferEnd,
-    // TODO:
-    // Subword,
-    // Word,
-    // LineEndExcludingWhitespace,
-}
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Deserialize, Serialize)]
 pub struct BufferId(String);
