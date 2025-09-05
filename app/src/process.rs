@@ -2,17 +2,14 @@
 
 use crate::buffer::BufferId;
 use crate::message::{Message, MessageWriter};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::io::Read;
-use std::os::fd::{AsFd, BorrowedFd};
-use std::process::{Child, ChildStdout, Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::thread::{self, JoinHandle};
 
 pub struct NonInteractiveProcess {
     command: Command,
     child: Option<Child>,
-    // TODO: pipe with both stdout and stderr
-    output: Option<ChildStdout>,
     thread_handle: Option<JoinHandle<()>>,
 }
 
@@ -25,7 +22,6 @@ impl NonInteractiveProcess {
         Self {
             command,
             child: None,
-            output: None,
             thread_handle: None,
         }
     }
@@ -77,18 +73,6 @@ impl NonInteractiveProcess {
         self.thread_handle = Some(thread_handle);
 
         Ok(())
-    }
-
-    pub fn output_fd(&self) -> BorrowedFd<'_> {
-        self.output.as_ref().unwrap().as_fd()
-    }
-
-    pub fn read_output(&mut self) -> Result<Vec<u8>> {
-        let output = self.output.as_mut().context("not running")?;
-        let mut buf = vec![0; 1024];
-        let len = output.read(&mut buf)?;
-        buf.truncate(len);
-        Ok(buf)
     }
 
     // TODO
