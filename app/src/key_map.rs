@@ -240,12 +240,18 @@ mod tests {
     fn test_lookup() {
         let mut stack = KeyMapStack::default();
 
+        let a_base = 'a';
+        let b_base = 'b';
+        let x_base = 'x';
+        let a_overlay = 'A';
+        let c_overlay = 'C';
+
         stack.push(KeyMap::from_pairs(
             "base",
             vec![
-                ("<ctrl>a", Action::Test("a base")),
-                ("<ctrl>b", Action::Test("b base")),
-                ("x", Action::Test("x base")),
+                ("<ctrl>a", Action::Insert(a_base)),
+                ("<ctrl>b", Action::Insert(b_base)),
+                ("x", Action::Insert(x_base)),
             ]
             .into_iter(),
         ));
@@ -253,8 +259,8 @@ mod tests {
         stack.push(KeyMap::from_pairs(
             "overlay",
             vec![
-                ("<ctrl>a", Action::Test("a overlay")),
-                ("<ctrl>c", Action::Test("c overlay")),
+                ("<ctrl>a", Action::Insert(a_overlay)),
+                ("<ctrl>c", Action::Insert(c_overlay)),
             ]
             .into_iter(),
         ));
@@ -262,26 +268,26 @@ mod tests {
         // Overlay overrides base.
         assert_eq!(
             stack.lookup(&KeySequence::parse("<ctrl>a").unwrap()),
-            KeyMapLookup::Action(Action::Test("a overlay"))
+            KeyMapLookup::Action(Action::Insert(a_overlay))
         );
 
         // Item only in overlay is used.
         assert_eq!(
             stack.lookup(&KeySequence::parse("<ctrl>c").unwrap()),
-            KeyMapLookup::Action(Action::Test("c overlay"))
+            KeyMapLookup::Action(Action::Insert(c_overlay))
         );
 
         // Item only in base is used.
         assert_eq!(
             stack.lookup(&KeySequence::parse("<ctrl>b").unwrap()),
-            KeyMapLookup::Action(Action::Test("b base"))
+            KeyMapLookup::Action(Action::Insert(b_base))
         );
 
         // Single-character sequence properly falls through the overlay
         // keymap and is found in the base keymap.
         assert_eq!(
             stack.lookup(&KeySequence::parse("x").unwrap()),
-            KeyMapLookup::Action(Action::Test("x base"))
+            KeyMapLookup::Action(Action::Insert(x_base))
         );
 
         // Simple sequence not in any keymap.

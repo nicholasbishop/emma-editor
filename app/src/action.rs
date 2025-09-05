@@ -28,10 +28,6 @@ pub enum Move {
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Action {
-    // Used in tests.
-    #[cfg(test)]
-    Test(&'static str),
-
     // Insert text for a key press, e.g. pressing the 'a' key inserts
     // an 'a' character into the active buffer.
     Insert(char),
