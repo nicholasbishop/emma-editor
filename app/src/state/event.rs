@@ -445,8 +445,6 @@ impl AppState {
 mod tests {
     use super::*;
     use crate::message::create_message_pipe;
-    use std::cell::RefCell;
-    use std::rc::Rc;
 
     // TODO: simplify AppState::load, then maybe won't need this anymore.
     pub(crate) fn create_empty_app_state() -> AppState {
@@ -469,17 +467,13 @@ mod tests {
     /// Test running a non-interactive process in a buffer.
     #[test]
     fn test_non_interactive_process() -> Result<()> {
-        let app_state = Rc::new(RefCell::new(create_empty_app_state()));
+        let mut state = create_empty_app_state();
 
         let (mut reader, writer) = create_message_pipe()?;
 
-        app_state
-            .clone()
-            .borrow_mut()
-            .handle_action(Action::RunNonInteractiveProcess, &writer)?;
+        state.handle_action(Action::RunNonInteractiveProcess, &writer)?;
 
         let buf_id = {
-            let state = app_state.borrow_mut();
             let buf = state
                 .buffers
                 .values()
@@ -506,7 +500,7 @@ mod tests {
     fn test_file_open() -> Result<()> {
         let (_reader, writer) = create_message_pipe()?;
 
-        let app_state = Rc::new(RefCell::new(create_empty_app_state()));
+        let mut state = create_empty_app_state();
 
         // Create test files.
         let tmp_dir = tempfile::tempdir()?;
@@ -517,22 +511,16 @@ mod tests {
         fs::write(&tmp_path2, "test data 2\n")?;
 
         // Open the test file non-interactively.
-        app_state.borrow_mut().open_file_at_path(&tmp_path1)?;
+        state.open_file_at_path(&tmp_path1)?;
 
         // Test interactive open.
-        app_state
-            .borrow_mut()
-            .handle_action(Action::OpenFile, &writer)?;
+        state.handle_action(Action::OpenFile, &writer)?;
 
         // Type in the path.
         for c in "/testfile2".chars() {
-            app_state
-                .borrow_mut()
-                .handle_action(Action::Insert(c), &writer)?;
+            state.handle_action(Action::Insert(c), &writer)?;
         }
-        app_state
-            .borrow_mut()
-            .handle_action(Action::Confirm, &writer)?;
+        state.handle_action(Action::Confirm, &writer)?;
 
         Ok(())
     }
