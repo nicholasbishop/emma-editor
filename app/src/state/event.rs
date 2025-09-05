@@ -1,15 +1,15 @@
-use crate::app::AppState;
+use crate::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
+use crate::key::{Key, Modifiers};
+use crate::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
+use crate::key_sequence::{KeySequence, KeySequenceAtom};
+use crate::message::{Message, MessageWriter};
+use crate::overlay::Overlay;
+use crate::pane_tree::{Pane, PaneTree};
+use crate::path_chooser::PathChooser;
+use crate::search_widget::SearchWidget;
+use crate::state::AppState;
+use crate::widget::Widget;
 use anyhow::{Context, Error, Result, anyhow};
-use emma_app::buffer::{Boundary, Buffer, BufferId, Direction, LinePosition};
-use emma_app::key::{Key, Modifiers};
-use emma_app::key_map::{Action, KeyMap, KeyMapLookup, KeyMapStack, Move};
-use emma_app::key_sequence::{KeySequence, KeySequenceAtom};
-use emma_app::message::{Message, MessageWriter};
-use emma_app::overlay::Overlay;
-use emma_app::pane_tree::{Pane, PaneTree};
-use emma_app::path_chooser::PathChooser;
-use emma_app::search_widget::SearchWidget;
-use emma_app::widget::Widget;
 use fs_err as fs;
 use std::collections::HashMap;
 use std::path::Path;
@@ -223,7 +223,7 @@ impl AppState {
         Ok(())
     }
 
-    pub(crate) fn handle_action(
+    pub fn handle_action(
         &mut self,
         action: Action,
         message_writer: &MessageWriter,
@@ -391,7 +391,7 @@ impl AppState {
         Ok(())
     }
 
-    pub(super) fn handle_key_press(
+    pub fn handle_key_press(
         &mut self,
         key: Key,
         modifiers: Modifiers,
@@ -444,15 +444,32 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use emma_app::message::create_message_pipe;
+    use crate::message::create_message_pipe;
     use std::cell::RefCell;
     use std::rc::Rc;
+
+    // TODO: simplify AppState::load, then maybe won't need this anymore.
+    pub(crate) fn create_empty_app_state() -> AppState {
+        AppState::load(&[], Err(anyhow!("")))
+    }
+
+    // TODO: experimenting with gtk test.
+    #[test]
+    fn test_app_state() {
+        let app_state = create_empty_app_state();
+
+        let panes = app_state.pane_tree.panes();
+        assert_eq!(panes.len(), 1);
+        assert_eq!(app_state.pane_tree.active().id(), panes[0].id());
+
+        // Scratch buffer.
+        assert_eq!(app_state.buffers.len(), 1);
+    }
 
     /// Test running a non-interactive process in a buffer.
     #[test]
     fn test_non_interactive_process() -> Result<()> {
-        let app_state =
-            Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
+        let app_state = Rc::new(RefCell::new(create_empty_app_state()));
 
         let (mut reader, writer) = create_message_pipe()?;
 
@@ -489,8 +506,7 @@ mod tests {
     fn test_file_open() -> Result<()> {
         let (_reader, writer) = create_message_pipe()?;
 
-        let app_state =
-            Rc::new(RefCell::new(crate::app::tests::create_empty_app_state()));
+        let app_state = Rc::new(RefCell::new(create_empty_app_state()));
 
         // Create test files.
         let tmp_dir = tempfile::tempdir()?;

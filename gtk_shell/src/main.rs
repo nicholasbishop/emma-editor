@@ -1,7 +1,7 @@
 #![warn(clippy::use_self)]
 
-mod app;
 mod draw;
+mod init;
 
 use gtk4::Application;
 use gtk4::prelude::{ApplicationExt, ApplicationExtManual};
@@ -14,7 +14,7 @@ fn main() {
         .register_session(true)
         .build();
 
-    application.connect_startup(app::init);
+    application.connect_startup(init::init);
 
     application.run();
 }

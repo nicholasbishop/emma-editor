@@ -1,4 +1,3 @@
-use crate::app::AppState;
 use anyhow::Result;
 use emma_app::LineHeight;
 use emma_app::buffer::{
@@ -8,6 +7,7 @@ use emma_app::grapheme::next_grapheme_boundary;
 use emma_app::overlay::Overlay;
 use emma_app::pane_tree::Pane;
 use emma_app::rope::{LineDataVec, RopeSlice};
+use emma_app::state::AppState;
 use emma_app::theme::Theme;
 use emma_app::widget::Widget;
 use gtk4::pango::{self, Layout};

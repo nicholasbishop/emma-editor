@@ -12,6 +12,7 @@ pub mod process;
 pub mod rope;
 pub mod search_widget;
 pub mod shell;
+pub mod state;
 pub mod theme;
 pub mod util;
 pub mod widget;
