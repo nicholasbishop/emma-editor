@@ -1,7 +1,7 @@
-mod draw;
 mod event;
 mod persistence;
 
+use crate::draw;
 use anyhow::Result;
 use emma_app::LineHeight;
 use emma_app::buffer::{Buffer, BufferId};
@@ -45,6 +45,18 @@ pub(crate) struct AppState {
 }
 
 impl AppState {
+    pub fn buffers(&self) -> &HashMap<BufferId, Buffer> {
+        &self.buffers
+    }
+
+    pub fn pane_tree(&self) -> &PaneTree {
+        &self.pane_tree
+    }
+
+    pub fn overlay(&self) -> Option<&Overlay> {
+        self.overlay.as_ref()
+    }
+
     // TODO: for the persisted data, perhaps we want a trait to abstract
     // that instead of passing the data in.
     fn load(
@@ -192,7 +204,8 @@ pub fn init(application: &Application) {
                 overlay.recalc_layout(width, line_height);
             }
 
-            state.draw(
+            draw::draw(
+                &state,
                 widget,
                 ctx,
                 width,

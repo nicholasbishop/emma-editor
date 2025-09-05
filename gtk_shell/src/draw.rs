@@ -494,103 +494,33 @@ impl DrawPane<'_> {
     }
 }
 
-impl AppState {
-    // Errors here are logged but otherwise swallowed.
-    pub(super) fn draw(
-        &self,
-        widget: &DrawingArea,
-        ctx: &cairo::Context,
-        width: f64,
-        height: f64,
-        line_height: LineHeight,
-        theme: &Theme,
-    ) {
-        // Fill in the background. This acts as the border color
-        // between panes. Don't go all the way to the right
-        // edge to avoid an unwanted border there.
-        let border = 1.0;
-        ctx.rectangle(0.0, 0.0, width - border, height);
-        set_source_rgb_from_u8(ctx, 220, 220, 204);
-        if let Err(err) = ctx.fill() {
-            error!("fill failed: {}", err);
-        }
-
-        for pane in self.pane_tree.panes() {
-            let buf = self.buffers.get(pane.buffer_id()).unwrap();
-
-            let mut dp = DrawPane {
-                ctx,
-                widget,
-                pane,
-                buf,
-                line_height,
-                theme,
-                span_buf: String::new(),
-                margin: 2.0,
-                cursor: LinePosition::default(),
-                len_lines: buf.text().len_lines(),
-                pos: Point::default(),
-            };
-            if let Err(err) = dp.draw() {
-                error!("failed to draw pane: {}", err);
-            }
-        }
-
-        self.draw_interactive_widget(widget, ctx, line_height, theme);
+// Errors here are logged but otherwise swallowed.
+pub(super) fn draw(
+    state: &AppState,
+    widget: &DrawingArea,
+    ctx: &cairo::Context,
+    width: f64,
+    height: f64,
+    line_height: LineHeight,
+    theme: &Theme,
+) {
+    // Fill in the background. This acts as the border color
+    // between panes. Don't go all the way to the right
+    // edge to avoid an unwanted border there.
+    let border = 1.0;
+    ctx.rectangle(0.0, 0.0, width - border, height);
+    set_source_rgb_from_u8(ctx, 220, 220, 204);
+    if let Err(err) = ctx.fill() {
+        error!("fill failed: {}", err);
     }
 
-    fn draw_interactive_widget(
-        &self,
-        widget: &DrawingArea,
-        ctx: &cairo::Context,
-        line_height: LineHeight,
-        theme: &Theme,
-    ) {
-        let Some(overlay) = &self.overlay else {
-            return;
-        };
+    for pane in state.pane_tree().panes() {
+        let buf = state.buffers().get(pane.buffer_id()).unwrap();
 
-        // Fill in the background.
-        let r = overlay.rect();
-        ctx.rectangle(0.0, 0.0, r.width, r.height);
-        set_source_rgb_from_u8(ctx, 63, 63, 100);
-        if let Err(err) = ctx.fill() {
-            error!("fill failed: {}", err);
-        }
-
-        // Vertical drop shadow at the bottom of the widget.
-        let shadow_height = 20.0;
-        let gradient = cairo::LinearGradient::new(
-            0.0,
-            r.bottom(),
-            0.0,
-            r.bottom() + shadow_height,
-        );
-        gradient.add_color_stop_rgba(0.0, 0.0, 0.0, 0.0, 1.0);
-        gradient.add_color_stop_rgba(1.0, 0.0, 0.0, 0.0, 0.0);
-        ctx.set_source(gradient).unwrap();
-        ctx.rectangle(0.0, r.bottom(), r.width, shadow_height);
-        if let Err(err) = ctx.fill() {
-            error!("fill failed: {}", err);
-        }
-
-        let prompt = match overlay {
-            Overlay::OpenFile(_) => "Open file:",
-            Overlay::Search(_) => "Search:",
-        };
-
-        // Prompt.
-        let layout = widget.create_pango_layout(Some(prompt));
-        set_source_rgb_from_u8(ctx, 200, 200, 200);
-        ctx.move_to(r.x, r.y);
-        pangocairo::functions::show_layout(ctx, &layout);
-
-        let buf = overlay.buffer();
-        // TODO: dedup?
         let mut dp = DrawPane {
             ctx,
             widget,
-            pane: overlay.pane(),
+            pane,
             buf,
             line_height,
             theme,
@@ -603,14 +533,79 @@ impl AppState {
         if let Err(err) = dp.draw() {
             error!("failed to draw pane: {}", err);
         }
+    }
 
-        // Suggestions.
-        if let Overlay::OpenFile(open_file) = overlay {
-            let layout =
-                widget.create_pango_layout(Some(&open_file.suggestions()));
-            set_source_rgb_from_u8(ctx, 200, 200, 200);
-            ctx.move_to(r.x, r.y + line_height.0 * 2.0);
-            pangocairo::functions::show_layout(ctx, &layout);
-        }
+    if let Some(overlay) = &state.overlay() {
+        draw_interactive_widget(overlay, widget, ctx, line_height, theme);
+    }
+}
+
+fn draw_interactive_widget(
+    overlay: &Overlay,
+    widget: &DrawingArea,
+    ctx: &cairo::Context,
+    line_height: LineHeight,
+    theme: &Theme,
+) {
+    // Fill in the background.
+    let r = overlay.rect();
+    ctx.rectangle(0.0, 0.0, r.width, r.height);
+    set_source_rgb_from_u8(ctx, 63, 63, 100);
+    if let Err(err) = ctx.fill() {
+        error!("fill failed: {}", err);
+    }
+
+    // Vertical drop shadow at the bottom of the widget.
+    let shadow_height = 20.0;
+    let gradient = cairo::LinearGradient::new(
+        0.0,
+        r.bottom(),
+        0.0,
+        r.bottom() + shadow_height,
+    );
+    gradient.add_color_stop_rgba(0.0, 0.0, 0.0, 0.0, 1.0);
+    gradient.add_color_stop_rgba(1.0, 0.0, 0.0, 0.0, 0.0);
+    ctx.set_source(gradient).unwrap();
+    ctx.rectangle(0.0, r.bottom(), r.width, shadow_height);
+    if let Err(err) = ctx.fill() {
+        error!("fill failed: {}", err);
+    }
+
+    let prompt = match overlay {
+        Overlay::OpenFile(_) => "Open file:",
+        Overlay::Search(_) => "Search:",
+    };
+
+    // Prompt.
+    let layout = widget.create_pango_layout(Some(prompt));
+    set_source_rgb_from_u8(ctx, 200, 200, 200);
+    ctx.move_to(r.x, r.y);
+    pangocairo::functions::show_layout(ctx, &layout);
+
+    let buf = overlay.buffer();
+    // TODO: dedup?
+    let mut dp = DrawPane {
+        ctx,
+        widget,
+        pane: overlay.pane(),
+        buf,
+        line_height,
+        theme,
+        span_buf: String::new(),
+        margin: 2.0,
+        cursor: LinePosition::default(),
+        len_lines: buf.text().len_lines(),
+        pos: Point::default(),
+    };
+    if let Err(err) = dp.draw() {
+        error!("failed to draw pane: {}", err);
+    }
+
+    // Suggestions.
+    if let Overlay::OpenFile(open_file) = overlay {
+        let layout = widget.create_pango_layout(Some(&open_file.suggestions()));
+        set_source_rgb_from_u8(ctx, 200, 200, 200);
+        ctx.move_to(r.x, r.y + line_height.0 * 2.0);
+        pangocairo::functions::show_layout(ctx, &layout);
     }
 }

@@ -1,6 +1,7 @@
 #![warn(clippy::use_self)]
 
 mod app;
+mod draw;
 
 use gtk4::Application;
 use gtk4::prelude::{ApplicationExt, ApplicationExtManual};
