@@ -1,4 +1,4 @@
-use crate::buffer::BufferId;
+use crate::action::Action;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::io::{self, BufRead, BufReader, PipeReader, PipeWriter, Write};
@@ -9,9 +9,8 @@ pub enum Message {
     /// Exit the whole application.
     Close,
 
-    // TODO: not sure if we want something more specific. This is used
-    // for appending subprocess output to a buffer.
-    AppendToBuffer(BufferId, String),
+    /// Forward an action to the app's action handler.
+    Action(Action),
 }
 
 pub struct MessageReader(BufReader<PipeReader>);

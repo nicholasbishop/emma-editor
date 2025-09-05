@@ -488,7 +488,13 @@ mod tests {
         // TODO: would be nice to test the buffer text, but currently
         // that's handled by code in a glib signal handler.
         let msg = reader.read()?;
-        assert_eq!(msg, Message::AppendToBuffer(buf_id, "hello!\n".to_owned()));
+        assert_eq!(
+            msg,
+            Message::Action(Action::AppendToBuffer(
+                buf_id,
+                "hello!\n".to_owned()
+            ))
+        );
 
         // TODO
         // assert_eq!(get_buf_text(app_state), "hello!\n");

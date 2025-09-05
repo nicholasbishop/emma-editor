@@ -1,5 +1,6 @@
 #![expect(clippy::new_without_default)]
 
+use crate::action::Action;
 use crate::buffer::BufferId;
 use crate::message::{Message, MessageWriter};
 use anyhow::Result;
@@ -61,7 +62,10 @@ impl NonInteractiveProcess {
                 let output = String::from_utf8(output).unwrap();
 
                 message_writer
-                    .send(Message::AppendToBuffer(buf_id.clone(), output))
+                    .send(Message::Action(Action::AppendToBuffer(
+                        buf_id.clone(),
+                        output,
+                    )))
                     .unwrap();
 
                 // TODO: add a way to insert text directly.

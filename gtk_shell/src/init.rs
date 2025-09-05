@@ -1,5 +1,4 @@
 use crate::{draw, key};
-use emma_app::action::Action;
 use emma_app::config::Config;
 use emma_app::message::{Message, create_message_pipe};
 use emma_app::state::AppState;
@@ -135,15 +134,11 @@ pub fn init(application: &Application) {
 
                 match msg {
                     Message::Close => window.close(),
-                    Message::AppendToBuffer(buf_id, content) => {
-                        state
-                            .borrow_mut()
-                            .handle_action(
-                                Action::AppendToBuffer(buf_id, content),
-                                &message_writer_2,
-                            )
-                            .unwrap();
-                    }
+                    Message::Action(action) => state
+                        .borrow_mut()
+                        .handle_action(action, &message_writer_2)
+                        // TODO: unwrap
+                        .unwrap(),
                 }
 
                 // Keep the callback.
