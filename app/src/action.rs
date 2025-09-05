@@ -1,13 +1,14 @@
 use crate::buffer::BufferId;
 use crate::pane_tree::Orientation;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Direction {
     Dec,
     Inc,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Boundary {
     Grapheme,
     LineEnd,
@@ -18,14 +19,14 @@ pub enum Boundary {
     // LineEndExcludingWhitespace,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Move {
     Boundary(Boundary),
     Line,
     Page,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Action {
     // Used in tests.
     #[cfg(test)]
