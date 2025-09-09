@@ -493,24 +493,22 @@ mod tests {
             buf.id().clone()
         };
 
-        // assert_eq!(get_buf_text(app_state.clone()), "");
+        assert_eq!(state.buffers[&buf_id].text().to_string(), "");
 
-        // TODO: would be nice to test the buffer text, but currently
-        // that's handled by code in a glib signal handler.
-        let msg = reader.read()?;
-        assert_eq!(
-            msg,
-            Message::Action(Action::AppendToBuffer(
-                buf_id.clone(),
-                "hello!\n".to_owned()
-            ))
-        );
+        // Run the event loop up to and including `ProcessFinished`.
+        let mut running = true;
+        while running {
+            let Message::Action(action) = reader.read()? else {
+                panic!();
+            };
+            if matches!(action, Action::ProcessFinished(_)) {
+                running = false;
+            }
+            state.handle_action(action, &writer)?;
+        }
 
-        let msg = reader.read()?;
-        assert_eq!(msg, Message::Action(Action::ProcessFinished(buf_id)));
-
-        // TODO
-        // assert_eq!(get_buf_text(app_state), "hello!\n");
+        // Verify the final buffer text.
+        assert_eq!(state.buffers[&buf_id].text().to_string(), "hello!\n");
 
         Ok(())
     }
