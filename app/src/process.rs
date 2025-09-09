@@ -5,12 +5,12 @@ use crate::buffer::BufferId;
 use crate::message::{Message, MessageWriter};
 use anyhow::Result;
 use std::io::Read;
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 use std::thread::{self, JoinHandle};
 
 pub struct NonInteractiveProcess {
     command: Command,
-    child: Option<Child>,
+    is_running: bool,
     thread_handle: Option<JoinHandle<()>>,
 }
 
@@ -22,7 +22,7 @@ impl NonInteractiveProcess {
 
         Self {
             command,
-            child: None,
+            is_running: false,
             thread_handle: None,
         }
     }
@@ -33,8 +33,9 @@ impl NonInteractiveProcess {
         message_writer: MessageWriter,
     ) -> Result<()> {
         // TODO
-        assert!(self.child.is_none());
+        assert!(!self.is_running);
 
+        self.is_running = true;
         let mut child = self.command.stdout(Stdio::piped()).spawn()?;
         let mut output = Some(child.stdout.take().unwrap());
 
@@ -55,6 +56,13 @@ impl NonInteractiveProcess {
                 if output.is_empty() {
                     // Process finished.
                     let _status = child.wait().unwrap();
+
+                    message_writer
+                        .send(Message::Action(Action::ProcessFinished(
+                            buf_id.clone(),
+                        )))
+                        .unwrap();
+
                     return;
                 }
 
@@ -79,15 +87,10 @@ impl NonInteractiveProcess {
         Ok(())
     }
 
-    // TODO
-    #[allow(unused)]
-    pub fn is_running(&self) -> bool {
-        self.child.is_some()
-    }
+    pub fn set_finished(&mut self) {
+        assert!(self.is_running);
 
-    pub fn wait(&mut self) {
-        let mut child = self.child.take().unwrap();
-        let _status = child.wait().unwrap();
-        // TODO: do something with errors.
+        self.thread_handle.take().unwrap().join().unwrap();
+        self.is_running = false;
     }
 }

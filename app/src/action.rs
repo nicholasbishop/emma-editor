@@ -73,4 +73,7 @@ pub enum Action {
 
     // TODO: maybe not the right level of specificity
     AppendToBuffer(BufferId, String),
+
+    /// A background process completed.
+    ProcessFinished(BufferId),
 }

@@ -362,6 +362,16 @@ impl AppState {
 
                 buffer_changed = false;
             }
+            Action::ProcessFinished(buf_id) => {
+                let buf = self
+                    .buffers
+                    .get_mut(&buf_id)
+                    .context(format!("invalid buffer: {buf_id}"))?;
+
+                buf.set_non_interactive_process_finished()?;
+
+                buffer_changed = false;
+            }
             Action::AppendToBuffer(buf_id, content) => {
                 let buf = self
                     .buffers
@@ -491,10 +501,13 @@ mod tests {
         assert_eq!(
             msg,
             Message::Action(Action::AppendToBuffer(
-                buf_id,
+                buf_id.clone(),
                 "hello!\n".to_owned()
             ))
         );
+
+        let msg = reader.read()?;
+        assert_eq!(msg, Message::Action(Action::ProcessFinished(buf_id)));
 
         // TODO
         // assert_eq!(get_buf_text(app_state), "hello!\n");

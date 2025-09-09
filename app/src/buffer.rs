@@ -10,7 +10,7 @@ use crate::shell::Shell;
 use crate::theme::Theme;
 use crate::util;
 use aho_corasick::AhoCorasick;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{self};
@@ -273,6 +273,17 @@ impl Buffer {
     ) -> Result<()> {
         let proc = self.non_interactive_process.as_mut().unwrap();
         proc.run(self.id.clone(), message_writer.try_clone()?)
+    }
+
+    pub fn set_non_interactive_process_finished(&mut self) -> Result<()> {
+        self.non_interactive_process
+            .as_mut()
+            .context(format!(
+                "buffer {} does not have an associated process",
+                self.id,
+            ))?
+            .set_finished();
+        Ok(())
     }
 
     pub fn non_interactive_process(&self) -> Option<&NonInteractiveProcess> {
