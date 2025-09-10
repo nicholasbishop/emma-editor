@@ -571,13 +571,8 @@ fn draw_interactive_widget(
         error!("fill failed: {}", err);
     }
 
-    let prompt = match overlay {
-        Overlay::OpenFile(_) => "Open file:",
-        Overlay::Search(_) => "Search:",
-    };
-
     // Prompt.
-    let layout = widget.create_pango_layout(Some(prompt));
+    let layout = widget.create_pango_layout(Some(overlay.prompt()));
     set_source_rgb_from_u8(ctx, 200, 200, 200);
     ctx.move_to(r.x, r.y);
     pangocairo::functions::show_layout(ctx, &layout);

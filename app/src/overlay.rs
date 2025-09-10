@@ -13,6 +13,13 @@ pub enum Overlay {
 }
 
 impl Overlay {
+    pub fn prompt(&self) -> &'static str {
+        match self {
+            Self::OpenFile(_) => "Open file:",
+            Self::Search(_) => "Search:",
+        }
+    }
+
     fn widget(&self) -> &dyn Widget {
         match self {
             Self::OpenFile(w) => w,
