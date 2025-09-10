@@ -129,7 +129,7 @@ impl AppState {
         let line_height = self.line_height;
         let (pane, buf) = self.active_pane_mut_buffer_mut()?;
 
-        buf.move_cursor(pane.id(), step, dir)?;
+        buf.move_cursor(pane.id(), step, dir);
 
         let cursor = buf.cursor(pane.id());
         pane.maybe_rescroll(buf, cursor, line_height);

@@ -59,7 +59,7 @@ impl PathChooser {
                 self.pane.id(),
                 Move::Boundary(Boundary::LineEnd),
                 Direction::Inc,
-            )?;
+            );
             self.update_suggestions()
         } else {
             Ok(())

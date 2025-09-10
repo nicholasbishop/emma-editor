@@ -347,7 +347,7 @@ impl Buffer {
         pane_id: &PaneId,
         step: Move,
         dir: Direction,
-    ) -> Result<()> {
+    ) {
         let mut cursor = self.cursor(pane_id);
 
         match step {
@@ -398,8 +398,6 @@ impl Buffer {
         }
 
         self.set_cursor(pane_id, cursor);
-
-        Ok(())
     }
 
     pub fn set_cursor(&mut self, pane_id: &PaneId, cursor: AbsChar) {
@@ -733,8 +731,7 @@ mod tests {
             &pane_id,
             Move::Boundary(Boundary::LineEnd),
             Direction::Inc,
-        )
-        .unwrap();
+        );
         assert_eq!(buf.cursor(&pane_id), AbsChar(3));
     }
 
@@ -746,8 +743,7 @@ mod tests {
             &pane_id,
             Move::Boundary(Boundary::LineEnd),
             Direction::Inc,
-        )
-        .unwrap();
+        );
         assert_eq!(buf.cursor(&pane_id), AbsChar(3));
     }
 }
