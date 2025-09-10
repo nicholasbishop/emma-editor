@@ -1,3 +1,5 @@
+#![expect(clippy::new_without_default)]
+
 mod key_map;
 mod key_sequence;
 mod path_chooser;

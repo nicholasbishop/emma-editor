@@ -1,5 +1,3 @@
-#![expect(clippy::new_without_default)]
-
 use crate::LineHeight;
 use crate::action::Action;
 use crate::buffer::Buffer;

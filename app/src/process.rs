@@ -1,5 +1,3 @@
-#![expect(clippy::new_without_default)]
-
 use crate::action::Action;
 use crate::buffer::BufferId;
 use crate::message::{Message, MessageWriter};
