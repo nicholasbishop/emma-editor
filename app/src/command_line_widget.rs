@@ -1,6 +1,7 @@
 use crate::LineHeight;
 use crate::action::Action;
 use crate::buffer::Buffer;
+use crate::command_line::CommandLine;
 use crate::key_map::KeyMap;
 use crate::pane_tree::{Pane, Rect};
 use crate::widget::Widget;
@@ -24,8 +25,8 @@ impl CommandLineWidget {
         }
     }
 
-    pub fn text(&self) -> String {
-        self.buffer.text().to_string()
+    pub fn command_line(&self) -> CommandLine {
+        CommandLine::from_string(&self.buffer.text().to_string())
     }
 }
 

@@ -1,6 +1,7 @@
 pub use crate::rope::{AbsChar, AbsLine, LinesIterItem, RelChar, RelLine};
 
 use crate::action::{Boundary, Direction, Move};
+use crate::command_line::CommandLine;
 use crate::grapheme::{next_grapheme_boundary, prev_grapheme_boundary};
 use crate::message::MessageWriter;
 use crate::pane_tree::{Pane, PaneId};
@@ -269,10 +270,11 @@ impl Buffer {
 
     pub fn run_non_interactive_process(
         &mut self,
+        command_line: CommandLine,
         message_writer: &MessageWriter,
     ) -> Result<()> {
         let proc = self.non_interactive_process.as_mut().unwrap();
-        proc.run(self.id.clone(), message_writer.try_clone()?)
+        proc.run(command_line, self.id.clone(), message_writer.try_clone()?)
     }
 
     pub fn set_non_interactive_process_finished(&mut self) -> Result<()> {

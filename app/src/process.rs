@@ -1,25 +1,22 @@
 use crate::action::Action;
 use crate::buffer::BufferId;
+use crate::command_line::CommandLine;
 use crate::message::{Message, MessageWriter};
 use anyhow::Result;
 use std::io::Read;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::thread::{self, JoinHandle};
 
 pub struct NonInteractiveProcess {
-    command: Command,
+    command_line: CommandLine,
     is_running: bool,
     thread_handle: Option<JoinHandle<()>>,
 }
 
 impl NonInteractiveProcess {
     pub fn new() -> Self {
-        // TODO: just for initial testing
-        let mut command = Command::new("echo");
-        command.arg("hello!");
-
         Self {
-            command,
+            command_line: CommandLine::default(),
             is_running: false,
             thread_handle: None,
         }
@@ -27,14 +24,21 @@ impl NonInteractiveProcess {
 
     pub fn run(
         &mut self,
+        command_line: CommandLine,
         buf_id: BufferId,
         message_writer: MessageWriter,
     ) -> Result<()> {
         // TODO
         assert!(!self.is_running);
 
+        self.command_line = command_line;
+
         self.is_running = true;
-        let mut child = self.command.stdout(Stdio::piped()).spawn()?;
+        let mut child = self
+            .command_line
+            .to_command()
+            .stdout(Stdio::piped())
+            .spawn()?;
         let mut output = Some(child.stdout.take().unwrap());
 
         // TODO: unwraps

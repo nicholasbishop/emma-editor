@@ -1,5 +1,6 @@
 use crate::action::{Action, Boundary, Direction, Move};
 use crate::buffer::{Buffer, BufferId, LinePosition};
+use crate::command_line_widget::CommandLineWidget;
 use crate::key::{Key, Modifiers};
 use crate::key_map::{KeyMap, KeyMapLookup, KeyMapStack};
 use crate::key_sequence::{KeySequence, KeySequenceAtom};
@@ -154,16 +155,27 @@ impl AppState {
         Ok(())
     }
 
-    fn handle_confirm(&mut self) -> Result<()> {
+    fn handle_confirm(&mut self, message_writer: &MessageWriter) -> Result<()> {
         match &self.overlay {
             Some(Overlay::OpenFile(open_file)) => {
                 let path = open_file.path();
                 self.overlay = None;
                 self.open_file_at_path(&path)?;
-                return Ok(());
             }
-            Some(Overlay::RunProcess(_)) => {
-                todo!();
+            Some(Overlay::RunProcess(command_line_widget)) => {
+                let mut buf = Buffer::create_for_non_interactive_process();
+                let buf_id = buf.id().clone();
+                buf.run_non_interactive_process(
+                    command_line_widget.command_line(),
+                    message_writer,
+                )?;
+
+                self.buffers.insert(buf_id.clone(), buf);
+                self.pane_tree
+                    .active_mut()
+                    .switch_buffer(&mut self.buffers, &buf_id);
+
+                self.overlay = None;
             }
             Some(Overlay::Search(_)) => {
                 self.overlay = None;
@@ -189,9 +201,6 @@ impl AppState {
             Some(Overlay::OpenFile(open_file)) => {
                 open_file.update_suggestions()?;
             }
-            Some(Overlay::RunProcess(_)) => {
-                todo!()
-            }
             Some(Overlay::Search(search)) => {
                 let line_height = self.line_height;
 
@@ -204,7 +213,7 @@ impl AppState {
                     (pane.rect().height / line_height.0).round() as usize;
                 buf.search(&search.text(), pane, num_lines);
             }
-            None => {}
+            Some(Overlay::RunProcess(_)) | None => {}
         }
 
         Ok(())
@@ -342,7 +351,7 @@ impl AppState {
                 buffer_changed = false;
             }
             Action::Confirm => {
-                self.handle_confirm()?;
+                self.handle_confirm(message_writer)?;
                 buffer_changed = false;
             }
             Action::Cancel => {
@@ -357,15 +366,8 @@ impl AppState {
                 buffer_changed = true;
             }
             Action::RunNonInteractiveProcess => {
-                let mut buf = Buffer::create_for_non_interactive_process();
-                let buf_id = buf.id().clone();
-                buf.run_non_interactive_process(message_writer)?;
-
-                self.buffers.insert(buf_id.clone(), buf);
-                self.pane_tree
-                    .active_mut()
-                    .switch_buffer(&mut self.buffers, &buf_id);
-
+                self.overlay =
+                    Some(Overlay::RunProcess(CommandLineWidget::new()));
                 buffer_changed = false;
             }
             Action::ProcessFinished(buf_id) => {
