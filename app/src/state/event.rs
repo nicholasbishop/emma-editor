@@ -162,6 +162,9 @@ impl AppState {
                 self.open_file_at_path(&path)?;
                 return Ok(());
             }
+            Some(Overlay::RunProcess(_)) => {
+                todo!();
+            }
             Some(Overlay::Search(_)) => {
                 self.overlay = None;
 
@@ -185,6 +188,9 @@ impl AppState {
         match &mut self.overlay {
             Some(Overlay::OpenFile(open_file)) => {
                 open_file.update_suggestions()?;
+            }
+            Some(Overlay::RunProcess(_)) => {
+                todo!()
             }
             Some(Overlay::Search(search)) => {
                 let line_height = self.line_height;

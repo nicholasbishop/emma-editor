@@ -1,5 +1,6 @@
 use crate::LineHeight;
 use crate::buffer::Buffer;
+use crate::command_line_widget::CommandLineWidget;
 use crate::key_map::KeyMap;
 use crate::pane_tree::{Pane, Rect};
 use crate::path_chooser::PathChooser;
@@ -9,6 +10,7 @@ use anyhow::Result;
 
 pub enum Overlay {
     OpenFile(PathChooser),
+    RunProcess(CommandLineWidget),
     Search(SearchWidget),
 }
 
@@ -16,6 +18,7 @@ impl Overlay {
     pub fn prompt(&self) -> &'static str {
         match self {
             Self::OpenFile(_) => "Open file:",
+            Self::RunProcess(_) => "Run process:",
             Self::Search(_) => "Search:",
         }
     }
@@ -23,6 +26,7 @@ impl Overlay {
     fn widget(&self) -> &dyn Widget {
         match self {
             Self::OpenFile(w) => w,
+            Self::RunProcess(w) => w,
             Self::Search(w) => w,
         }
     }
@@ -30,6 +34,7 @@ impl Overlay {
     fn widget_mut(&mut self) -> &mut dyn Widget {
         match self {
             Self::OpenFile(w) => w,
+            Self::RunProcess(w) => w,
             Self::Search(w) => w,
         }
     }
