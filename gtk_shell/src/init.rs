@@ -118,16 +118,21 @@ pub fn init(application: &Application) {
     ));
     window.add_controller(key_controller);
 
-    let _source_id = glib::source::unix_fd_add_local(
+    let _source_id = glib::source::unix_fd_add_local_full(
         message_reader.as_raw_fd(),
+        glib::source::Priority::LOW,
         IOCondition::IN,
         clone!(
+            #[strong]
+            widget,
             #[strong]
             state,
             move |_raw_fd, _condition| {
                 // Read from the FD until we can't (with some
                 // kind of stopping point, in case the FD keeps
                 // returning a flood of data?)
+
+                widget.queue_draw();
 
                 // TODO: unwraps
                 let msg = message_reader.read().unwrap();
