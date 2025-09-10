@@ -492,6 +492,12 @@ mod tests {
 
         state.handle_action(Action::RunNonInteractiveProcess, &writer)?;
 
+        // Type in the program.
+        for c in "echo hello world!".chars() {
+            state.handle_action(Action::Insert(c), &writer)?;
+        }
+        state.handle_action(Action::Confirm, &writer)?;
+
         let buf_id = {
             let buf = state
                 .buffers
@@ -516,7 +522,7 @@ mod tests {
         }
 
         // Verify the final buffer text.
-        assert_eq!(state.buffers[&buf_id].text().to_string(), "hello!\n");
+        assert_eq!(state.buffers[&buf_id].text().to_string(), "hello world!\n");
 
         Ok(())
     }
