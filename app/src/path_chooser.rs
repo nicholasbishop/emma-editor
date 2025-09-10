@@ -3,7 +3,6 @@ use crate::action::{Action, Boundary, Direction, Move};
 use crate::buffer::Buffer;
 use crate::key_map::KeyMap;
 use crate::pane_tree::{Pane, Rect};
-use crate::rope::AbsChar;
 use crate::widget::Widget;
 use anyhow::Result;
 use std::path::{Path, PathBuf};
@@ -25,9 +24,7 @@ impl PathChooser {
         default_path += "/";
         buffer.set_text(&default_path);
 
-        let pane = Pane::create_for_widget(buffer.id().clone());
-        buffer.set_cursor(pane.id(), AbsChar(default_path.len()));
-
+        let pane = Pane::create_for_widget(&mut buffer);
         let mut s = Self {
             buffer,
             pane,

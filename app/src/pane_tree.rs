@@ -1,6 +1,7 @@
 // TODO: clippy bug? Triggering on Orientation enum.
 #![allow(clippy::use_self)]
 
+use crate::action::{Boundary, Direction, Move};
 use crate::buffer::{AbsChar, Buffer, BufferId, BufferMap, RelLine};
 use crate::rope::AbsLine;
 use crate::{LineHeight, util};
@@ -60,16 +61,27 @@ pub struct Pane {
 
 impl Pane {
     // Create a one-off pane for use in a widget (e.g. open_file).
-    pub fn create_for_widget(buffer_id: BufferId) -> Self {
-        Self {
+    pub fn create_for_widget(buffer: &mut Buffer) -> Self {
+        let pane = Self {
             id: PaneId::new(),
-            buffer_id,
+            buffer_id: buffer.id().clone(),
             rect: Rect::default(),
             top_line: AbsLine::zero(),
             is_active: true,
             show_info_bar: false,
             is_cursor_visible: true,
-        }
+        };
+        // Create the cursor, and move it to the end of the buffer. This
+        // is done because the buffer may contain default text (e.g. the
+        // current path in when opening a file), and the cursor should
+        // be at the end of that text.
+        buffer.set_cursor(pane.id(), AbsChar::default());
+        buffer.move_cursor(
+            pane.id(),
+            Move::Boundary(Boundary::BufferEnd),
+            Direction::Inc,
+        );
+        pane
     }
 
     pub fn id(&self) -> &PaneId {
