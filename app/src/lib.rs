@@ -1,5 +1,6 @@
 #![expect(clippy::new_without_default)]
 
+mod command_line;
 mod command_line_widget;
 mod key_map;
 mod key_sequence;
