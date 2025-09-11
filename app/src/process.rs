@@ -89,6 +89,14 @@ impl NonInteractiveProcess {
         Ok(())
     }
 
+    pub fn rerun(
+        &mut self,
+        buf_id: BufferId,
+        message_writer: MessageWriter,
+    ) -> Result<()> {
+        self.run(self.command_line.clone(), buf_id, message_writer)
+    }
+
     pub fn set_finished(&mut self) {
         assert!(self.is_running);
 

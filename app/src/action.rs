@@ -76,4 +76,8 @@ pub enum Action {
 
     /// A background process completed.
     ProcessFinished(BufferId),
+
+    /// In a buffer with a process, re-run the process. If the process
+    /// is already running, it will be killed and started anew.
+    RerunProcess,
 }

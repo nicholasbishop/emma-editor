@@ -124,6 +124,7 @@ impl KeyMap {
                 ("<ctrl>x+b", Action::SwitchToBuffer),
                 // TODO: what key to use for this.
                 ("<ctrl>x+<ctrl>p", Action::RunNonInteractiveProcess),
+                ("<ctrl>x+<ctrl>r", Action::RerunProcess),
                 // TODO: make this generic so that any key sequence can be
                 // canceled with ctrl+g.
                 ("<ctrl>g", Action::Cancel),

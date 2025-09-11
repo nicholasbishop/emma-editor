@@ -370,6 +370,16 @@ impl AppState {
                     Some(Overlay::RunProcess(CommandLineWidget::new()));
                 buffer_changed = false;
             }
+            Action::RerunProcess => {
+                let buf = self.active_buffer_mut()?;
+                let buf_id = buf.id().clone();
+
+                if let Some(proc) = buf.non_interactive_process_mut() {
+                    proc.rerun(buf_id, message_writer.try_clone()?)?;
+                }
+
+                buffer_changed = true;
+            }
             Action::ProcessFinished(buf_id) => {
                 let buf = self
                     .buffers
