@@ -18,12 +18,12 @@ impl CommandLine {
     }
 
     pub fn from_string(s: &str) -> Self {
-        // TODO: shell escaping.
-        let mut parts = s.split(" ");
-        let program = parts.next().unwrap_or_default();
+        // TODO: unwrap
+        let parts = shlex::split(s).unwrap();
+        let program = parts.get(0).map(OsString::from).unwrap_or_default();
         Self {
-            program: OsString::from(program),
-            args: parts.map(OsString::from).collect(),
+            program,
+            args: parts.iter().skip(1).map(OsString::from).collect(),
         }
     }
 }
