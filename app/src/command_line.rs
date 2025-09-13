@@ -20,7 +20,7 @@ impl CommandLine {
     pub fn from_string(s: &str) -> Self {
         // TODO: unwrap
         let parts = shlex::split(s).unwrap();
-        let program = parts.get(0).map(OsString::from).unwrap_or_default();
+        let program = parts.first().map(OsString::from).unwrap_or_default();
         Self {
             program,
             args: parts.iter().skip(1).map(OsString::from).collect(),
